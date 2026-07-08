@@ -15,7 +15,7 @@
                     <i class="bi bi-shield-lock-fill"></i>
                 </div>
                 <div>
-                    <div class="brand-text-main">UAM &amp; Review</div>
+                    <div class="brand-text-main">AccessHub</div>
                     <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
                 </div>
             </a>
@@ -59,7 +59,7 @@
         <div class="sidebar-section-label">Modules</div>
         <a href="#" class="sidebar-nav-item" aria-disabled="true">
             <i class="bi bi-table"></i>
-            User Access Matrix
+            AccessHub
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
         </a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true">
@@ -108,7 +108,7 @@
                             {{ Auth::user()->name }}
                         </h1>
                         <p style="color:rgba(255,255,255,.7);font-size:.92rem;margin-bottom:1.75rem;">
-                            User Access Matrix &amp; Review &nbsp;·&nbsp; PT Telkom Infrastruktur Indonesia
+                            AccessHub &nbsp;·&nbsp; PT Telkom Infrastruktur Indonesia
                         </p>
                         <div class="d-flex flex-wrap gap-2">
                             <span style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px);color:#fff;border-radius:20px;padding:.3rem .85rem;font-size:.78rem;font-weight:600;">

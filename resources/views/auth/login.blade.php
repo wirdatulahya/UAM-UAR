@@ -11,14 +11,14 @@
             <div class="brand-badge">
                 <i class="bi bi-shield-lock-fill"></i>
             </div>
-            <h1>User Access Matrix<br>&amp; Review</h1>
+            <h1>AccessHub</h1>
             <p>PT Telkom Infrastruktur Indonesia</p>
         </div>
 
         <div class="auth-panel-features animate-in animate-in-delay-2">
             <div class="feature-item">
                 <i class="bi bi-person-badge-fill"></i>
-                <span>User Access Matrix Management</span>
+                <span>User Access Management</span>
             </div>
             <div class="feature-item">
                 <i class="bi bi-clipboard2-check-fill"></i>
@@ -46,7 +46,7 @@
                         <i class="bi bi-shield-lock-fill text-white"></i>
                     </div>
                     <div>
-                        <div style="font-size:.78rem;font-weight:800;color:var(--secondary);line-height:1.1">UAM &amp; Review</div>
+                        <div style="font-size:.78rem;font-weight:800;color:var(--secondary);line-height:1.1">AccessHub</div>
                         <div style="font-size:.65rem;color:var(--text-muted)">PT Telkom Infrastruktur Indonesia</div>
                     </div>
                 </div>
