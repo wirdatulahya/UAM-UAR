@@ -130,116 +130,206 @@ class AccessMatrixController extends Controller
 
     /**
      * Import records from an uploaded .xlsx or .csv file.
+     * Uses score-based header detection to handle Excel files with title rows
+     * or section rows before the actual column headers.
      */
     public function import(Request $request)
     {
         $request->validate([
-            'file' => [
-                'required',
-                'file',
-                'mimes:xlsx,xls,csv',
-                'max:10240', // 10 MB
-            ],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ], [
             'file.required' => 'Please select a file to upload.',
             'file.mimes'    => 'Only .xlsx, .xls, and .csv files are allowed.',
             'file.max'      => 'The file may not be larger than 10 MB.',
         ]);
 
-        $file     = $request->file('file');
-        $ext      = strtolower($file->getClientOriginalExtension());
-        $rows     = [];
+        $file = $request->file('file');
+        $ext  = strtolower($file->getClientOriginalExtension());
+        $raw  = []; // all rows as numeric-indexed arrays
 
         try {
             if ($ext === 'csv') {
-                // ── CSV parsing ───────────────────────────────────
                 $handle = fopen($file->getRealPath(), 'r');
-                $header = null;
+                // Strip UTF-8 BOM
+                $bom = fread($handle, 3);
+                if ($bom !== "\xEF\xBB\xBF") { rewind($handle); }
                 while (($line = fgetcsv($handle, 0, ',')) !== false) {
-                    if (!$header) {
-                        // Normalise header names
-                        $header = array_map(fn($h) => strtolower(trim(str_replace(' ', '_', $h))), $line);
-                        continue;
-                    }
-                    $rows[] = array_combine($header, $line);
+                    $raw[] = array_values($line);
                 }
                 fclose($handle);
             } else {
-                // ── XLSX / XLS parsing ────────────────────────────
                 $spreadsheet = IOFactory::load($file->getRealPath());
                 $sheet       = $spreadsheet->getActiveSheet();
-                $data        = $sheet->toArray(null, true, true, true);
-
-                if (empty($data)) {
-                    return back()->withErrors(['file' => 'The spreadsheet is empty.']);
-                }
-
-                // First row = headers
-                $headerRow = array_shift($data);
-                $header    = array_map(fn($h) => strtolower(trim(str_replace(' ', '_', $h ?? ''))), $headerRow);
-
-                foreach ($data as $line) {
-                    $values = array_values($line);
-                    // Skip completely empty rows
-                    if (empty(array_filter($values, fn($v) => $v !== null && $v !== ''))) {
-                        continue;
-                    }
-                    $rows[] = array_combine($header, $values);
+                // false = use numeric indices (not cell-ref letters like A,B,C)
+                foreach ($sheet->toArray(null, true, true, false) as $row) {
+                    $raw[] = array_values($row);
                 }
             }
         } catch (\Throwable $e) {
             return back()->withErrors(['file' => 'Could not parse the file: ' . $e->getMessage()]);
         }
 
-        if (empty($rows)) {
-            return back()->withErrors(['file' => 'No data rows found in the file.']);
+        if (empty($raw)) {
+            return back()->withErrors(['file' => 'The file appears to be empty.']);
         }
 
-        // ── Map rows to DB columns ────────────────────────────────
+        // ── Normalize helper: lowercase, collapse whitespace → underscore ──
+        $normalize = fn($v) => trim(
+            preg_replace('/_+/', '_',
+                preg_replace('/[^a-z0-9]+/', '_',
+                    strtolower(trim((string)($v ?? '')))
+                )
+            ), '_'
+        );
+
+        // ── Flat alias → DB column map ─────────────────────────────────────
+        // NOTE: 'modul'/'stream_process'/'total_role' intentionally excluded
+        $aliasMap = [
+            // no
+            'no' => 'no',  'nomor' => 'no',  'number' => 'no',  'num' => 'no',
+            // nip
+            'nip' => 'nip',  'employee_id' => 'nip',  'id_pegawai' => 'nip',  'nik' => 'nip',
+            // nama
+            'nama' => 'nama',  'name' => 'nama',  'full_name' => 'nama',  'nama_lengkap' => 'nama',
+            'nama_karyawan' => 'nama',
+            // jabatan
+            'jabatan' => 'jabatan',  'position' => 'jabatan',  'posisi' => 'jabatan',
+            'job_title' => 'jabatan',  'title' => 'jabatan',  'jabatan_posisi' => 'jabatan',
+            // department
+            'department' => 'department',  'dept' => 'department',  'departemen' => 'department',
+            'divisi' => 'department',  'unit' => 'department',  'bagian' => 'department',
+            'unit_kerja' => 'department',
+            // aplikasi  (NOT 'modul' — that is excluded per user request)
+            'aplikasi' => 'aplikasi',  'application' => 'aplikasi',  'app' => 'aplikasi',
+            'sistem' => 'aplikasi',  'system' => 'aplikasi',  'nama_aplikasi' => 'aplikasi',
+            // hak_akses
+            'hak_akses' => 'hak_akses',  'hak akses' => 'hak_akses',  'hakakses' => 'hak_akses',
+            'access' => 'hak_akses',  'access_rights' => 'hak_akses',  'privilege' => 'hak_akses',
+            'role' => 'hak_akses',  'role_code' => 'hak_akses',  'hak' => 'hak_akses',
+            'user_role' => 'hak_akses',
+            // status
+            'status' => 'status',  'aktif' => 'status',  'active' => 'status',
+            // keterangan
+            'keterangan' => 'keterangan',  'ket' => 'keterangan',  'notes' => 'keterangan',
+            'note' => 'keterangan',  'remarks' => 'keterangan',  'remark' => 'keterangan',
+            'description' => 'keterangan',  'desc' => 'keterangan',  'info' => 'keterangan',
+            'keterangan_akses' => 'keterangan',
+        ];
+
+        // ── Find the BEST header row by scoring alias matches ──────────────
+        // Scan first 20 rows; pick the row whose cells match the most aliases.
+        // This skips "Modul | Stream Process | Total Role" style rows (score=0)
+        // and correctly finds "No | NIP | Nama | Jabatan | ..." (score=7+).
+        $bestScore      = -1;
+        $headerRowIdx   = -1;
+        $firstValidIdx  = -1;
+        $searchLimit    = min(count($raw), 20);
+
+        for ($i = 0; $i < $searchLimit; $i++) {
+            $row      = $raw[$i];
+            $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
+            if (count($nonEmpty) < 2) continue;
+
+            if ($firstValidIdx === -1) $firstValidIdx = $i;
+
+            $score = 0;
+            foreach ($row as $cell) {
+                $norm = $normalize($cell);
+                if ($norm !== '' && isset($aliasMap[$norm])) $score++;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore    = $score;
+                $headerRowIdx = $i;
+            }
+        }
+
+        // If nothing scored (all headers are custom/unknown), fall back to first valid row
+        if ($headerRowIdx === -1) {
+            $headerRowIdx = ($firstValidIdx !== -1) ? $firstValidIdx : 0;
+        }
+
+        $headerRow = $raw[$headerRowIdx];
+        $headers   = array_map($normalize, $headerRow);
+        $dataRows  = array_slice($raw, $headerRowIdx + 1);
+
+        // Log detected headers for debugging
+        \Illuminate\Support\Facades\Log::info('AccessMatrix import headers detected', [
+            'header_row_index' => $headerRowIdx,
+            'score'            => $bestScore,
+            'headers'          => $headers,
+            'file'             => $file->getClientOriginalName(),
+        ]);
+
+        // ── Build index→dbColumn mapping ───────────────────────────────────
+        $colMap = [];
+        foreach ($headers as $idx => $norm) {
+            if ($norm === '' || $norm === '_') continue;
+            $dbCol = $aliasMap[$norm] ?? null;
+            if ($dbCol && !in_array($dbCol, $colMap)) {
+                $colMap[$idx] = $dbCol;
+            }
+        }
+
+        // ── Positional fallback if alias matching found < 2 columns ────────
+        if (count($colMap) < 2) {
+            $colMap = [];
+            $positional = ['no', 'nip', 'nama', 'jabatan', 'department', 'aplikasi', 'hak_akses', 'status', 'keterangan'];
+            $validIndices = array_keys(array_filter($headers, fn($h) => $h !== '' && $h !== '_'));
+            foreach ($validIndices as $order => $colIdx) {
+                if (isset($positional[$order])) {
+                    $colMap[$colIdx] = $positional[$order];
+                }
+            }
+
+            \Illuminate\Support\Facades\Log::warning('AccessMatrix: using positional fallback mapping', [
+                'colMap' => $colMap,
+                'headers' => $headers,
+            ]);
+        }
+
+        if (empty($colMap)) {
+            $detected = implode(', ', array_filter($headers));
+            return back()->withErrors([
+                'file' => "Could not map any columns. Detected headers: [{$detected}]. "
+                        . "Expected: No, NIP, Nama, Jabatan, Department, Aplikasi/Hak Akses, Status, Keterangan.",
+            ]);
+        }
+
+        // ── Build insert records ───────────────────────────────────────────
         $userId  = Auth::id();
         $now     = now();
         $inserts = [];
 
-        // Accept flexible column name variants
-        $columnMap = [
-            'no'         => ['no', 'number', 'num', 'nomor'],
-            'nip'        => ['nip', 'employee_id', 'id_pegawai'],
-            'nama'       => ['nama', 'name', 'full_name', 'nama_lengkap'],
-            'jabatan'    => ['jabatan', 'position', 'role', 'posisi'],
-            'department' => ['department', 'dept', 'departemen', 'divisi'],
-            'aplikasi'   => ['aplikasi', 'application', 'app', 'sistem'],
-            'hak_akses'  => ['hak_akses', 'access_rights', 'access', 'hak', 'privilege'],
-            'status'     => ['status', 'active', 'aktif'],
-            'keterangan' => ['keterangan', 'notes', 'note', 'remark', 'remarks', 'description', 'ket'],
-        ];
+        foreach ($dataRows as $row) {
+            $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
+            if (empty($nonEmpty)) continue;
 
-        foreach ($rows as $row) {
             $record = ['imported_by' => $userId, 'created_at' => $now, 'updated_at' => $now];
-
-            foreach ($columnMap as $dbCol => $aliases) {
-                $record[$dbCol] = null;
-                foreach ($aliases as $alias) {
-                    if (array_key_exists($alias, $row)) {
-                        $record[$dbCol] = $row[$alias] !== '' ? $row[$alias] : null;
-                        break;
-                    }
-                }
+            foreach ($colMap as $idx => $dbCol) {
+                $val = $row[$idx] ?? null;
+                $record[$dbCol] = ($val !== null && trim((string)$val) !== '') ? $val : null;
             }
-
             $inserts[] = $record;
         }
 
-        // ── Truncate old data and insert new ──────────────────────
+        if (empty($inserts)) {
+            return back()->withErrors(['file' => 'No data rows found after the header row.']);
+        }
+
+        // ── Truncate old + bulk insert new ────────────────────────────────
         AccessMatrixRecord::truncate();
         foreach (array_chunk($inserts, 500) as $chunk) {
             AccessMatrixRecord::insert($chunk);
         }
 
-        $count = count($inserts);
+        $count      = count($inserts);
+        $mappedCols = implode(', ', array_unique(array_values($colMap)));
 
-        return redirect()->route('access-matrix.index')
-            ->with('success', "Successfully imported {$count} record(s) from {$file->getClientOriginalName()}.");
+        return redirect()->route('access-matrix.index', ['tab' => 'raw'])
+            ->with('success', "Successfully imported {$count} record(s) from \"{$file->getClientOriginalName()}\". Columns mapped: {$mappedCols}.");
     }
+
 
     /**
      * Clear all imported records.
