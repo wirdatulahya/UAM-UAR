@@ -12,12 +12,120 @@ class AccessMatrixController extends Controller
     /**
      * Show Access Matrix page with all imported records.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $records = AccessMatrixRecord::orderBy('no')->paginate(50);
-        $total   = AccessMatrixRecord::count();
+        $search = $request->input('search');
+        $module = $request->input('module');
+        $activeTab = $request->input('tab', 'roles');
 
-        return view('access-matrix.index', compact('records', 'total'));
+        $totalRecords = AccessMatrixRecord::count();
+
+        // 1. Get list of unique modules for filter dropdown
+        if ($totalRecords > 0) {
+            $availableModules = AccessMatrixRecord::whereNotNull('aplikasi')
+                ->where('aplikasi', '!=', '')
+                ->groupBy('aplikasi')
+                ->pluck('aplikasi')
+                ->toArray();
+        } else {
+            $availableModules = ['PS']; // From dummy data
+        }
+
+        $dummyRoles = [
+            [
+                'role_code' => 'ZPS-MD-1014-000000-PROJ-CHG',
+                'description' => 'PS-TIF: Change Project Structure Master Data',
+                'stream_process' => 'Operation',
+                'module' => 'PS',
+            ],
+            [
+                'role_code' => 'ZPS-MD-1014-000000-PROJ-VWR',
+                'description' => 'PS-TIF: Change Project Structure Master Data',
+                'stream_process' => 'Operation',
+                'module' => 'PS',
+            ],
+        ];
+
+        // 2. Fetch or Mock Roles
+        if ($totalRecords === 0) {
+            // Apply search & filter to dummy data
+            $rolesCollection = collect($dummyRoles);
+            if (!empty($search)) {
+                $rolesCollection = $rolesCollection->filter(function($role) use ($search) {
+                    return stripos($role['role_code'], $search) !== false 
+                        || stripos($role['description'], $search) !== false;
+                });
+            }
+            if (!empty($module)) {
+                $rolesCollection = $rolesCollection->filter(function($role) use ($module) {
+                    return $role['module'] === $module;
+                });
+            }
+
+            $totalRoles = $rolesCollection->count();
+            $perPage = 15;
+            $currentPage = $request->input('page', 1);
+            $roles = new \Illuminate\Pagination\LengthAwarePaginator(
+                $rolesCollection->forPage($currentPage, $perPage)->values(),
+                $totalRoles,
+                $perPage,
+                $currentPage,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+
+            $rawRecords = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
+        } else {
+            // Database has records, extract roles dynamically by grouping hak_akses
+            $rolesQuery = AccessMatrixRecord::select('hak_akses as role_code', 'keterangan as description', 'aplikasi as module')
+                ->whereNotNull('hak_akses')
+                ->where('hak_akses', '!=', '')
+                ->groupBy('hak_akses', 'keterangan', 'aplikasi');
+
+            if (!empty($search)) {
+                $rolesQuery->where(function($q) use ($search) {
+                    $q->where('hak_akses', 'like', "%{$search}%")
+                      ->orWhere('keterangan', 'like', "%{$search}%");
+                });
+            }
+
+            if (!empty($module)) {
+                $rolesQuery->where('aplikasi', $module);
+            }
+
+            // Paginate unique roles
+            $roles = $rolesQuery->paginate(15, ['*'], 'page')->withQueryString();
+
+            // 3. Fetch Raw Records
+            $rawQuery = AccessMatrixRecord::orderBy('no');
+
+            if (!empty($search)) {
+                $rawQuery->where(function($q) use ($search) {
+                    $q->where('nip', 'like', "%{$search}%")
+                      ->orWhere('nama', 'like', "%{$search}%")
+                      ->orWhere('jabatan', 'like', "%{$search}%")
+                      ->orWhere('department', 'like', "%{$search}%")
+                      ->orWhere('aplikasi', 'like', "%{$search}%")
+                      ->orWhere('hak_akses', 'like', "%{$search}%")
+                      ->orWhere('keterangan', 'like', "%{$search}%");
+                });
+            }
+
+            if (!empty($module)) {
+                $rawQuery->where('aplikasi', $module);
+            }
+
+            $rawRecords = $rawQuery->paginate(15, ['*'], 'page')->withQueryString();
+        }
+
+        return view('access-matrix.index', compact(
+            'roles',
+            'rawRecords',
+            'availableModules',
+            'totalRecords',
+            'search',
+            'module',
+            'activeTab'
+        ));
     }
 
     /**
