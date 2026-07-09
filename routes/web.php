@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AccessMatrixController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -47,6 +48,10 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Access Matrix
+    Route::get('/access-matrix', [AccessMatrixController::class, 'index'])
+        ->name('access-matrix.index');
+
     // Change Password
     Route::get('/change-password', [ChangePasswordController::class, 'showChangePasswordForm'])->name('password.change');
     Route::post('/change-password', [ChangePasswordController::class, 'changePassword'])->name('password.update');
@@ -55,11 +60,9 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     | Future Modules — add routes here as the application grows
     |--------------------------------------------------------------------------
-    | - User Access Matrix  (UAM)
-    | - User Access Review  (UAR)
+    | - User Access Review (UAR)
     | - Monitoring
     | - Reports
     |--------------------------------------------------------------------------
     */
 });
-

@@ -84,12 +84,10 @@
             Dashboard
         </a>
 
-        <div class="sidebar-section-label">Modules</div>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-table"></i>
-            AccessHub
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
+        <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item">
+    <i class="bi bi-table"></i>
+    Access Matrix
+</a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true">
             <i class="bi bi-clipboard2-check-fill"></i>
             Access Review
@@ -157,7 +155,7 @@
 
             @php
                 $modules = [
-                    ['icon' => 'bi-table',                   'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'User Access Matrix',  'desc' => 'Manage and track user access permissions across all systems.',       'status' => 'coming-soon'],
+                    ['icon' => 'bi-table',                   'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Access Matrix',  'desc' => 'Manage and track user access permissions across all systems.',       'status' => 'coming-soon'],
                     ['icon' => 'bi-clipboard2-check-fill',   'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Access Review',        'desc' => 'Conduct periodic reviews and certifications of user access rights.', 'status' => 'coming-soon'],
                     ['icon' => 'bi-graph-up-arrow',          'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Monitoring',           'desc' => 'Real-time monitoring of access activities and system events.',        'status' => 'coming-soon'],
                     ['icon' => 'bi-file-earmark-bar-graph-fill', 'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Reports',         'desc' => 'Generate compliance and audit reports for management review.',        'status' => 'coming-soon'],
