@@ -51,6 +51,10 @@ Route::middleware('auth')->group(function () {
     // Access Matrix
     Route::get('/access-matrix', [AccessMatrixController::class, 'index'])
         ->name('access-matrix.index');
+    Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])
+        ->name('access-matrix.import');
+    Route::delete('/access-matrix/clear', [AccessMatrixController::class, 'clear'])
+        ->name('access-matrix.clear');
 
     // Change Password
     Route::get('/change-password', [ChangePasswordController::class, 'showChangePasswordForm'])->name('password.change');
