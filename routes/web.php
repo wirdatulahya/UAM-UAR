@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +47,10 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Change Password
+    Route::get('/change-password', [ChangePasswordController::class, 'showChangePasswordForm'])->name('password.change');
+    Route::post('/change-password', [ChangePasswordController::class, 'changePassword'])->name('password.update');
+
     /*
     |--------------------------------------------------------------------------
     | Future Modules — add routes here as the application grows
@@ -57,3 +62,4 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 });
+

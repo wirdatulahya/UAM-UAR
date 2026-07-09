@@ -35,6 +35,7 @@
         </div>
     </div>
 
+    
     {{-- ─── Right Login Form ────────────────────────────────────────── --}}
     <div class="auth-content">
         <div class="auth-card">

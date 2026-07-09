@@ -28,9 +28,14 @@
                     </div>
                     <div style="line-height:1.2;">
                         <div style="font-size:.82rem;font-weight:700;color:var(--text);">{{ Auth::user()->name }}</div>
-                        <div style="font-size:.7rem;color:var(--text-muted);">@{{ Auth::user()->username }}</div>
+                        <div style="font-size:.7rem;color:var(--text-muted);">{{ '@' . Auth::user()->username }}</div>
                     </div>
                 </div>
+
+                <a href="{{ route('password.change') }}" class="btn-logout me-1" style="text-decoration:none;">
+                    <i class="bi bi-key-fill"></i>
+                    <span class="d-none d-sm-inline">Change Password</span>
+                </a>
 
                 <form method="POST" action="{{ route('logout') }}" id="logoutForm">
                     @csrf
@@ -76,6 +81,12 @@
             <i class="bi bi-file-earmark-bar-graph-fill"></i>
             Reports
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
+        </a>
+
+        <div class="sidebar-section-label">Account</div>
+        <a href="{{ route('password.change') }}" class="sidebar-nav-item">
+            <i class="bi bi-key-fill"></i>
+            Change Password
         </a>
     </aside>
 
