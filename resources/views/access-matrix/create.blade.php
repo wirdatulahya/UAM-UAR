@@ -163,12 +163,12 @@
 
                             {{-- UNI --}}
                             <div class="col-12 col-sm-6">
-                                <label for="uni" class="form-label">UNI</label>
-                                <input type="text" id="uni" name="uni"
-                                       class="form-control @error('uni') is-invalid @enderror"
-                                       value="{{ old('uni') }}"
+                                <label for="unit" class="form-label">UNIT</label>
+                                <input type="text" id="unit" name="unit"
+                                       class="form-control @error('unit') is-invalid @enderror"
+                                       value="{{ old('unit') }}"
                                        placeholder="Unit name">
-                                @error('uni')
+                                @error('unit')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

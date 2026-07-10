@@ -13,7 +13,7 @@ class UamRecord extends Model
         'role',
         'description_role',
         'tcode',
-        'uni',
+        'unit',
         'bpo',
         'access_owner',
         'imported_by',

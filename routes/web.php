@@ -75,6 +75,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/access-matrix/{uamRecord}', [AccessMatrixController::class, 'destroy'])
         ->name('access-matrix.destroy');
 
+    // AJAX — role details for Access modal
+    Route::get('/access-matrix/role-details', [AccessMatrixController::class, 'roleDetails'])
+        ->name('access-matrix.role-details');
+
     // Change Password
     Route::get('/change-password', [ChangePasswordController::class, 'showChangePasswordForm'])->name('password.change');
     Route::post('/change-password', [ChangePasswordController::class, 'changePassword'])->name('password.update');

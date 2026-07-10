@@ -212,7 +212,7 @@
                             Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> &nbsp;·&nbsp; Max 10 MB
                         </p>
                         <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                            Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNI</code>, <code>BPO</code>, <code>Access Owner</code>
+                            Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNIT</code>, <code>BPO</code>, <code>Access Owner</code>
                         </p>
 
                         <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display:none;">
@@ -496,8 +496,8 @@
             <div id="modalContentWrapper" style="display:none;">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
                     <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);">
-                        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">UNI</div>
-                        <div id="modalUni" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+                        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">UNIT</div>
+                        <div id="modalUnit" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
                     </div>
                     <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);">
                         <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">Access Owner</div>
@@ -675,7 +675,7 @@
     // ── Access Modal ───────────────────────────────────────────────
     const accessModal = document.getElementById('accessModal');
     const modalRole   = document.getElementById('modalRole');
-    const modalUni    = document.getElementById('modalUni');
+    const modalUnit    = document.getElementById('modalUnit');
     const modalBpo    = document.getElementById('modalBpo');
     const modalOwner  = document.getElementById('modalOwner');
     const modalTcodes = document.getElementById('modalTcodes');
@@ -696,7 +696,7 @@
             const data = await res.json();
             
             if (res.ok) {
-                modalUni.textContent = data.uni || '—';
+                modalUnit.textContent = data.unit || '—';
                 modalBpo.textContent = data.bpo || '—';
                 
                 if (data.access_owner && data.access_owner !== '—') {
