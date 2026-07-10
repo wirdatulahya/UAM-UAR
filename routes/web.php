@@ -47,6 +47,10 @@ Route::middleware('auth')->group(function () {
     // Index (with Role search)
     Route::get('/access-matrix', [AccessMatrixController::class, 'index'])
         ->name('access-matrix.index');
+        
+    // Role Details (AJAX)
+    Route::get('/access-matrix/role-details', [AccessMatrixController::class, 'roleDetails'])
+        ->name('access-matrix.role-details');
 
     // Import Excel
     Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])

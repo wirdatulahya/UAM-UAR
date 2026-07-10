@@ -52,6 +52,10 @@ class AccessMatrixController extends Controller
         $ext  = strtolower($file->getClientOriginalExtension());
         $raw  = [];
 
+        // Save the file for dynamic parsing later
+        \Illuminate\Support\Facades\Storage::disk('local')->deleteDirectory('imports');
+        $file->storeAs('imports', 'latest_uam.' . $ext, 'local');
+
         // ── Read file into $raw (array of numeric-indexed rows) ────────────
         try {
             if ($ext === 'csv') {
@@ -364,5 +368,84 @@ class AccessMatrixController extends Controller
         return redirect()
             ->route('access-matrix.index')
             ->with('success', 'All UAM records have been cleared.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ROLE DETAILS (AJAX) — Fetch all TCODEs and info for a given role
+    // ─────────────────────────────────────────────────────────────────────────
+    public function roleDetails(Request $request)
+    {
+        $role = $request->input('role');
+        if (!$role) {
+            return response()->json(['error' => 'Role is required'], 400);
+        }
+
+        // Existing TCODE list for the selected role
+        $records = UamRecord::where('role', $role)->get();
+        if ($records->isEmpty()) {
+            return response()->json(['error' => 'No records found for this role'], 404);
+        }
+
+        $tcodes = $records->pluck('tcode')->filter()->unique()->values();
+
+        // Dynamically parse the uploaded Excel file for metadata
+        $globalUni = null;
+        $globalBpo = null;
+        $globalOwner = null;
+
+        $files = \Illuminate\Support\Facades\Storage::disk('local')->files('imports');
+        if (!empty($files)) {
+            $latestFile = $files[0];
+            $path = storage_path('app/' . $latestFile);
+            try {
+                $ext = pathinfo($path, PATHINFO_EXTENSION);
+                if ($ext === 'csv') {
+                    $handle = fopen($path, 'r');
+                    while (($line = fgetcsv($handle, 0, ',')) !== false) {
+                        foreach ($line as $colIdx => $cell) {
+                            if (is_string($cell)) {
+                                $val = strtolower(trim($cell));
+                                if ($val === 'unit' || $val === 'uni') {
+                                    $globalUni = trim((string)($line[$colIdx + 1] ?? $globalUni));
+                                } elseif ($val === 'bpo' || $val === 'business process owner') {
+                                    $globalBpo = trim((string)($line[$colIdx + 1] ?? $globalBpo));
+                                } elseif (str_contains($val, 'total role')) {
+                                    $globalOwner = trim((string)($line[$colIdx + 1] ?? $globalOwner));
+                                }
+                            }
+                        }
+                    }
+                    fclose($handle);
+                } else {
+                    $spreadsheet = IOFactory::load($path);
+                    $sheet       = $spreadsheet->getActiveSheet();
+                    foreach ($sheet->toArray(null, true, true, false) as $row) {
+                        $row = array_values($row);
+                        foreach ($row as $colIdx => $cell) {
+                            if (is_string($cell)) {
+                                $val = strtolower(trim($cell));
+                                if ($val === 'unit' || $val === 'uni') {
+                                    $globalUni = trim((string)($row[$colIdx + 1] ?? $globalUni));
+                                } elseif ($val === 'bpo' || $val === 'business process owner') {
+                                    $globalBpo = trim((string)($row[$colIdx + 1] ?? $globalBpo));
+                                } elseif (str_contains($val, 'total role')) {
+                                    $globalOwner = trim((string)($row[$colIdx + 1] ?? $globalOwner));
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore parse errors, fallback to null
+            }
+        }
+
+        return response()->json([
+            'role' => $role,
+            'uni' => $globalUni,
+            'bpo' => $globalBpo,
+            'access_owner' => $globalOwner,
+            'tcodes' => $tcodes
+        ]);
     }
 }

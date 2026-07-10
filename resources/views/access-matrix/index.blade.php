@@ -331,9 +331,7 @@
                                 <th style="{{ $thStyle }}">Role</th>
                                 <th style="{{ $thStyle }}">Description Role</th>
                                 <th style="{{ $thStyle }}">TCODE</th>
-                                <th style="{{ $thStyle }}">UNI</th>
-                                <th style="{{ $thStyle }}">BPO</th>
-                                <th style="{{ $thStyle }}">Access Owner</th>
+                                <th style="{{ $thStyle }}">Access</th>
                                 <th style="{{ $thStyle }}">Actions</th>
                             </tr>
                         </thead>
@@ -363,17 +361,14 @@
                                             <span style="color:var(--text-muted);">—</span>
                                         @endif
                                     </td>
-                                    <td style="padding:.7rem 1rem;white-space:nowrap;">{{ $rec->uni ?? '—' }}</td>
-                                    <td style="padding:.7rem 1rem;white-space:nowrap;">{{ $rec->bpo ?? '—' }}</td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                        @if($rec->access_owner)
-                                            <span style="display:inline-flex;align-items:center;gap:.3rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:.2rem .55rem;font-size:.75rem;font-weight:600;border:1px solid #bbf7d0;">
-                                                <i class="bi bi-person-check-fill" style="font-size:.65rem;"></i>
-                                                {{ $rec->access_owner }}
-                                            </span>
-                                        @else
-                                            <span style="color:var(--text-muted);">—</span>
-                                        @endif
+                                        <button type="button" onclick="openAccessModal(this)"
+                                            data-role="{{ htmlspecialchars($rec->role ?? '—') }}"
+                                            style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
+                                            onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
+                                            onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
+                                            <i class="bi bi-shield-lock"></i> View Access
+                                        </button>
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
                                         <div class="d-flex align-items-center gap-1">
@@ -477,6 +472,56 @@
         </div>
 
     </main>
+
+    {{-- Access Modal --}}
+    <div id="accessModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px);">
+        <div class="animate-in" style="background:#fff;border-radius:16px;width:100%;max-width:550px;padding:1.5rem;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;border-bottom:1px solid var(--border);padding-bottom:.75rem;">
+                <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.5rem;">
+                    <i class="bi bi-shield-check" style="color:var(--primary);"></i> Access Permissions
+                </h3>
+                <button type="button" onclick="closeAccessModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--text-muted);transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div style="margin-bottom:1rem;font-size:.85rem;color:var(--text-muted);">
+                Showing access details for role: <strong id="modalRole" style="color:var(--secondary);font-family:monospace;background:#f1f5f9;padding:.2rem .4rem;border-radius:4px;border:1px solid var(--border);"></strong>
+            </div>
+
+            <div id="modalLoading" style="display:none;text-align:center;padding:2rem;">
+                <div class="spinner-border text-primary" role="status" style="width:1.5rem;height:1.5rem;border-width:.2em;color:var(--primary) !important;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div style="font-size:.85rem;color:var(--text-muted);margin-top:.5rem;">Loading data...</div>
+            </div>
+
+            <div id="modalContentWrapper" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                    <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);">
+                        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">UNI</div>
+                        <div id="modalUni" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+                    </div>
+                    <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);">
+                        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">Access Owner</div>
+                        <div id="modalOwner" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+                    </div>
+                </div>
+                <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);margin-bottom:1rem;">
+                    <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">BPO (Business Process Owner)</div>
+                    <div id="modalBpo" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+                </div>
+                
+                <div style="background:#fff;padding:1rem;border-radius:10px;border:1px solid var(--border);">
+                    <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Associated TCODEs</div>
+                    <div id="modalTcodes" style="display:flex;flex-wrap:wrap;gap:.4rem;">
+                        <!-- TCODEs go here -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:1.5rem;text-align:right;">
+                <button type="button" onclick="closeAccessModal()" style="padding:.5rem 1.25rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:filter var(--transition);" onmouseenter="this.style.filter='brightness(1.1)'" onmouseleave="this.style.filter=''">Close</button>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -626,5 +671,69 @@
     // Auto-focus search input
     const si = document.getElementById('searchInput');
     if (si && !si.value) si.focus();
+
+    // ── Access Modal ───────────────────────────────────────────────
+    const accessModal = document.getElementById('accessModal');
+    const modalRole   = document.getElementById('modalRole');
+    const modalUni    = document.getElementById('modalUni');
+    const modalBpo    = document.getElementById('modalBpo');
+    const modalOwner  = document.getElementById('modalOwner');
+    const modalTcodes = document.getElementById('modalTcodes');
+    
+    const modalLoading = document.getElementById('modalLoading');
+    const modalContent = document.getElementById('modalContentWrapper');
+
+    async function openAccessModal(btn) {
+        const role = btn.dataset.role;
+        modalRole.textContent = role;
+        
+        accessModal.style.display = 'flex';
+        modalLoading.style.display = 'block';
+        modalContent.style.display = 'none';
+        
+        try {
+            const res = await fetch(`/access-matrix/role-details?role=${encodeURIComponent(role)}`);
+            const data = await res.json();
+            
+            if (res.ok) {
+                modalUni.textContent = data.uni || '—';
+                modalBpo.textContent = data.bpo || '—';
+                
+                if (data.access_owner && data.access_owner !== '—') {
+                    modalOwner.innerHTML = `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:.2rem .55rem;font-size:.8rem;font-weight:600;border:1px solid #bbf7d0;"><i class="bi bi-person-check-fill"></i> ${data.access_owner}</span>`;
+                } else {
+                    modalOwner.textContent = '—';
+                }
+                
+                if (data.tcodes && data.tcodes.length > 0) {
+                    modalTcodes.innerHTML = data.tcodes.map(t => 
+                        `<span style="display:inline-flex;align-items:center;background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:.2rem .5rem;font-size:.75rem;font-weight:600;border:1px solid #bfdbfe;font-family:monospace;">${t}</span>`
+                    ).join('');
+                } else {
+                    modalTcodes.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">No TCODEs associated</span>';
+                }
+                
+                modalLoading.style.display = 'none';
+                modalContent.style.display = 'block';
+            } else {
+                alert('Error fetching details: ' + (data.error || 'Unknown error'));
+                closeAccessModal();
+            }
+        } catch (e) {
+            alert('Failed to connect to server.');
+            closeAccessModal();
+        }
+    }
+
+    function closeAccessModal() {
+        accessModal.style.display = 'none';
+    }
+
+    // Close modal on click outside
+    window.addEventListener('click', function(e) {
+        if (e.target === accessModal) {
+            closeAccessModal();
+        }
+    });
 </script>
 @endpush
