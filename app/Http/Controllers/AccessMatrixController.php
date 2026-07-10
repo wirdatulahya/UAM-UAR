@@ -169,20 +169,35 @@ class AccessMatrixController extends Controller
         $bpoRow  = [];
 
         // Scan rows 0 … headerRowIdx-1 for rows labelled "unit" or "bpo"
+        $unitRowIdx = -1;
+        $bpoRowIdx  = -1;
+
         for ($i = 0; $i < $headerRowIdx; $i++) {
             $row = array_values((array)($raw[$i] ?? []));
             foreach (array_slice($row, 0, 6) as $cell) {
                 $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim((string)($cell ?? '')))));
                 if (in_array($lower, ['unit', 'unit kerja', 'nama unit'])) {
-                    $unitRow = $row;
+                    $unitRowIdx = $i;
                     break;
                 }
                 if (in_array($lower, ['bpo', 'business process owner'])) {
-                    $bpoRow = $row;
+                    $bpoRowIdx = $i;
                     break;
                 }
             }
         }
+
+        // Positional fallback: no labelled rows found → assume the Excel uses
+        // the two rows immediately above the header row as UNIT (H-2) and BPO (H-1)
+        if ($unitRowIdx < 0 && $headerRowIdx >= 2) {
+            $unitRowIdx = $headerRowIdx - 2;
+        }
+        if ($bpoRowIdx < 0 && $headerRowIdx >= 1) {
+            $bpoRowIdx = $headerRowIdx - 1;
+        }
+
+        $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
+        $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
 
         // Collect AO columns (index => AO name) — only columns to the right of
         // TCODE that have a non-empty label in the header row and are not already
@@ -204,17 +219,14 @@ class AccessMatrixController extends Controller
 
         // ── 4. Parse data rows ────────────────────────────────────────────────
         //
-        // Strategy: build an associative array keyed by  role|tcode  so that
-        // each (role, tcode) pair is stored exactly ONCE.  Access owners whose
-        // cell value equals 1 are accumulated into a set; at the end we join
-        // them with "|" into the access_owner field.
-        //
-        // unit / bpo come from the *first* AO column that has value 1 for this
-        // row (or from a "unit"/"bpo" column if the sheet has those explicitly).
+        // Key: role|tcode|unit|bpo  — one record per unique (role, tcode, unit, bpo)
+        // combination so the View Access modal can reconstruct the full hierarchy.
+        // Within each group the access_owners list accumulates all AO columns
+        // whose cell value equals 1.
 
         $userId = Auth::id();
         $now    = now();
-        $rowMap = [];   // "role|tcode" => record array
+        $rowMap = [];   // "role|tcode|unit|bpo" => record array
 
         foreach (array_slice($raw, $headerRowIdx + 1) as $row) {
             $row      = array_values((array)$row);
@@ -222,9 +234,9 @@ class AccessMatrixController extends Controller
             if (empty($nonEmpty)) continue;
 
             // --- Extract fixed columns via colMap ---
-            $role        = null;
-            $tcode       = null;
-            $descRole    = null;
+            $role         = null;
+            $tcode        = null;
+            $descRole     = null;
             $explicitUnit = null;
             $explicitBpo  = null;
 
@@ -240,55 +252,88 @@ class AccessMatrixController extends Controller
                 }
             }
 
-            // Skip rows that lack both role and tcode
             if (empty($role) || empty($tcode)) continue;
 
-            $key = strtolower($role) . '|' . strtolower($tcode);
-
-            // Initialise the record slot the first time we see this (role,tcode)
-            if (!isset($rowMap[$key])) {
-                $rowMap[$key] = [
-                    'role'             => $role,
-                    'tcode'            => $tcode,
-                    'description_role' => $descRole,
-                    'unit'             => $explicitUnit,
-                    'bpo'              => $explicitBpo,
-                    'access_owners'    => [],   // collected AO names (value == 1)
-                    'imported_by'      => $userId,
-                    'created_at'       => $now,
-                    'updated_at'       => $now,
-                ];
-            }
-
-            // Carry description if the earlier row missed it
-            if (empty($rowMap[$key]['description_role']) && !empty($descRole)) {
-                $rowMap[$key]['description_role'] = $descRole;
-            }
-
-            // --- Collect Access Owners (matrix columns, value must be exactly 1) ---
+            // --- Collect Access Owners grouped by (unit, bpo) ---
             if (!empty($matrixAoCols)) {
+                // Group AO columns by their (unit, bpo) pair
+                $groups = [];  // 'unit||bpo' => [colIdx, ...]
                 foreach ($matrixAoCols as $c => $aoName) {
-                    $cellVal = $row[$c] ?? null;
+                    $u = $aoUnitMap[$c] ?? '';
+                    $b = $aoBpoMap[$c]  ?? '';
+                    $groups[$u . '||' . $b][] = $c;
+                }
 
-                    // Accept integer 1, float 1.0, or string "1" — reject everything else
-                    $isOne = ($cellVal === 1)
-                          || ($cellVal === 1.0)
-                          || (is_string($cellVal) && trim($cellVal) === '1');
+                foreach ($groups as $ubKey => $cols) {
+                    [$unitVal, $bpoVal] = explode('||', $ubKey, 2);
 
-                    if (!$isOne) continue;
-
-                    // Add the owner name if not already in the list
-                    if (!in_array($aoName, $rowMap[$key]['access_owners'], true)) {
-                        $rowMap[$key]['access_owners'][] = $aoName;
+                    // Collect all AO names whose cell = 1 in this (unit, bpo) group
+                    $owners = [];
+                    foreach ($cols as $c) {
+                        $cellVal = $row[$c] ?? null;
+                        $isOne   = ($cellVal === 1)
+                                || ($cellVal === 1.0)
+                                || (is_string($cellVal) && trim($cellVal) === '1');
+                        if ($isOne) {
+                            $aoName = $matrixAoCols[$c];
+                            if (!in_array($aoName, $owners, true)) {
+                                $owners[] = $aoName;
+                            }
+                        }
                     }
 
-                    // Pull unit/bpo from this column's header rows (first hit wins)
-                    if (empty($rowMap[$key]['unit']) && !empty($aoUnitMap[$c])) {
-                        $rowMap[$key]['unit'] = $aoUnitMap[$c];
+                    if (empty($owners)) continue;  // skip groups with no active AOs
+
+                    $effectiveUnit = $explicitUnit ?: $unitVal;
+                    $effectiveBpo  = $explicitBpo  ?: $bpoVal;
+
+                    $key = strtolower($role) . '|' . strtolower($tcode)
+                         . '|' . strtolower($effectiveUnit)
+                         . '|' . strtolower($effectiveBpo);
+
+                    if (!isset($rowMap[$key])) {
+                        $rowMap[$key] = [
+                            'role'             => $role,
+                            'tcode'            => $tcode,
+                            'description_role' => $descRole,
+                            'unit'             => $effectiveUnit,
+                            'bpo'              => $effectiveBpo,
+                            'access_owners'    => [],
+                            'imported_by'      => $userId,
+                            'created_at'       => $now,
+                            'updated_at'       => $now,
+                        ];
                     }
-                    if (empty($rowMap[$key]['bpo']) && !empty($aoBpoMap[$c])) {
-                        $rowMap[$key]['bpo'] = $aoBpoMap[$c];
+
+                    if (empty($rowMap[$key]['description_role']) && !empty($descRole)) {
+                        $rowMap[$key]['description_role'] = $descRole;
                     }
+
+                    foreach ($owners as $o) {
+                        if (!in_array($o, $rowMap[$key]['access_owners'], true)) {
+                            $rowMap[$key]['access_owners'][] = $o;
+                        }
+                    }
+                }
+
+            } else {
+                // Flat layout (no matrix AO columns) — one record per (role, tcode)
+                $key = strtolower($role) . '|' . strtolower($tcode);
+                if (!isset($rowMap[$key])) {
+                    $rowMap[$key] = [
+                        'role'             => $role,
+                        'tcode'            => $tcode,
+                        'description_role' => $descRole,
+                        'unit'             => $explicitUnit,
+                        'bpo'              => $explicitBpo,
+                        'access_owners'    => [],
+                        'imported_by'      => $userId,
+                        'created_at'       => $now,
+                        'updated_at'       => $now,
+                    ];
+                }
+                if (empty($rowMap[$key]['description_role']) && !empty($descRole)) {
+                    $rowMap[$key]['description_role'] = $descRole;
                 }
             }
         }
@@ -298,9 +343,6 @@ class AccessMatrixController extends Controller
         }
 
         // ── 5. Flatten & save ─────────────────────────────────────────────────
-        //
-        // Join the collected access_owners array into a single pipe-delimited
-        // string so the existing single-column schema is preserved.
 
         $inserts = [];
         foreach ($rowMap as $record) {
@@ -309,8 +351,8 @@ class AccessMatrixController extends Controller
                 'role'             => $record['role'],
                 'tcode'            => $record['tcode'],
                 'description_role' => $record['description_role'],
-                'unit'             => $record['unit'],
-                'bpo'              => $record['bpo'],
+                'unit'             => $record['unit'] ?: null,
+                'bpo'              => $record['bpo']  ?: null,
                 'access_owner'     => !empty($owners) ? implode('|', $owners) : null,
                 'imported_by'      => $record['imported_by'],
                 'created_at'       => $record['created_at'],
@@ -326,14 +368,14 @@ class AccessMatrixController extends Controller
 
         Log::info('UAM import: successful', [
             'file'         => $fileName,
-            'unique_pairs' => count($inserts),
+            'records'      => count($inserts),
             'is_matrix'    => !empty($matrixAoCols),
             'ao_columns'   => count($matrixAoCols),
         ]);
 
         return redirect()
             ->route('access-matrix.sap')
-            ->with('success', 'Successfully imported ' . count($inserts) . " unique role-TCODE pair(s) from \"{$fileName}\".");
+            ->with('success', 'Successfully imported ' . count($inserts) . " record(s) from \"{$fileName}\".");
     }
 
     public function importUam(Request $request)
@@ -698,33 +740,62 @@ class AccessMatrixController extends Controller
             return response()->json(['error' => 'Role parameter is required.'], 400);
         }
 
-        // Scope to the exact Role + TCODE row when tcode is provided
         $query = UamRecord::where('role', $role);
         if ($tcode !== '') {
             $query->where('tcode', $tcode);
         }
 
-        $record = $query->first();
+        $records = $query->get();
 
-        if (! $record) {
-            return response()->json(['error' => "No record found for role \"{$role}\" and TCODE \"{$tcode}\"."], 404);
+        if ($records->isEmpty()) {
+            return response()->json(['error' => "No records found for role \"{$role}\" / TCODE \"{$tcode}\"."], 404);
         }
 
-        // Split the pipe-delimited access_owner string into individual names.
-        // Blank, null, or '—' entries are discarded.
-        $rawOwner     = (string) ($record->access_owner ?? '');
-        $accessOwners = collect(explode('|', $rawOwner))
-            ->map(fn($o) => trim($o))
-            ->filter(fn($o) => $o !== '' && $o !== '—')
-            ->values()
-            ->toArray();
+        // Build hierarchy:  unit => bpo => [owner, …]
+        //
+        // Works for BOTH import formats:
+        //   - aggregate import  → one record with piped access_owner, one unit/bpo
+        //   - per-row import    → many records, each with single owner, specific unit/bpo
+        $tree = [];          // ['UNIT_A']['BPO_X'] = ['OWNER1', 'OWNER2', …]
+
+        foreach ($records as $rec) {
+            $unit = trim((string) ($rec->unit ?? '')) ?: '—';
+            $bpo  = trim((string) ($rec->bpo  ?? '')) ?: '—';
+
+            // Split pipe-delimited owners; filter blanks
+            $owners = collect(explode('|', (string) ($rec->access_owner ?? '')))
+                ->map(fn ($o) => trim($o))
+                ->filter(fn ($o) => $o !== '' && $o !== '—')
+                ->values()
+                ->toArray();
+
+            if (empty($owners)) continue;
+
+            foreach ($owners as $owner) {
+                if (! isset($tree[$unit][$bpo])) {
+                    $tree[$unit][$bpo] = [];
+                }
+                if (! in_array($owner, $tree[$unit][$bpo], true)) {
+                    $tree[$unit][$bpo][] = $owner;
+                }
+            }
+        }
+
+        // Serialise to JSON-friendly list
+        $hierarchy = [];
+        foreach ($tree as $unit => $bpos) {
+            $bpoList = [];
+            foreach ($bpos as $bpo => $owners) {
+                $bpoList[] = ['bpo' => $bpo, 'owners' => array_values($owners)];
+            }
+            $hierarchy[] = ['unit' => $unit, 'bpos' => $bpoList];
+        }
 
         return response()->json([
-            'role'          => $record->role,
-            'tcode'         => $record->tcode,
-            'unit'          => trim((string)($record->unit ?? '')) ?: '—',
-            'bpo'           => trim((string)($record->bpo  ?? '')) ?: '—',
-            'access_owners' => $accessOwners,
+            'role'      => $role,
+            'tcode'     => $tcode,
+            'hierarchy' => $hierarchy,           // full tree for dropdown logic
+            'units'     => array_column($hierarchy, 'unit'),
         ]);
     }
 }

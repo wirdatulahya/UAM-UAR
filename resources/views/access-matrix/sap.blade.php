@@ -519,19 +519,39 @@
                 {{-- Content --}}
                 <div id="modalContentWrapper" style="display:none;">
 
-                    {{-- Meta row: Unit + BPO --}}
+                    {{-- ── Cascading selects: UNIT → BPO ── --}}
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
-                        <div style="background:var(--secondary-light);padding:.85rem 1rem;border-radius:12px;border:1px solid var(--border);">
-                            <div style="font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.3rem;">Unit</div>
-                            <div id="modalUnit" style="font-size:.88rem;font-weight:600;color:var(--secondary);line-height:1.4;"></div>
+
+                        {{-- UNIT dropdown --}}
+                        <div>
+                            <label for="modalUnitSelect"
+                                style="display:block;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem;">Unit</label>
+                            <div style="position:relative;">
+                                <select id="modalUnitSelect"
+                                    style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
+                                    onfocus="this.style.borderColor='var(--secondary)'"
+                                    onblur="this.style.borderColor='var(--border)'">
+                                </select>
+                                <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
+                            </div>
                         </div>
-                        <div style="background:var(--secondary-light);padding:.85rem 1rem;border-radius:12px;border:1px solid var(--border);">
-                            <div style="font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.3rem;">BPO</div>
-                            <div id="modalBpo" style="font-size:.88rem;font-weight:600;color:var(--secondary);line-height:1.4;"></div>
+
+                        {{-- BPO dropdown --}}
+                        <div>
+                            <label for="modalBpoSelect"
+                                style="display:block;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem;">BPO</label>
+                            <div style="position:relative;">
+                                <select id="modalBpoSelect"
+                                    style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
+                                    onfocus="this.style.borderColor='var(--secondary)'"
+                                    onblur="this.style.borderColor='var(--border)'">
+                                </select>
+                                <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
+                            </div>
                         </div>
                     </div>
 
-                    {{-- Access Owners panel (scrollable, grid) --}}
+                    {{-- Access Owners panel --}}
                     <div style="border:1.5px solid #bbf7d0;border-radius:14px;overflow:hidden;margin-bottom:1.25rem;">
                         <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
                             <div style="display:flex;align-items:center;gap:.45rem;">
@@ -540,13 +560,13 @@
                             </div>
                             <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                         </div>
-                        <div id="modalOwnerScroll" style="max-height:220px;overflow-y:auto;padding:1rem;">
+                        <div id="modalOwnerScroll" style="max-height:260px;overflow-y:auto;padding:1rem;">
                             <div id="modalOwner" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.55rem;"></div>
                         </div>
                     </div>
 
-                    {{-- TCODE badge for this specific row --}}
-                    <div style="margin-bottom:1.25rem;">
+                    {{-- TCODE badge --}}
+                    <div>
                         <div style="font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.45rem;">Transaction Code</div>
                         <span id="modalTcodeBadge" style="display:inline-flex;align-items:center;background:#eff6ff;color:#1d4ed8;border-radius:8px;padding:.3rem .75rem;font-size:.82rem;font-weight:700;border:1px solid #bfdbfe;font-family:monospace;letter-spacing:.3px;"></span>
                     </div>
@@ -712,20 +732,92 @@
     const si = document.getElementById('searchInput');
     if (si && !si.value) si.focus();
 
-    // ── Access Modal ───────────────────────────────────────────────
-    const accessModal = document.getElementById('accessModal');
+    // ── Access Modal ────────────────────────────────────────────────
+    const accessModal     = document.getElementById('accessModal');
+    const unitSelect      = document.getElementById('modalUnitSelect');
+    const bpoSelect       = document.getElementById('modalBpoSelect');
+    const ownerEl         = document.getElementById('modalOwner');
+    const ownerCountEl    = document.getElementById('modalOwnerCount');
 
+    // Hierarchy cache for the currently open modal
+    let _hierarchy = [];   // [{unit, bpos:[{bpo, owners:[]}]}]
+
+    // ── Helpers ────────────────────────────────────────────────────
+    function setSelectOptions(sel, options, placeholder) {
+        sel.innerHTML = '';
+        if (placeholder) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = placeholder;
+            opt.disabled = true;
+            opt.selected = true;
+            sel.appendChild(opt);
+        }
+        options.forEach(function (val) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = val;
+            sel.appendChild(opt);
+        });
+        // Auto-select if only one meaningful option
+        if (options.length === 1) sel.value = options[0];
+    }
+
+    function renderOwners(owners) {
+        ownerCountEl.textContent = owners.length;
+        if (owners.length > 0) {
+            ownerEl.innerHTML = owners.map(o =>
+                `<div style="display:flex;align-items:center;gap:.4rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:.45rem .75rem;min-width:0;">
+                    <i class="bi bi-person-check-fill" style="color:#166534;font-size:.8rem;flex-shrink:0;"></i>
+                    <span style="font-size:.78rem;font-weight:600;color:#166534;line-height:1.3;word-break:break-word;">${o}</span>
+                 </div>`
+            ).join('');
+        } else {
+            ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">Select a Unit and BPO to see Access Owners</span>';
+        }
+        document.getElementById('modalOwnerScroll').scrollTop = 0;
+    }
+
+    function getOwnersForSelection() {
+        const unitVal = unitSelect.value;
+        const bpoVal  = bpoSelect.value;
+        if (!unitVal || !bpoVal) { renderOwners([]); return; }
+
+        const unitNode = _hierarchy.find(u => u.unit === unitVal);
+        if (!unitNode) { renderOwners([]); return; }
+
+        const bpoNode = unitNode.bpos.find(b => b.bpo === bpoVal);
+        renderOwners(bpoNode ? bpoNode.owners : []);
+    }
+
+    // ── UNIT change → repopulate BPO → refresh owners ──────────────
+    unitSelect.addEventListener('change', function () {
+        const unitNode = _hierarchy.find(u => u.unit === this.value);
+        const bpos = unitNode ? unitNode.bpos.map(b => b.bpo) : [];
+        setSelectOptions(bpoSelect, bpos, bpos.length > 1 ? '— Select BPO —' : null);
+        getOwnersForSelection();
+    });
+
+    // ── BPO change → refresh owners ────────────────────────────────
+    bpoSelect.addEventListener('change', getOwnersForSelection);
+
+    // ── Open modal ─────────────────────────────────────────────────
     async function openAccessModal(btn) {
         const role  = btn.dataset.role;
         const tcode = btn.dataset.tcode || '';
 
         document.getElementById('modalRole').textContent        = role;
         document.getElementById('modalTcodeHeader').textContent = tcode || '—';
-        document.getElementById('modalTcodeBadge').textContent  = tcode || '—';
 
         accessModal.style.display = 'flex';
         document.getElementById('modalLoading').style.display        = 'block';
         document.getElementById('modalContentWrapper').style.display = 'none';
+
+        // Reset dropdowns & owners while loading
+        _hierarchy = [];
+        setSelectOptions(unitSelect, [], null);
+        setSelectOptions(bpoSelect,  [], null);
+        renderOwners([]);
 
         try {
             const url = `/access-matrix/sap/role-details?role=${encodeURIComponent(role)}&tcode=${encodeURIComponent(tcode)}`;
@@ -733,28 +825,19 @@
             const data = await res.json();
 
             if (res.ok) {
-                // ── Meta ────────────────────────────────────────────────────
-                document.getElementById('modalUnit').textContent = data.unit || '—';
-                document.getElementById('modalBpo').textContent  = data.bpo  || '—';
+                _hierarchy = data.hierarchy || [];
 
-                // ── Access Owners grid ──────────────────────────────────────
-                // API returns an array of individual owner names (already split).
-                const owners = Array.isArray(data.access_owners) ? data.access_owners : [];
+                // ── Populate UNIT dropdown ──────────────────────────
+                const units = _hierarchy.map(u => u.unit);
+                setSelectOptions(unitSelect, units, units.length > 1 ? '— Select Unit —' : null);
 
-                const ownerEl    = document.getElementById('modalOwner');
-                const ownerCount = document.getElementById('modalOwnerCount');
-                ownerCount.textContent = owners.length;
+                // ── Populate BPO dropdown for selected unit ─────────
+                const firstUnit = _hierarchy[0];
+                const bpos = firstUnit ? firstUnit.bpos.map(b => b.bpo) : [];
+                setSelectOptions(bpoSelect, bpos, bpos.length > 1 ? '— Select BPO —' : null);
 
-                if (owners.length > 0) {
-                    ownerEl.innerHTML = owners.map(o =>
-                        `<div style="display:flex;align-items:center;gap:.4rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:.45rem .75rem;min-width:0;">
-                            <i class="bi bi-person-check-fill" style="color:#166534;font-size:.8rem;flex-shrink:0;"></i>
-                            <span style="font-size:.78rem;font-weight:600;color:#166534;line-height:1.3;word-break:break-word;">${o}</span>
-                         </div>`
-                    ).join('');
-                } else {
-                    ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">No access owners recorded</span>';
-                }
+                // ── Auto-render owners if both are auto-selected ────
+                getOwnersForSelection();
 
                 document.getElementById('modalLoading').style.display        = 'none';
                 document.getElementById('modalContentWrapper').style.display = 'block';
