@@ -43,41 +43,39 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ── Access Matrix ──────────────────────────────────────────────────────
-    // Index (with Role search)
-    Route::get('/access-matrix', [AccessMatrixController::class, 'index'])
+    // ── Access Matrix (Landing Page) ───────────────────────────────────────
+    Route::get('/access-matrix', [AccessMatrixController::class, 'landing'])
         ->name('access-matrix.index');
-        
-    // Role Details (AJAX)
-    Route::get('/access-matrix/role-details', [AccessMatrixController::class, 'roleDetails'])
-        ->name('access-matrix.role-details');
 
-    // Import Excel
-    Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])
-        ->name('access-matrix.import');
+    // ── Access Matrix - SAP Module ─────────────────────────────────────────
+    Route::prefix('access-matrix/sap')->group(function () {
+        Route::get('/', [AccessMatrixController::class, 'sap'])
+            ->name('access-matrix.sap');
+            
+        Route::get('/role-details', [AccessMatrixController::class, 'roleDetails'])
+            ->name('access-matrix.role-details');
 
-    // Clear all records
-    Route::delete('/access-matrix/clear', [AccessMatrixController::class, 'clear'])
-        ->name('access-matrix.clear');
+        Route::post('/import', [AccessMatrixController::class, 'import'])
+            ->name('access-matrix.import');
 
-    // Create new record
-    Route::get('/access-matrix/create', [AccessMatrixController::class, 'create'])
-        ->name('access-matrix.create');
-    Route::post('/access-matrix', [AccessMatrixController::class, 'store'])
-        ->name('access-matrix.store');
+        Route::delete('/clear', [AccessMatrixController::class, 'clear'])
+            ->name('access-matrix.clear');
 
-    // Edit / Update / Delete a single record
-    // Note: {uamRecord} matches the UamRecord model via implicit route-model binding
-    Route::get('/access-matrix/{uamRecord}/edit', [AccessMatrixController::class, 'edit'])
-        ->name('access-matrix.edit');
-    Route::put('/access-matrix/{uamRecord}', [AccessMatrixController::class, 'update'])
-        ->name('access-matrix.update');
-    Route::delete('/access-matrix/{uamRecord}', [AccessMatrixController::class, 'destroy'])
-        ->name('access-matrix.destroy');
+        Route::get('/create', [AccessMatrixController::class, 'create'])
+            ->name('access-matrix.create');
+            
+        Route::post('/', [AccessMatrixController::class, 'store'])
+            ->name('access-matrix.store');
 
-    // AJAX — role details for Access modal
-    Route::get('/access-matrix/role-details', [AccessMatrixController::class, 'roleDetails'])
-        ->name('access-matrix.role-details');
+        Route::get('/{uamRecord}/edit', [AccessMatrixController::class, 'edit'])
+            ->name('access-matrix.edit');
+            
+        Route::put('/{uamRecord}', [AccessMatrixController::class, 'update'])
+            ->name('access-matrix.update');
+            
+        Route::delete('/{uamRecord}', [AccessMatrixController::class, 'destroy'])
+            ->name('access-matrix.destroy');
+    });
 
     // Change Password
     Route::get('/change-password', [ChangePasswordController::class, 'showChangePasswordForm'])->name('password.change');

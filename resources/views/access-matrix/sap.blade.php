@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'User Access Matrix')
+@section('title', 'UAM SAP — Access Matrix')
 
 @section('content')
 
@@ -139,7 +139,12 @@
                        onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Dashboard</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
-                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">Access Matrix</li>
+                <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
+                    <a href="{{ route('access-matrix.index') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
+                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Access Matrix</a>
+                    <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
+                </li>
+                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">UAM SAP</li>
             </ol>
         </nav>
 
@@ -147,7 +152,7 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 animate-in" style="gap:1rem;">
             <div>
                 <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                    <i class="bi bi-table me-2" style="color:var(--primary);"></i>User Access Matrix
+                    <i class="bi bi-pc-display-horizontal me-2" style="color:var(--primary);"></i>UAM SAP Module
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
                     Search by Role to view, add, edit, or delete access records
@@ -255,7 +260,7 @@
         {{-- ── Search Bar ── --}}
         <div class="animate-in animate-in-delay-1 mb-4"
              style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.02);">
-            <form method="GET" action="{{ route('access-matrix.index') }}" id="searchForm">
+            <form method="GET" action="{{ route('access-matrix.sap') }}" id="searchForm">
                 <div class="row g-3 align-items-center">
                     <div class="col-12 col-md-8 col-lg-9">
                         <div class="position-relative">
@@ -273,7 +278,7 @@
                             <i class="bi bi-search me-1"></i> Search
                         </button>
                         @if($search)
-                            <a href="{{ route('access-matrix.index') }}"
+                            <a href="{{ route('access-matrix.sap') }}"
                                style="display:inline-flex;align-items:center;gap:.3rem;padding:.65rem .9rem;border-radius:10px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;white-space:nowrap;transition:all var(--transition);"
                                onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
@@ -692,7 +697,7 @@
         modalContent.style.display = 'none';
         
         try {
-            const res = await fetch(`/access-matrix/role-details?role=${encodeURIComponent(role)}`);
+            const res = await fetch(`/access-matrix/sap/role-details?role=${encodeURIComponent(role)}`);
             const data = await res.json();
             
             if (res.ok) {

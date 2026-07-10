@@ -15,7 +15,26 @@ class AccessMatrixController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     // INDEX — Search by Role; empty table when no search term
     // ─────────────────────────────────────────────────────────────────────────
-    public function index(Request $request)
+    // ─────────────────────────────────────────────────────────────────────────
+    // LANDING — Dashboard-style module selection page
+    // ─────────────────────────────────────────────────────────────────────────
+    public function landing()
+    {
+        $totalRecords = UamRecord::count();
+        $totalRoles   = UamRecord::distinct('role')->count('role');
+        $totalTcodes  = UamRecord::distinct('tcode')->count('tcode');
+        
+        // Get last updated time
+        $lastUpdatedRecord = UamRecord::orderBy('updated_at', 'desc')->first();
+        $lastUpdated = $lastUpdatedRecord ? $lastUpdatedRecord->updated_at : null;
+
+        return view('access-matrix.landing', compact('totalRecords', 'totalRoles', 'totalTcodes', 'lastUpdated'));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SAP — Search by Role; empty table when no search term
+    // ─────────────────────────────────────────────────────────────────────────
+    public function sap(Request $request)
     {
         $search       = trim($request->input('search', ''));
         $totalRecords = UamRecord::count();
@@ -33,7 +52,7 @@ class AccessMatrixController extends Controller
             );
         }
 
-        return view('access-matrix.index', compact('records', 'search', 'totalRecords'));
+        return view('access-matrix.sap', compact('records', 'search', 'totalRecords'));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -205,7 +224,7 @@ class AccessMatrixController extends Controller
         ]);
 
         return redirect()
-            ->route('access-matrix.index')
+            ->route('access-matrix.sap')
             ->with('success', 'Successfully imported ' . count($uniqueInserts) . " record(s) from \"{$fileName}\".");
     }
 
@@ -278,7 +297,7 @@ class AccessMatrixController extends Controller
         UamRecord::create($validated);
 
         return redirect()
-            ->route('access-matrix.index', ['search' => $validated['role']])
+            ->route('access-matrix.sap', ['search' => $validated['role']])
             ->with('success', 'Record created successfully.');
     }
 
@@ -307,7 +326,7 @@ class AccessMatrixController extends Controller
         $uamRecord->update($validated);
 
         return redirect()
-            ->route('access-matrix.index', ['search' => $uamRecord->role])
+            ->route('access-matrix.sap', ['search' => $uamRecord->role])
             ->with('success', 'Record updated successfully.');
     }
 
@@ -320,7 +339,7 @@ class AccessMatrixController extends Controller
         $uamRecord->delete();
 
         return redirect()
-            ->route('access-matrix.index')
+            ->route('access-matrix.sap')
             ->with('success', "Record for role \"{$role}\" has been deleted.");
     }
 
@@ -332,7 +351,7 @@ class AccessMatrixController extends Controller
         UamRecord::truncate();
 
         return redirect()
-            ->route('access-matrix.index')
+            ->route('access-matrix.sap')
             ->with('success', 'All UAM records have been cleared.');
     }
 

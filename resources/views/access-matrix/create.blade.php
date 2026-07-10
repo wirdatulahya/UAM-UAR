@@ -71,8 +71,12 @@
                     <a href="{{ route('dashboard') }}" style="color:var(--text-muted);text-decoration:none;">Dashboard</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
-                <li class="breadcrumb-item d-flex align-items-center">
+                <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
                     <a href="{{ route('access-matrix.index') }}" style="color:var(--text-muted);text-decoration:none;">Access Matrix</a>
+                    <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
+                </li>
+                <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
+                    <a href="{{ route('access-matrix.sap') }}" style="color:var(--text-muted);text-decoration:none;">UAM SAP</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">Add Record</li>
@@ -87,7 +91,7 @@
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">Create a new User Access Matrix entry</p>
             </div>
-            <a href="{{ route('access-matrix.index') }}"
+            <a href="{{ route('access-matrix.sap') }}"
                style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
                onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
@@ -205,7 +209,7 @@
                                     style="width:auto;padding:.65rem 2rem;font-size:.9rem;display:inline-flex;align-items:center;gap:.5rem;">
                                 <i class="bi bi-check-lg"></i> Save Record
                             </button>
-                            <a href="{{ route('access-matrix.index') }}"
+                             <a href="{{ route('access-matrix.sap') }}"
                                style="font-size:.85rem;color:var(--text-muted);text-decoration:none;font-weight:500;transition:color var(--transition);"
                                onmouseenter="this.style.color='var(--primary)'"
                                onmouseleave="this.style.color='var(--text-muted)'">

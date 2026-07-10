@@ -155,30 +155,78 @@
 
             @php
                 $modules = [
-                    ['icon' => 'bi-table',                   'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Access Matrix',  'desc' => 'Manage and track user access permissions across all systems.',       'status' => 'coming-soon'],
-                    ['icon' => 'bi-clipboard2-check-fill',   'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Access Review',        'desc' => 'Conduct periodic reviews and certifications of user access rights.', 'status' => 'coming-soon'],
-                    ['icon' => 'bi-graph-up-arrow',          'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Monitoring',           'desc' => 'Real-time monitoring of access activities and system events.',        'status' => 'coming-soon'],
-                    ['icon' => 'bi-file-earmark-bar-graph-fill', 'color' => '#0B2E6D', 'bg' => '#e8edf7', 'title' => 'Reports',         'desc' => 'Generate compliance and audit reports for management review.',        'status' => 'coming-soon'],
+                    [
+                        'icon' => 'bi-table',
+                        'color' => '#0B2E6D',
+                        'bg' => '#e8edf7',
+                        'title' => 'Access Matrix',
+                        'desc' => 'Manage and track user access permissions across all systems.',
+                        'status' => 'active',
+                        'route' => route('access-matrix.index')
+                    ],
+                    [
+                        'icon' => 'bi-clipboard2-check-fill',
+                        'color' => '#0B2E6D',
+                        'bg' => '#e8edf7',
+                        'title' => 'Access Review',
+                        'desc' => 'Conduct periodic reviews and certifications of user access rights.',
+                        'status' => 'coming-soon',
+                        'route' => '#'
+                    ],
+                    [
+                        'icon' => 'bi-graph-up-arrow',
+                        'color' => '#0B2E6D',
+                        'bg' => '#e8edf7',
+                        'title' => 'Monitoring',
+                        'desc' => 'Real-time monitoring of access activities and system events.',
+                        'status' => 'coming-soon',
+                        'route' => '#'
+                    ],
+                    [
+                        'icon' => 'bi-file-earmark-bar-graph-fill',
+                        'color' => '#0B2E6D',
+                        'bg' => '#e8edf7',
+                        'title' => 'Reports',
+                        'desc' => 'Generate compliance and audit reports for management review.',
+                        'status' => 'coming-soon',
+                        'route' => '#'
+                    ],
                 ];
             @endphp
 
             @foreach ($modules as $i => $mod)
             <div class="col-12 col-sm-6 col-xl-3 animate-in" style="animation-delay: {{ $i * 0.07 }}s;">
-                <div class="h-100" style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.5rem;position:relative;overflow:hidden;transition:transform .22s,box-shadow .22s;cursor:default;"
-                     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--card-shadow)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                @if ($mod['status'] === 'active')
+                <a href="{{ $mod['route'] }}" class="h-100 d-block" style="text-decoration:none; color:inherit;">
+                @else
+                <div class="h-100">
+                @endif
+                    <div class="h-100" style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.5rem;position:relative;overflow:hidden;transition:transform .22s,box-shadow .22s;cursor:{{ $mod['status'] === 'active' ? 'pointer' : 'default' }};"
+                         onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--card-shadow)';if('{{ $mod['status'] }}' === 'active'){this.style.borderColor='var(--secondary)';}"
+                         onmouseleave="this.style.transform='';this.style.boxShadow='';this.style.borderColor='var(--border)';">
 
-                    <div style="width:48px;height:48px;background:{{ $mod['bg'] }};border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                        <i class="bi {{ $mod['icon'] }}" style="font-size:1.3rem;color:{{ $mod['color'] }};"></i>
+                        <div style="width:48px;height:48px;background:{{ $mod['bg'] }};border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                            <i class="bi {{ $mod['icon'] }}" style="font-size:1.3rem;color:{{ $mod['color'] }};"></i>
+                        </div>
+
+                        <h3 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.35rem;">{{ $mod['title'] }}</h3>
+                        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">{{ $mod['desc'] }}</p>
+
+                        @if ($mod['status'] === 'active')
+                        <span style="display:inline-flex;align-items:center;gap:.35rem;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:.25rem .7rem;font-size:.72rem;font-weight:700;">
+                            <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i> Active
+                        </span>
+                        @else
+                        <span style="display:inline-flex;align-items:center;gap:.35rem;background:var(--primary-light);color:var(--primary);border-radius:20px;padding:.25rem .7rem;font-size:.72rem;font-weight:700;">
+                            <i class="bi bi-clock-history" style="font-size:.7rem;"></i> Coming soon
+                        </span>
+                        @endif
                     </div>
-
-                    <h3 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.35rem;">{{ $mod['title'] }}</h3>
-                    <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">{{ $mod['desc'] }}</p>
-
-                    <span style="display:inline-flex;align-items:center;gap:.35rem;background:var(--primary-light);color:var(--primary);border-radius:20px;padding:.25rem .7rem;font-size:.72rem;font-weight:700;">
-                        <i class="bi bi-clock-history" style="font-size:.7rem;"></i> Coming soon
-                    </span>
+                @if ($mod['status'] === 'active')
+                </a>
+                @else
                 </div>
+                @endif
             </div>
             @endforeach
 
