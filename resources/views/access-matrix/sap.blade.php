@@ -369,6 +369,7 @@
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
                                         <button type="button" onclick="openAccessModal(this)"
                                             data-role="{{ htmlspecialchars($rec->role ?? '—') }}"
+                                            data-tcode="{{ htmlspecialchars($rec->tcode ?? '') }}"
                                             style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
                                             onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
                                             onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
@@ -478,52 +479,86 @@
 
     </main>
 
-    {{-- Access Modal --}}
-    <div id="accessModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px);">
-        <div class="animate-in" style="background:#fff;border-radius:16px;width:100%;max-width:550px;padding:1.5rem;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;border-bottom:1px solid var(--border);padding-bottom:.75rem;">
-                <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.5rem;">
-                    <i class="bi bi-shield-check" style="color:var(--primary);"></i> Access Permissions
-                </h3>
-                <button type="button" onclick="closeAccessModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--text-muted);transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'"><i class="bi bi-x-lg"></i></button>
-            </div>
-            <div style="margin-bottom:1rem;font-size:.85rem;color:var(--text-muted);">
-                Showing access details for role: <strong id="modalRole" style="color:var(--secondary);font-family:monospace;background:#f1f5f9;padding:.2rem .4rem;border-radius:4px;border:1px solid var(--border);"></strong>
-            </div>
+    {{-- ── Access Modal ─────────────────────────────────────────────── --}}
+    <div id="accessModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:1rem;">
+        <div class="animate-in" id="accessModalDialog"
+             style="background:#fff;border-radius:20px;width:min(90vw, 1040px);max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.22);overflow:hidden;">
 
-            <div id="modalLoading" style="display:none;text-align:center;padding:2rem;">
-                <div class="spinner-border text-primary" role="status" style="width:1.5rem;height:1.5rem;border-width:.2em;color:var(--primary) !important;">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div style="font-size:.85rem;color:var(--text-muted);margin-top:.5rem;">Loading data...</div>
-            </div>
-
-            <div id="modalContentWrapper" style="display:none;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-                    <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);">
-                        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">UNIT</div>
-                        <div id="modalUnit" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+            {{-- Modal header --}}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.75rem;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--secondary-light);">
+                <div style="display:flex;align-items:center;gap:.65rem;">
+                    <div style="width:36px;height:36px;background:var(--secondary);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bi bi-shield-check" style="color:#fff;font-size:1rem;"></i>
                     </div>
-                    <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);">
-                        <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">Access Owner</div>
-                        <div id="modalOwner" style="display:flex;flex-wrap:wrap;gap:.4rem;font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+                    <div>
+                        <div style="font-size:1rem;font-weight:800;color:var(--secondary);line-height:1.1;">Access Permissions</div>
+                        <div style="font-size:.72rem;color:var(--text-muted);margin-top:.1rem;">
+                            Role: <span id="modalRole" style="font-family:monospace;font-weight:700;color:var(--secondary);"></span>
+                            &nbsp;·&nbsp;
+                            TCODE: <span id="modalTcodeHeader" style="font-family:monospace;font-weight:700;color:#1d4ed8;"></span>
+                        </div>
                     </div>
                 </div>
-                <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);margin-bottom:1rem;">
-                    <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">BPO (Business Process Owner)</div>
-                    <div id="modalBpo" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+                <button type="button" onclick="closeAccessModal()"
+                        style="background:none;border:1.5px solid var(--border);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:1rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;transition:all var(--transition);"
+                        onmouseenter="this.style.borderColor='var(--primary)';this.style.color='var(--primary)';"
+                        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted);'">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            {{-- Scrollable body --}}
+            <div style="flex:1;overflow-y:auto;padding:1.5rem 1.75rem;">
+
+                {{-- Loading state --}}
+                <div id="modalLoading" style="display:none;text-align:center;padding:3rem 1rem;">
+                    <div class="spinner-border" role="status" style="width:1.75rem;height:1.75rem;border-width:.22em;color:var(--secondary);"></div>
+                    <div style="font-size:.85rem;color:var(--text-muted);margin-top:.75rem;font-weight:500;">Fetching access data…</div>
                 </div>
-                
-                <div style="background:#fff;padding:1rem;border-radius:10px;border:1px solid var(--border);">
-                    <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Associated TCODEs</div>
-                    <div id="modalTcodes" style="display:flex;flex-wrap:wrap;gap:.4rem;">
-                        <!-- TCODEs go here -->
+
+                {{-- Content --}}
+                <div id="modalContentWrapper" style="display:none;">
+
+                    {{-- Meta row: Unit + BPO --}}
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+                        <div style="background:var(--secondary-light);padding:.85rem 1rem;border-radius:12px;border:1px solid var(--border);">
+                            <div style="font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.3rem;">Unit</div>
+                            <div id="modalUnit" style="font-size:.88rem;font-weight:600;color:var(--secondary);line-height:1.4;"></div>
+                        </div>
+                        <div style="background:var(--secondary-light);padding:.85rem 1rem;border-radius:12px;border:1px solid var(--border);">
+                            <div style="font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.3rem;">BPO</div>
+                            <div id="modalBpo" style="font-size:.88rem;font-weight:600;color:var(--secondary);line-height:1.4;"></div>
+                        </div>
                     </div>
+
+                    {{-- Access Owners panel (scrollable, grid) --}}
+                    <div style="border:1.5px solid #bbf7d0;border-radius:14px;overflow:hidden;margin-bottom:1.25rem;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
+                            <div style="display:flex;align-items:center;gap:.45rem;">
+                                <i class="bi bi-people-fill" style="color:#166534;font-size:.9rem;"></i>
+                                <span style="font-size:.72rem;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;">Access Owners</span>
+                            </div>
+                            <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
+                        </div>
+                        <div id="modalOwnerScroll" style="max-height:220px;overflow-y:auto;padding:1rem;">
+                            <div id="modalOwner" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.55rem;"></div>
+                        </div>
+                    </div>
+
+                    {{-- TCODE badge for this specific row --}}
+                    <div style="margin-bottom:1.25rem;">
+                        <div style="font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.45rem;">Transaction Code</div>
+                        <span id="modalTcodeBadge" style="display:inline-flex;align-items:center;background:#eff6ff;color:#1d4ed8;border-radius:8px;padding:.3rem .75rem;font-size:.82rem;font-weight:700;border:1px solid #bfdbfe;font-family:monospace;letter-spacing:.3px;"></span>
+                    </div>
+
                 </div>
             </div>
 
-            <div style="margin-top:1.5rem;text-align:right;">
-                <button type="button" onclick="closeAccessModal()" style="padding:.5rem 1.25rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:filter var(--transition);" onmouseenter="this.style.filter='brightness(1.1)'" onmouseleave="this.style.filter=''">Close</button>
+            {{-- Modal footer --}}
+            <div style="padding:.9rem 1.75rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;background:#fafbfc;">
+                <button type="button" onclick="closeAccessModal()"
+                        style="padding:.5rem 1.5rem;background:var(--secondary);color:#fff;border:none;border-radius:9px;font-size:.85rem;font-weight:700;cursor:pointer;transition:filter var(--transition);letter-spacing:.1px;"
+                        onmouseenter="this.style.filter='brightness(1.1)'" onmouseleave="this.style.filter=''">Close</button>
             </div>
         </div>
     </div>
@@ -679,51 +714,54 @@
 
     // ── Access Modal ───────────────────────────────────────────────
     const accessModal = document.getElementById('accessModal');
-    const modalRole   = document.getElementById('modalRole');
-    const modalUnit    = document.getElementById('modalUnit');
-    const modalBpo    = document.getElementById('modalBpo');
-    const modalOwner  = document.getElementById('modalOwner');
-    const modalTcodes = document.getElementById('modalTcodes');
-    
-    const modalLoading = document.getElementById('modalLoading');
-    const modalContent = document.getElementById('modalContentWrapper');
 
     async function openAccessModal(btn) {
-        const role = btn.dataset.role;
-        modalRole.textContent = role;
-        
+        const role  = btn.dataset.role;
+        const tcode = btn.dataset.tcode || '';
+
+        document.getElementById('modalRole').textContent        = role;
+        document.getElementById('modalTcodeHeader').textContent = tcode || '—';
+        document.getElementById('modalTcodeBadge').textContent  = tcode || '—';
+
         accessModal.style.display = 'flex';
-        modalLoading.style.display = 'block';
-        modalContent.style.display = 'none';
-        
+        document.getElementById('modalLoading').style.display        = 'block';
+        document.getElementById('modalContentWrapper').style.display = 'none';
+
         try {
-            const res = await fetch(`/access-matrix/sap/role-details?role=${encodeURIComponent(role)}`);
+            const url = `/access-matrix/sap/role-details?role=${encodeURIComponent(role)}&tcode=${encodeURIComponent(tcode)}`;
+            const res  = await fetch(url);
             const data = await res.json();
-            
+
             if (res.ok) {
-                modalUnit.textContent = data.unit || '—';
-                modalBpo.textContent = data.bpo || '—';
-                
-                if (data.access_owners && data.access_owners.length > 0) {
-                    modalOwner.innerHTML = data.access_owners.map(owner => 
-                        `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:.2rem .55rem;font-size:.8rem;font-weight:600;border:1px solid #bbf7d0;"><i class="bi bi-person-check-fill"></i> ${owner}</span>`
+                // ── Meta ────────────────────────────────────────────────────
+                document.getElementById('modalUnit').textContent = data.unit || '—';
+                document.getElementById('modalBpo').textContent  = data.bpo  || '—';
+
+                // ── Access Owners grid ──────────────────────────────────────
+                // API returns an array of individual owner names (already split).
+                const owners = Array.isArray(data.access_owners) ? data.access_owners : [];
+
+                const ownerEl    = document.getElementById('modalOwner');
+                const ownerCount = document.getElementById('modalOwnerCount');
+                ownerCount.textContent = owners.length;
+
+                if (owners.length > 0) {
+                    ownerEl.innerHTML = owners.map(o =>
+                        `<div style="display:flex;align-items:center;gap:.4rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:.45rem .75rem;min-width:0;">
+                            <i class="bi bi-person-check-fill" style="color:#166534;font-size:.8rem;flex-shrink:0;"></i>
+                            <span style="font-size:.78rem;font-weight:600;color:#166534;line-height:1.3;word-break:break-word;">${o}</span>
+                         </div>`
                     ).join('');
-                } else if (data.access_owner && data.access_owner !== '—') {
-                    modalOwner.innerHTML = `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:.2rem .55rem;font-size:.8rem;font-weight:600;border:1px solid #bbf7d0;"><i class="bi bi-person-check-fill"></i> ${data.access_owner}</span>`;
                 } else {
-                    modalOwner.textContent = '—';
+                    ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">No access owners recorded</span>';
                 }
-                
-                if (data.tcodes && data.tcodes.length > 0) {
-                    modalTcodes.innerHTML = data.tcodes.map(t => 
-                        `<span style="display:inline-flex;align-items:center;background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:.2rem .5rem;font-size:.75rem;font-weight:600;border:1px solid #bfdbfe;font-family:monospace;">${t}</span>`
-                    ).join('');
-                } else {
-                    modalTcodes.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">No TCODEs associated</span>';
-                }
-                
-                modalLoading.style.display = 'none';
-                modalContent.style.display = 'block';
+
+                document.getElementById('modalLoading').style.display        = 'none';
+                document.getElementById('modalContentWrapper').style.display = 'block';
+
+                // Scroll owners panel to top each open
+                document.getElementById('modalOwnerScroll').scrollTop = 0;
+
             } else {
                 alert('Error fetching details: ' + (data.error || 'Unknown error'));
                 closeAccessModal();
