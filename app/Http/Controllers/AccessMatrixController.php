@@ -130,9 +130,15 @@ class AccessMatrixController extends Controller
         
         $aliases = [
             'role' => 'role', 'roles' => 'role', 'hak_akses' => 'role', 'hakakses' => 'role', 
+            'hak_akses_role' => 'role', 'nama_role' => 'role', 'nama_akses' => 'role', 'akses' => 'role',
             'description_role' => 'description_role', 'description' => 'description_role',
-            'keterangan' => 'description_role', 'desc' => 'description_role', 'ket' => 'description_role',
+            'role_description' => 'description_role', 'keterangan' => 'description_role',
+            'keterangan_role' => 'description_role', 'deskripsi' => 'description_role',
+            'deskripsi_role' => 'description_role', 'desc_role' => 'description_role',
+            'desc' => 'description_role', 'ket' => 'description_role', 'notes' => 'description_role',
+            'note' => 'description_role',
             'tcode' => 'tcode', 't_code' => 'tcode', 'transaction_code' => 'tcode', 'transaction' => 'tcode',
+            'tcodes' => 'tcode', 'transaction_codes' => 'tcode',
             'unit' => 'unit', 'unit_kerja' => 'unit', 'business_unit' => 'unit',
             'bpo' => 'bpo', 'business_process_owner' => 'bpo',
             'access_owner' => 'access_owner', 'ao' => 'access_owner',
@@ -163,6 +169,49 @@ class AccessMatrixController extends Controller
             ]);
         }
 
+        // Find row index (0-based) of the UNIT and BPO rows above headerRowIdx
+        $unitRowIdx = -1;
+        $bpoRowIdx  = -1;
+        for ($i = 0; $i < $headerRowIdx; $i++) {
+            $row = array_values((array)($raw[$i] ?? []));
+            foreach (array_slice($row, 0, 5) as $cell) {
+                $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim((string)($cell ?? '')))));
+                if (in_array($lower, ['unit', 'unit kerja', 'nama unit'])) {
+                    $unitRowIdx = $i;
+                    break;
+                }
+                if (in_array($lower, ['bpo', 'business process owner'])) {
+                    $bpoRowIdx = $i;
+                    break;
+                }
+            }
+        }
+
+        $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
+        $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
+
+        // Identify matrix Access Owner columns to the right of TCODE
+        $tcodeColIdx = -1;
+        foreach ($colMap as $idx => $dbCol) {
+            if ($dbCol === 'tcode') {
+                $tcodeColIdx = $idx;
+                break;
+            }
+        }
+
+        $matrixAccessOwnerCols = [];
+        if ($tcodeColIdx >= 0) {
+            $headerRow = array_values((array)$raw[$headerRowIdx]);
+            for ($colIdx = $tcodeColIdx + 1; $colIdx < count($headerRow); $colIdx++) {
+                $accessOwnerName = trim((string)($headerRow[$colIdx] ?? ''));
+                if ($accessOwnerName !== '') {
+                    if (!isset($colMap[$colIdx])) {
+                        $matrixAccessOwnerCols[$colIdx] = $accessOwnerName;
+                    }
+                }
+            }
+        }
+
         // ── 4. Pass 3: Process Data Rows ─────────────────────────────────────
         $userId  = Auth::id();
         $now     = now();
@@ -173,13 +222,10 @@ class AccessMatrixController extends Controller
             $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
             if (empty($nonEmpty)) continue;
 
-            $record = [
+            $base = [
                 'imported_by'  => $userId,
                 'created_at'   => $now,
                 'updated_at'   => $now,
-                'unit'         => $globalUnit,
-                'bpo'          => $globalBpo,
-                'access_owner' => $globalOwner,
                 'role'         => null,
                 'tcode'        => null,
                 'description_role' => null,
@@ -187,16 +233,37 @@ class AccessMatrixController extends Controller
 
             foreach ($colMap as $idx => $dbCol) {
                 $val = $row[$idx] ?? null;
-                // If a row has explicit unit/bpo/owner in its column, it overrides the global metadata
                 if ($val !== null && trim((string)$val) !== '') {
-                    $record[$dbCol] = trim((string)$val);
+                    $base[$dbCol] = trim((string)$val);
                 }
             }
 
             // Skip rows without a role or tcode (could be section totals or empty padding)
-            if (empty($record['role']) || empty($record['tcode'])) continue;
+            if (empty($base['role']) || empty($base['tcode'])) continue;
 
-            $inserts[] = $record;
+            if (!empty($matrixAccessOwnerCols)) {
+                // Matrix layout: parse columns for values equal to 1
+                foreach ($matrixAccessOwnerCols as $colIdx => $ownerName) {
+                    $cellVal = $row[$colIdx] ?? null;
+                    $cellStr = trim((string)$cellVal ?? '');
+                    $isAccess = ($cellStr === '1') || ($cellVal === 1) || ($cellVal === 1.0 && $cellStr !== '0');
+                    
+                    if ($isAccess) {
+                        $inserts[] = array_merge($base, [
+                            'unit'         => trim((string)($unitRow[$colIdx] ?? '')) ?: $globalUnit,
+                            'bpo'          => trim((string)($bpoRow[$colIdx]  ?? '')) ?: $globalBpo,
+                            'access_owner' => $ownerName,
+                        ]);
+                    }
+                }
+            } else {
+                // Flat layout: parse standard columns mapped via colMap
+                $inserts[] = array_merge([
+                    'unit'         => $globalUnit,
+                    'bpo'          => $globalBpo,
+                    'access_owner' => $globalOwner,
+                ], $base);
+            }
         }
 
         if (empty($inserts)) {
@@ -206,9 +273,9 @@ class AccessMatrixController extends Controller
         // ── 5. Save to Database ──────────────────────────────────────────────
         UamRecord::truncate();
         
-        // Remove exact duplicates just in case the spreadsheet has them
+        // Remove exact duplicates just in case the spreadsheet has them (case-insensitive check)
         $uniqueInserts = collect($inserts)->unique(function ($item) {
-            return $item['role'] . '|' . $item['tcode'] . '|' . $item['unit'] . '|' . $item['bpo'] . '|' . $item['access_owner'];
+            return strtolower($item['role'] . '|' . $item['tcode'] . '|' . ($item['unit'] ?? '') . '|' . ($item['bpo'] ?? '') . '|' . ($item['access_owner'] ?? ''));
         })->toArray();
         
         foreach (array_chunk($uniqueInserts, 500) as $chunk) {
@@ -221,6 +288,7 @@ class AccessMatrixController extends Controller
             'unit'    => $globalUnit,
             'bpo'     => $globalBpo,
             'owner'   => $globalOwner,
+            'is_matrix' => !empty($matrixAccessOwnerCols),
         ]);
 
         return redirect()
@@ -386,6 +454,7 @@ class AccessMatrixController extends Controller
             'unit'          => $units->implode(' / ') ?: '—',
             'bpo'           => $bpos->implode(' / ') ?: '—',
             'access_owner'  => $accessOwners->implode(', ') ?: '—',
+            'access_owners' => $accessOwners->toArray(),
             'tcodes'        => $tcodes->toArray(),
         ]);
     }

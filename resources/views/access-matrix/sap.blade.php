@@ -506,7 +506,7 @@
                     </div>
                     <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);">
                         <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;">Access Owner</div>
-                        <div id="modalOwner" style="font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
+                        <div id="modalOwner" style="display:flex;flex-wrap:wrap;gap:.4rem;font-size:.9rem;font-weight:600;color:var(--secondary);"></div>
                     </div>
                 </div>
                 <div style="background:var(--secondary-light);padding:1rem;border-radius:10px;border:1px solid var(--border);margin-bottom:1rem;">
@@ -704,7 +704,11 @@
                 modalUnit.textContent = data.unit || '—';
                 modalBpo.textContent = data.bpo || '—';
                 
-                if (data.access_owner && data.access_owner !== '—') {
+                if (data.access_owners && data.access_owners.length > 0) {
+                    modalOwner.innerHTML = data.access_owners.map(owner => 
+                        `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:.2rem .55rem;font-size:.8rem;font-weight:600;border:1px solid #bbf7d0;"><i class="bi bi-person-check-fill"></i> ${owner}</span>`
+                    ).join('');
+                } else if (data.access_owner && data.access_owner !== '—') {
                     modalOwner.innerHTML = `<span style="display:inline-flex;align-items:center;gap:.3rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:.2rem .55rem;font-size:.8rem;font-weight:600;border:1px solid #bbf7d0;"><i class="bi bi-person-check-fill"></i> ${data.access_owner}</span>`;
                 } else {
                     modalOwner.textContent = '—';
