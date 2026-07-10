@@ -2,137 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AccessMatrixRecord;
+use App\Models\UamRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class AccessMatrixController extends Controller
 {
-    /**
-     * Show Access Matrix page with all imported records.
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // INDEX  — Search by Role; empty table when no search term
+    // ─────────────────────────────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $search = $request->input('search');
-        $module = $request->input('module');
-        $activeTab = $request->input('tab', 'roles');
+        $search      = trim($request->input('search', ''));
+        $totalRecords = UamRecord::count();
 
-        $totalRecords = AccessMatrixRecord::count();
-
-        // 1. Get list of unique modules for filter dropdown
-        if ($totalRecords > 0) {
-            $availableModules = AccessMatrixRecord::whereNotNull('aplikasi')
-                ->where('aplikasi', '!=', '')
-                ->groupBy('aplikasi')
-                ->pluck('aplikasi')
-                ->toArray();
+        if ($search !== '') {
+            $records = UamRecord::where('role', 'like', "%{$search}%")
+                ->orderBy('role')
+                ->orderBy('tcode')
+                ->paginate(20)
+                ->withQueryString();
         } else {
-            $availableModules = ['PS']; // From dummy data
-        }
-
-        $dummyRoles = [
-            [
-                'role_code' => 'ZPS-MD-1014-000000-PROJ-CHG',
-                'description' => 'PS-TIF: Change Project Structure Master Data',
-                'stream_process' => 'Operation',
-                'module' => 'PS',
-            ],
-            [
-                'role_code' => 'ZPS-MD-1014-000000-PROJ-VWR',
-                'description' => 'PS-TIF: Change Project Structure Master Data',
-                'stream_process' => 'Operation',
-                'module' => 'PS',
-            ],
-        ];
-
-        // 2. Fetch or Mock Roles
-        if ($totalRecords === 0) {
-            // Apply search & filter to dummy data
-            $rolesCollection = collect($dummyRoles);
-            if (!empty($search)) {
-                $rolesCollection = $rolesCollection->filter(function($role) use ($search) {
-                    return stripos($role['role_code'], $search) !== false 
-                        || stripos($role['description'], $search) !== false;
-                });
-            }
-            if (!empty($module)) {
-                $rolesCollection = $rolesCollection->filter(function($role) use ($module) {
-                    return $role['module'] === $module;
-                });
-            }
-
-            $totalRoles = $rolesCollection->count();
-            $perPage = 15;
-            $currentPage = $request->input('page', 1);
-            $roles = new \Illuminate\Pagination\LengthAwarePaginator(
-                $rolesCollection->forPage($currentPage, $perPage)->values(),
-                $totalRoles,
-                $perPage,
-                $currentPage,
+            // No search term → empty paginator (show blank table)
+            $records = new \Illuminate\Pagination\LengthAwarePaginator(
+                [], 0, 20, 1,
                 ['path' => $request->url(), 'query' => $request->query()]
             );
-
-            $rawRecords = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
-        } else {
-            // Database has records, extract roles dynamically by grouping hak_akses
-            $rolesQuery = AccessMatrixRecord::select('hak_akses as role_code', 'keterangan as description', 'aplikasi as module')
-                ->whereNotNull('hak_akses')
-                ->where('hak_akses', '!=', '')
-                ->groupBy('hak_akses', 'keterangan', 'aplikasi');
-
-            if (!empty($search)) {
-                $rolesQuery->where(function($q) use ($search) {
-                    $q->where('hak_akses', 'like', "%{$search}%")
-                      ->orWhere('keterangan', 'like', "%{$search}%");
-                });
-            }
-
-            if (!empty($module)) {
-                $rolesQuery->where('aplikasi', $module);
-            }
-
-            // Paginate unique roles
-            $roles = $rolesQuery->paginate(15, ['*'], 'page')->withQueryString();
-
-            // 3. Fetch Raw Records
-            $rawQuery = AccessMatrixRecord::orderBy('no');
-
-            if (!empty($search)) {
-                $rawQuery->where(function($q) use ($search) {
-                    $q->where('nip', 'like', "%{$search}%")
-                      ->orWhere('nama', 'like', "%{$search}%")
-                      ->orWhere('jabatan', 'like', "%{$search}%")
-                      ->orWhere('department', 'like', "%{$search}%")
-                      ->orWhere('aplikasi', 'like', "%{$search}%")
-                      ->orWhere('hak_akses', 'like', "%{$search}%")
-                      ->orWhere('keterangan', 'like', "%{$search}%");
-                });
-            }
-
-            if (!empty($module)) {
-                $rawQuery->where('aplikasi', $module);
-            }
-
-            $rawRecords = $rawQuery->paginate(15, ['*'], 'page')->withQueryString();
         }
 
-        return view('access-matrix.index', compact(
-            'roles',
-            'rawRecords',
-            'availableModules',
-            'totalRecords',
-            'search',
-            'module',
-            'activeTab'
-        ));
+        return view('access-matrix.index', compact('records', 'search', 'totalRecords'));
     }
 
-    /**
-     * Import records from an uploaded .xlsx or .csv file.
-     * Uses score-based header detection to handle Excel files with title rows
-     * or section rows before the actual column headers.
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // IMPORT  — Detect header row, skip metadata, insert clean rows
+    // ─────────────────────────────────────────────────────────────────────────
     public function import(Request $request)
     {
         $request->validate([
@@ -145,14 +50,16 @@ class AccessMatrixController extends Controller
 
         $file = $request->file('file');
         $ext  = strtolower($file->getClientOriginalExtension());
-        $raw  = []; // all rows as numeric-indexed arrays
+        $raw  = [];
 
+        // ── Read file into $raw (array of numeric-indexed rows) ────────────
         try {
             if ($ext === 'csv') {
                 $handle = fopen($file->getRealPath(), 'r');
-                // Strip UTF-8 BOM
-                $bom = fread($handle, 3);
-                if ($bom !== "\xEF\xBB\xBF") { rewind($handle); }
+                $bom    = fread($handle, 3);
+                if ($bom !== "\xEF\xBB\xBF") {
+                    rewind($handle);
+                }
                 while (($line = fgetcsv($handle, 0, ',')) !== false) {
                     $raw[] = array_values($line);
                 }
@@ -160,7 +67,6 @@ class AccessMatrixController extends Controller
             } else {
                 $spreadsheet = IOFactory::load($file->getRealPath());
                 $sheet       = $spreadsheet->getActiveSheet();
-                // false = use numeric indices (not cell-ref letters like A,B,C)
                 foreach ($sheet->toArray(null, true, true, false) as $row) {
                     $raw[] = array_values($row);
                 }
@@ -173,7 +79,7 @@ class AccessMatrixController extends Controller
             return back()->withErrors(['file' => 'The file appears to be empty.']);
         }
 
-        // ── Normalize helper: lowercase, collapse whitespace → underscore ──
+        // ── Normalize helper ───────────────────────────────────────────────
         $normalize = fn($v) => trim(
             preg_replace('/_+/', '_',
                 preg_replace('/[^a-z0-9]+/', '_',
@@ -182,60 +88,86 @@ class AccessMatrixController extends Controller
             ), '_'
         );
 
-        // ── Flat alias → DB column map ─────────────────────────────────────
-        // NOTE: 'modul'/'stream_process'/'total_role' intentionally excluded
+        // ── Alias → DB-column map for new schema ──────────────────────────
+        // We cast a wide net so the file can use various header spellings.
         $aliasMap = [
-            // no
-            'no' => 'no',  'nomor' => 'no',  'number' => 'no',  'num' => 'no',
-            // nip
-            'nip' => 'nip',  'employee_id' => 'nip',  'id_pegawai' => 'nip',  'nik' => 'nip',
-            // nama
-            'nama' => 'nama',  'name' => 'nama',  'full_name' => 'nama',  'nama_lengkap' => 'nama',
-            'nama_karyawan' => 'nama',
-            // jabatan
-            'jabatan' => 'jabatan',  'position' => 'jabatan',  'posisi' => 'jabatan',
-            'job_title' => 'jabatan',  'title' => 'jabatan',  'jabatan_posisi' => 'jabatan',
-            // department
-            'department' => 'department',  'dept' => 'department',  'departemen' => 'department',
-            'divisi' => 'department',  'unit' => 'department',  'bagian' => 'department',
-            'unit_kerja' => 'department',
-            // aplikasi  (NOT 'modul' — that is excluded per user request)
-            'aplikasi' => 'aplikasi',  'application' => 'aplikasi',  'app' => 'aplikasi',
-            'sistem' => 'aplikasi',  'system' => 'aplikasi',  'nama_aplikasi' => 'aplikasi',
-            // hak_akses
-            'hak_akses' => 'hak_akses',  'hak akses' => 'hak_akses',  'hakakses' => 'hak_akses',
-            'access' => 'hak_akses',  'access_rights' => 'hak_akses',  'privilege' => 'hak_akses',
-            'role' => 'hak_akses',  'role_code' => 'hak_akses',  'hak' => 'hak_akses',
-            'user_role' => 'hak_akses',
-            // status
-            'status' => 'status',  'aktif' => 'status',  'active' => 'status',
-            // keterangan
-            'keterangan' => 'keterangan',  'ket' => 'keterangan',  'notes' => 'keterangan',
-            'note' => 'keterangan',  'remarks' => 'keterangan',  'remark' => 'keterangan',
-            'description' => 'keterangan',  'desc' => 'keterangan',  'info' => 'keterangan',
-            'keterangan_akses' => 'keterangan',
+            // role
+            'role'           => 'role',
+            'role_code'      => 'role',
+            'hak_akses'      => 'role',
+            'hak akses'      => 'role',
+            'access'         => 'role',
+            'access_rights'  => 'role',
+            'privilege'      => 'role',
+            'roles'          => 'role',
+
+            // description_role
+            'description_role'  => 'description_role',
+            'description'       => 'description_role',
+            'desc'              => 'description_role',
+            'keterangan'        => 'description_role',
+            'ket'               => 'description_role',
+            'notes'             => 'description_role',
+            'role_description'  => 'description_role',
+            'deskripsi'         => 'description_role',
+            'deskripsi_role'    => 'description_role',
+
+            // tcode
+            'tcode'             => 'tcode',
+            't_code'            => 'tcode',
+            'transaction_code'  => 'tcode',
+            'transaction'       => 'tcode',
+            'transaksi'         => 'tcode',
+            'kode_transaksi'    => 'tcode',
+
+            // uni
+            'uni'               => 'uni',
+            'unit'              => 'uni',
+            'unit_kerja'        => 'uni',
+            'business_unit'     => 'uni',
+            'bu'                => 'uni',
+
+            // bpo
+            'bpo'               => 'bpo',
+            'business_process_owner' => 'bpo',
+            'process_owner'     => 'bpo',
+            'owner'             => 'bpo',
+
+            // access_owner
+            'access_owner'      => 'access_owner',
+            'ao'                => 'access_owner',
+            'pemilik_akses'     => 'access_owner',
+            'pemilik'           => 'access_owner',
+            'approver'          => 'access_owner',
         ];
 
         // ── Find the BEST header row by scoring alias matches ──────────────
-        // Scan first 20 rows; pick the row whose cells match the most aliases.
-        // This skips "Modul | Stream Process | Total Role" style rows (score=0)
-        // and correctly finds "No | NIP | Nama | Jabatan | ..." (score=7+).
-        $bestScore      = -1;
-        $headerRowIdx   = -1;
-        $firstValidIdx  = -1;
-        $searchLimit    = min(count($raw), 20);
+        // Scan first 25 rows; pick the row whose cells match the most aliases.
+        // Rows like "Modul | AO | Stream Process" score 1 at most (only "ao"
+        // matches). The actual header row with "Role | Description Role |
+        // TCODE | UNI | BPO | Access Owner" scores 5-6, so it always wins.
+        $bestScore     = -1;
+        $headerRowIdx  = -1;
+        $firstValidIdx = -1;
+        $searchLimit   = min(count($raw), 25);
 
         for ($i = 0; $i < $searchLimit; $i++) {
             $row      = $raw[$i];
             $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
-            if (count($nonEmpty) < 2) continue;
+            if (count($nonEmpty) < 2) {
+                continue;
+            }
 
-            if ($firstValidIdx === -1) $firstValidIdx = $i;
+            if ($firstValidIdx === -1) {
+                $firstValidIdx = $i;
+            }
 
             $score = 0;
             foreach ($row as $cell) {
                 $norm = $normalize($cell);
-                if ($norm !== '' && isset($aliasMap[$norm])) $score++;
+                if ($norm !== '' && isset($aliasMap[$norm])) {
+                    $score++;
+                }
             }
 
             if ($score > $bestScore) {
@@ -244,8 +176,8 @@ class AccessMatrixController extends Controller
             }
         }
 
-        // If nothing scored (all headers are custom/unknown), fall back to first valid row
-        if ($headerRowIdx === -1) {
+        // Fallback: if nothing scored ≥ 1, use first non-empty row
+        if ($headerRowIdx === -1 || $bestScore < 1) {
             $headerRowIdx = ($firstValidIdx !== -1) ? $firstValidIdx : 0;
         }
 
@@ -253,37 +185,39 @@ class AccessMatrixController extends Controller
         $headers   = array_map($normalize, $headerRow);
         $dataRows  = array_slice($raw, $headerRowIdx + 1);
 
-        // Log detected headers for debugging
-        \Illuminate\Support\Facades\Log::info('AccessMatrix import headers detected', [
+        Log::info('UAM import: header detected', [
+            'file'             => $file->getClientOriginalName(),
             'header_row_index' => $headerRowIdx,
             'score'            => $bestScore,
             'headers'          => $headers,
-            'file'             => $file->getClientOriginalName(),
         ]);
 
-        // ── Build index→dbColumn mapping ───────────────────────────────────
+        // ── Build index → DB-column mapping ───────────────────────────────
         $colMap = [];
         foreach ($headers as $idx => $norm) {
-            if ($norm === '' || $norm === '_') continue;
+            if ($norm === '' || $norm === '_') {
+                continue;
+            }
             $dbCol = $aliasMap[$norm] ?? null;
-            if ($dbCol && !in_array($dbCol, $colMap)) {
+            // First match wins; don't overwrite already-mapped DB columns
+            if ($dbCol && !in_array($dbCol, $colMap, true)) {
                 $colMap[$idx] = $dbCol;
             }
         }
 
-        // ── Positional fallback if alias matching found < 2 columns ────────
-        if (count($colMap) < 2) {
-            $colMap = [];
-            $positional = ['no', 'nip', 'nama', 'jabatan', 'department', 'aplikasi', 'hak_akses', 'status', 'keterangan'];
-            $validIndices = array_keys(array_filter($headers, fn($h) => $h !== '' && $h !== '_'));
-            foreach ($validIndices as $order => $colIdx) {
+        // ── Positional fallback if alias matching found < 1 column ────────
+        if (count($colMap) < 1) {
+            $colMap     = [];
+            $positional = ['role', 'description_role', 'tcode', 'uni', 'bpo', 'access_owner'];
+            $validIdxs  = array_keys(array_filter($headers, fn($h) => $h !== '' && $h !== '_'));
+            foreach ($validIdxs as $order => $colIdx) {
                 if (isset($positional[$order])) {
                     $colMap[$colIdx] = $positional[$order];
                 }
             }
 
-            \Illuminate\Support\Facades\Log::warning('AccessMatrix: using positional fallback mapping', [
-                'colMap' => $colMap,
+            Log::warning('UAM import: using positional fallback mapping', [
+                'colMap'  => $colMap,
                 'headers' => $headers,
             ]);
         }
@@ -292,7 +226,7 @@ class AccessMatrixController extends Controller
             $detected = implode(', ', array_filter($headers));
             return back()->withErrors([
                 'file' => "Could not map any columns. Detected headers: [{$detected}]. "
-                        . "Expected: No, NIP, Nama, Jabatan, Department, Aplikasi/Hak Akses, Status, Keterangan.",
+                        . "Expected: Role, Description Role, TCODE, UNI, BPO, Access Owner.",
             ]);
         }
 
@@ -302,43 +236,133 @@ class AccessMatrixController extends Controller
         $inserts = [];
 
         foreach ($dataRows as $row) {
+            // Skip entirely empty rows
             $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
-            if (empty($nonEmpty)) continue;
-
-            $record = ['imported_by' => $userId, 'created_at' => $now, 'updated_at' => $now];
-            foreach ($colMap as $idx => $dbCol) {
-                $val = $row[$idx] ?? null;
-                $record[$dbCol] = ($val !== null && trim((string)$val) !== '') ? $val : null;
+            if (empty($nonEmpty)) {
+                continue;
             }
+
+            $record = [
+                'imported_by' => $userId,
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ];
+
+            foreach ($colMap as $idx => $dbCol) {
+                $val           = $row[$idx] ?? null;
+                $record[$dbCol] = ($val !== null && trim((string)$val) !== '') ? trim((string)$val) : null;
+            }
+
+            // Skip rows that have no role value (avoids inserting section headers)
+            if (empty($record['role'])) {
+                continue;
+            }
+
             $inserts[] = $record;
         }
 
         if (empty($inserts)) {
-            return back()->withErrors(['file' => 'No data rows found after the header row.']);
+            return back()->withErrors(['file' => 'No valid data rows found after the header row.']);
         }
 
-        // ── Truncate old + bulk insert new ────────────────────────────────
-        AccessMatrixRecord::truncate();
+        // ── Truncate + bulk insert ─────────────────────────────────────────
+        UamRecord::truncate();
         foreach (array_chunk($inserts, 500) as $chunk) {
-            AccessMatrixRecord::insert($chunk);
+            UamRecord::insert($chunk);
         }
 
         $count      = count($inserts);
         $mappedCols = implode(', ', array_unique(array_values($colMap)));
 
-        return redirect()->route('access-matrix.index', ['tab' => 'raw'])
+        return redirect()
+            ->route('access-matrix.index')
             ->with('success', "Successfully imported {$count} record(s) from \"{$file->getClientOriginalName()}\". Columns mapped: {$mappedCols}.");
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // CREATE  — Show add-new-record form
+    // ─────────────────────────────────────────────────────────────────────────
+    public function create()
+    {
+        return view('access-matrix.create');
+    }
 
-    /**
-     * Clear all imported records.
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // STORE  — Save new record
+    // ─────────────────────────────────────────────────────────────────────────
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'role'             => ['required', 'string', 'max:255'],
+            'description_role' => ['nullable', 'string'],
+            'tcode'            => ['nullable', 'string', 'max:50'],
+            'uni'              => ['nullable', 'string', 'max:255'],
+            'bpo'              => ['nullable', 'string', 'max:255'],
+            'access_owner'     => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $validated['imported_by'] = Auth::id();
+
+        UamRecord::create($validated);
+
+        return redirect()
+            ->route('access-matrix.index', ['search' => $validated['role']])
+            ->with('success', 'Record created successfully.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EDIT  — Show edit form for a specific record
+    // ─────────────────────────────────────────────────────────────────────────
+    public function edit(UamRecord $uamRecord)
+    {
+        return view('access-matrix.edit', compact('uamRecord'));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UPDATE  — Save edited record
+    // ─────────────────────────────────────────────────────────────────────────
+    public function update(Request $request, UamRecord $uamRecord)
+    {
+        $validated = $request->validate([
+            'role'             => ['required', 'string', 'max:255'],
+            'description_role' => ['nullable', 'string'],
+            'tcode'            => ['nullable', 'string', 'max:50'],
+            'uni'              => ['nullable', 'string', 'max:255'],
+            'bpo'              => ['nullable', 'string', 'max:255'],
+            'access_owner'     => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $uamRecord->update($validated);
+
+        // Redirect back to index with the role as search so the user can
+        // immediately see the updated record.
+        return redirect()
+            ->route('access-matrix.index', ['search' => $uamRecord->role])
+            ->with('success', 'Record updated successfully.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DESTROY  — Delete a single record
+    // ─────────────────────────────────────────────────────────────────────────
+    public function destroy(UamRecord $uamRecord)
+    {
+        $role = $uamRecord->role;
+        $uamRecord->delete();
+
+        return redirect()
+            ->route('access-matrix.index')
+            ->with('success', "Record for role \"{$role}\" has been deleted.");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CLEAR  — Truncate all records
+    // ─────────────────────────────────────────────────────────────────────────
     public function clear()
     {
-        AccessMatrixRecord::truncate();
+        UamRecord::truncate();
 
-        return redirect()->route('access-matrix.index')
-            ->with('success', 'All Access Matrix records have been cleared.');
+        return redirect()
+            ->route('access-matrix.index')
+            ->with('success', 'All UAM records have been cleared.');
     }
 }

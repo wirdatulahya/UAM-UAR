@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Access Matrix')
+@section('title', 'User Access Matrix')
 
 @section('content')
 
@@ -132,46 +132,52 @@
         @endif
 
         {{-- ── Breadcrumbs ── --}}
-        <nav aria-label="breadcrumb" class="animate-in" style="margin-bottom: .4rem;">
-            <ol class="breadcrumb" style="background:none; padding:0; margin:0; font-size:.78rem; font-weight:500; display:flex; gap:.35rem; list-style:none;">
+        <nav aria-label="breadcrumb" class="animate-in" style="margin-bottom:.4rem;">
+            <ol class="breadcrumb" style="background:none;padding:0;margin:0;font-size:.78rem;font-weight:500;display:flex;gap:.35rem;list-style:none;">
                 <li class="breadcrumb-item d-flex align-items-center">
-                    <a href="{{ route('dashboard') }}" style="color:var(--text-muted); text-decoration:none; transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Dashboard</a>
-                    <span style="color:var(--text-muted); margin-left:.35rem;">&gt;</span>
+                    <a href="{{ route('dashboard') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
+                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Dashboard</a>
+                    <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
-                <li class="breadcrumb-item active" style="color:var(--secondary); font-weight:600; margin-left:.35rem;" aria-current="page">Access Matrix</li>
+                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">Access Matrix</li>
             </ol>
         </nav>
 
-        {{-- ── Page Header ─────────────────────────────────────────── --}}
+        {{-- ── Page Header ── --}}
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 animate-in" style="gap:1rem;">
             <div>
                 <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                    <i class="bi bi-table me-2" style="color:var(--primary);"></i>Access Matrix
+                    <i class="bi bi-table me-2" style="color:var(--primary);"></i>User Access Matrix
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                    Import and manage roles and user access permissions
+                    Search by Role to view, add, edit, or delete access records
+                    @if($totalRecords > 0)
+                        &nbsp;·&nbsp; <strong>{{ number_format($totalRecords) }}</strong> records in database
+                    @endif
                 </p>
             </div>
-            
+
             <div class="d-flex align-items-center flex-wrap gap-2">
-                {{-- Toggle Upload Panel Button --}}
+                {{-- Import Excel Button --}}
                 <button type="button" id="toggleUploadBtn"
-                    style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.55rem 1.25rem;font-size:.82rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all var(--transition);">
+                    style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.55rem 1.25rem;font-size:.82rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all var(--transition);"
+                    onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
+                    onmouseleave="if(!uploadCardCollapse.dataset.open){this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';}">
                     <i class="bi bi-file-earmark-arrow-up-fill"></i>
                     Import Excel
                 </button>
 
-                {{-- Add Role Button (UI Only) --}}
-                <button type="button" class="btn-primary-custom" 
-                    style="width:auto;padding:.55rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.45rem;border-radius:10px;"
-                    onclick="alert('Add Role feature is under development (UI Only for now).')">
+                {{-- Add New Record --}}
+                <a href="{{ route('access-matrix.create') }}"
+                    class="btn-primary-custom"
+                    style="width:auto;padding:.55rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.45rem;border-radius:10px;text-decoration:none;">
                     <i class="bi bi-plus-lg"></i>
-                    Add Role
-                </button>
+                    Add Record
+                </a>
 
                 @if ($totalRecords > 0)
                     <form method="POST" action="{{ route('access-matrix.clear') }}" id="clearForm"
-                          onsubmit="return confirm('Are you sure you want to delete all {{ $totalRecords }} records? This cannot be undone.');"
+                          onsubmit="return confirm('Delete ALL {{ $totalRecords }} records? This cannot be undone.');"
                           style="margin:0;">
                         @csrf
                         @method('DELETE')
@@ -180,15 +186,15 @@
                             onmouseenter="this.style.borderColor='#c0392b';this.style.background='#fde8e9';"
                             onmouseleave="this.style.borderColor='var(--border)';this.style.background='none';">
                             <i class="bi bi-trash3-fill"></i>
-                            Clear Data
+                            Clear All
                         </button>
                     </form>
                 @endif
             </div>
         </div>
 
-        {{-- ── Collapsible Upload Card ────────────────────────────────── --}}
-        <div id="uploadCardCollapse" class="animate-in animate-in-delay-1 mb-4" style="display:none; transition: all var(--transition);">
+        {{-- ── Collapsible Import Card ── --}}
+        <div id="uploadCardCollapse" class="animate-in animate-in-delay-1 mb-4" style="display:none;">
             <div id="uploadCard" style="background:#fff;border:2px dashed var(--border);border-radius:16px;padding:2rem;transition:border-color var(--transition),background var(--transition);">
 
                 <form method="POST" action="{{ route('access-matrix.import') }}"
@@ -200,10 +206,13 @@
                             <i class="bi bi-file-earmark-arrow-up-fill" style="font-size:1.6rem;color:var(--secondary);"></i>
                         </div>
                         <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">
-                            Drag & Drop your file here
+                            Drag &amp; Drop your UAM Excel file here
                         </h3>
                         <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1.25rem;">
                             Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> &nbsp;·&nbsp; Max 10 MB
+                        </p>
+                        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem;">
+                            Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNI</code>, <code>BPO</code>, <code>Access Owner</code>
                         </p>
 
                         <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display:none;">
@@ -217,7 +226,7 @@
                         </div>
                     </div>
 
-                    {{-- Selected file preview --}}
+                    {{-- File preview --}}
                     <div id="filePreview" style="display:none;margin-top:1.25rem;padding:1rem;background:var(--secondary-light);border-radius:10px;align-items:center;gap:.75rem;">
                         <div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08);">
                             <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:1.2rem;color:var(--secondary);"></i>
@@ -239,328 +248,233 @@
                             <i class="bi bi-upload me-1"></i> Import Data
                         </button>
                     </div>
-
                 </form>
             </div>
         </div>
 
-        {{-- ── Search & Filters Bar ───────────────────────────────────── --}}
-        <div class="animate-in animate-in-delay-1 mb-4" style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.02);">
-            <form method="GET" action="{{ route('access-matrix.index') }}" id="filterForm">
-                <input type="hidden" name="tab" value="{{ $activeTab }}">
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-lg-7">
+        {{-- ── Search Bar ── --}}
+        <div class="animate-in animate-in-delay-1 mb-4"
+             style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.02);">
+            <form method="GET" action="{{ route('access-matrix.index') }}" id="searchForm">
+                <div class="row g-3 align-items-center">
+                    <div class="col-12 col-md-8 col-lg-9">
                         <div class="position-relative">
                             <i class="bi bi-search position-absolute" style="left:1rem;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.9rem;"></i>
-                            <input type="text" name="search" value="{{ $search }}" class="form-control" style="padding-left:2.6rem;" 
-                                   placeholder="{{ $activeTab === 'roles' ? 'Search by Role Code or Description...' : 'Search NIP, Name, Position, Department, etc...' }}">
+                            <input type="text" name="search" id="searchInput" value="{{ $search }}"
+                                   class="form-control"
+                                   style="padding-left:2.6rem;font-size:.9rem;"
+                                   placeholder="Search by Role (e.g. ZPS-MD-1014-000000-PROJ-CHG)…"
+                                   autocomplete="off">
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-md-3 col-lg-3">
-                        <select name="module" class="form-select form-control" style="cursor:pointer;" onchange="this.form.submit()">
-                            <option value="">All Modules</option>
-                            @foreach ($availableModules as $mod)
-                                <option value="{{ $mod }}" {{ $module === $mod ? 'selected' : '' }}>{{ $mod }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-12 col-sm-6 col-md-3 col-lg-2">
-                        <button type="submit" class="btn-primary-custom" style="padding:.65rem 1rem;font-size:.9rem;background:var(--secondary);border-radius:10px;box-shadow:none;">
-                            <i class="bi bi-filter me-1"></i> Apply Filter
+                    <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
+                        <button type="submit" class="btn-primary-custom flex-grow-1"
+                                style="padding:.65rem 1rem;font-size:.9rem;background:var(--secondary);border-radius:10px;box-shadow:none;">
+                            <i class="bi bi-search me-1"></i> Search
                         </button>
+                        @if($search)
+                            <a href="{{ route('access-matrix.index') }}"
+                               style="display:inline-flex;align-items:center;gap:.3rem;padding:.65rem .9rem;border-radius:10px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;white-space:nowrap;transition:all var(--transition);"
+                               onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
+                               onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+                                <i class="bi bi-x-lg"></i> Clear
+                            </a>
+                        @endif
                     </div>
                 </div>
             </form>
         </div>
 
-        {{-- ── Tabs Navigation ────────────────────────────────────────── --}}
-        <div class="d-flex align-items-center mb-4 animate-in animate-in-delay-2" style="border-bottom:1.5px solid var(--border);gap:1.5rem;padding-bottom:.1rem;">
-            <a href="{{ route('access-matrix.index', array_merge(request()->query(), ['tab' => 'roles', 'page' => 1])) }}" 
-               class="tab-link" 
-               style="padding:.6rem .2rem;font-size:.88rem;font-weight:600;text-decoration:none;border-bottom:3px solid {{ $activeTab === 'roles' ? 'var(--secondary)' : 'transparent' }};color:{{ $activeTab === 'roles' ? 'var(--secondary)' : 'var(--text-muted)' }};transition:all var(--transition);">
-                <i class="bi bi-shield-lock-fill me-1"></i> Roles Matrix ({{ $roles->total() }})
-            </a>
-            @if ($totalRecords > 0)
-            <a href="{{ route('access-matrix.index', array_merge(request()->query(), ['tab' => 'raw', 'page' => 1])) }}" 
-               class="tab-link" 
-               style="padding:.6rem .2rem;font-size:.88rem;font-weight:600;text-decoration:none;border-bottom:3px solid {{ $activeTab === 'raw' ? 'var(--secondary)' : 'transparent' }};color:{{ $activeTab === 'raw' ? 'var(--secondary)' : 'var(--text-muted)' }};transition:all var(--transition);">
-                <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Raw Uploaded Data ({{ $totalRecords }})
-            </a>
-            @endif
-        </div>
+        {{-- ── Results Table ── --}}
+        <div class="animate-in animate-in-delay-2 mb-4">
+            <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
 
-        {{-- ── Data Display ───────────────────────────────────────────── --}}
-        @if ($activeTab === 'roles')
-            {{-- ──────────────────────────────────────
-               ROLES MATRIX TAB
-            ────────────────────────────────────── --}}
-            <div class="animate-in animate-in-delay-3 mb-4">
-                <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
-                    
-                    {{-- Table Header Info --}}
-                    <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-                        <div style="display:flex;align-items:center;gap:.65rem;">
-                            <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                                <i class="bi bi-shield-lock-fill" style="color:var(--secondary);font-size:.95rem;"></i>
-                            </div>
-                            <div>
-                                <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">Access Matrix Roles</div>
-                                <div style="font-size:.72rem;color:var(--text-muted);">
-                                    @if($roles->total() > 0)
-                                        Showing {{ $roles->firstItem() }}–{{ $roles->lastItem() }} of {{ $roles->total() }} unique roles
+                {{-- Table Header Bar --}}
+                <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+                    <div style="display:flex;align-items:center;gap:.65rem;">
+                        <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                            <i class="bi bi-shield-lock-fill" style="color:var(--secondary);font-size:.95rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">UAM Records</div>
+                            <div style="font-size:.72rem;color:var(--text-muted);">
+                                @if ($search)
+                                    @if ($records->total() > 0)
+                                        Showing {{ $records->firstItem() }}–{{ $records->lastItem() }} of {{ $records->total() }} records for
+                                        <strong style="color:var(--secondary);">"{{ $search }}"</strong>
                                     @else
-                                        No roles found
+                                        No records found for <strong>"{{ $search }}"</strong>
                                     @endif
-                                </div>
+                                @else
+                                    Enter a Role above to search
+                                @endif
                             </div>
                         </div>
-                        <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;">
-                            {{ $roles->total() }} Roles Total
-                        </span>
                     </div>
 
-                    @if($roles->total() > 0)
-                        {{-- Scrollable Table --}}
-                        <div style="overflow-x:auto;">
-                            <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
-                                <thead>
-                                    <tr style="background:var(--secondary-light);">
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">No</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Role Code</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Description</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Stream Process</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Module</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($roles as $i => $role)
-                                        @php
-                                            $roleObj = (object)$role;
-                                            $streamVal = isset($roleObj->stream_process) ? $roleObj->stream_process : 'Operation';
-                                        @endphp
-                                        <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
-                                            onmouseenter="this.style.background='var(--secondary-light)'"
-                                            onmouseleave="this.style.background=''">
-                                            <td style="padding:.75rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;">{{ $roles->firstItem() + $i }}</td>
-                                            <td style="padding:.75rem 1rem;font-weight:700;color:var(--secondary);white-space:nowrap;">
-                                                <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .4rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);">
-                                                    {{ $roleObj->role_code }}
-                                                </span>
-                                            </td>
-                                            <td style="padding:.75rem 1rem;font-weight:500;">{{ $roleObj->description ?? '—' }}</td>
-                                            <td style="padding:.75rem 1rem;white-space:nowrap;">
-                                                <span style="display:inline-flex;align-items:center;gap:.3rem;background:#fff8e1;color:#b78103;border-radius:6px;padding:.2rem .55rem;font-size:.75rem;font-weight:600;border:1px solid #ffe082;">
-                                                    <i class="bi bi-gear-wide-connected" style="font-size:.7rem;"></i>{{ $streamVal }}
-                                                </span>
-                                            </td>
-                                            <td style="padding:.75rem 1rem;white-space:nowrap;">
-                                                @if ($roleObj->module)
-                                                    <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--secondary-light);color:var(--secondary);border-radius:6px;padding:.2rem .55rem;font-size:.75rem;font-weight:600;border:1px solid rgba(11,46,109,.15);">
-                                                        <i class="bi bi-app-indicator" style="font-size:.7rem;"></i>{{ $roleObj->module }}
-                                                    </span>
+                    @if($records->total() > 0)
+                        <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;">
+                            {{ $records->total() }} Result(s)
+                        </span>
+                    @endif
+                </div>
+
+                {{-- Table --}}
+                <div style="overflow-x:auto;">
+                    <table class="uam-table" style="width:100%;border-collapse:collapse;font-size:.82rem;">
+                        <thead>
+                            <tr style="background:var(--secondary-light);">
+                                @php
+                                    $thStyle = "padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);";
+                                @endphp
+                                <th style="{{ $thStyle }}">#</th>
+                                <th style="{{ $thStyle }}">Role</th>
+                                <th style="{{ $thStyle }}">Description Role</th>
+                                <th style="{{ $thStyle }}">TCODE</th>
+                                <th style="{{ $thStyle }}">UNI</th>
+                                <th style="{{ $thStyle }}">BPO</th>
+                                <th style="{{ $thStyle }}">Access Owner</th>
+                                <th style="{{ $thStyle }}">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($records as $i => $rec)
+                                <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
+                                    onmouseenter="this.style.background='var(--secondary-light)'"
+                                    onmouseleave="this.style.background=''">
+                                    <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;">
+                                        {{ $records->firstItem() + $i }}
+                                    </td>
+                                    <td style="padding:.7rem 1rem;white-space:nowrap;max-width:260px;">
+                                        <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:700;color:var(--secondary);">
+                                            {{ $rec->role ?? '—' }}
+                                        </span>
+                                    </td>
+                                    <td style="padding:.7rem 1rem;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                        title="{{ $rec->description_role }}">
+                                        {{ $rec->description_role ?? '—' }}
+                                    </td>
+                                    <td style="padding:.7rem 1rem;white-space:nowrap;">
+                                        @if($rec->tcode)
+                                            <span style="display:inline-flex;align-items:center;background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:.2rem .5rem;font-size:.75rem;font-weight:600;border:1px solid #bfdbfe;font-family:monospace;">
+                                                {{ $rec->tcode }}
+                                            </span>
+                                        @else
+                                            <span style="color:var(--text-muted);">—</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding:.7rem 1rem;white-space:nowrap;">{{ $rec->uni ?? '—' }}</td>
+                                    <td style="padding:.7rem 1rem;white-space:nowrap;">{{ $rec->bpo ?? '—' }}</td>
+                                    <td style="padding:.7rem 1rem;white-space:nowrap;">
+                                        @if($rec->access_owner)
+                                            <span style="display:inline-flex;align-items:center;gap:.3rem;background:#f0fdf4;color:#166534;border-radius:6px;padding:.2rem .55rem;font-size:.75rem;font-weight:600;border:1px solid #bbf7d0;">
+                                                <i class="bi bi-person-check-fill" style="font-size:.65rem;"></i>
+                                                {{ $rec->access_owner }}
+                                            </span>
+                                        @else
+                                            <span style="color:var(--text-muted);">—</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding:.7rem 1rem;white-space:nowrap;">
+                                        <div class="d-flex align-items-center gap-1">
+                                            {{-- Edit --}}
+                                            <a href="{{ route('access-matrix.edit', $rec->id) }}"
+                                               style="display:inline-flex;align-items:center;gap:.3rem;background:#fef3c7;color:#d97706;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);text-decoration:none;"
+                                               onmouseenter="this.style.filter='brightness(0.95)'"
+                                               onmouseleave="this.style.filter=''">
+                                                <i class="bi bi-pencil-fill"></i> Edit
+                                            </a>
+                                            {{-- Delete --}}
+                                            <form method="POST" action="{{ route('access-matrix.destroy', $rec->id) }}"
+                                                  onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($rec->role) }}\nTCODE: {{ addslashes($rec->tcode ?? '—') }}')"
+                                                  style="margin:0;">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    style="display:inline-flex;align-items:center;gap:.3rem;background:var(--primary-light);color:var(--primary);border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
+                                                    onmouseenter="this.style.filter='brightness(0.95)'"
+                                                    onmouseleave="this.style.filter=''">
+                                                    <i class="bi bi-trash-fill"></i> Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
+                                        @if($search)
+                                            {{-- Searched but no results --}}
+                                            <div style="width:56px;height:56px;background:var(--primary-light);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                                                <i class="bi bi-search" style="font-size:1.4rem;color:var(--primary);"></i>
+                                            </div>
+                                            <h3 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">No matching records found</h3>
+                                            <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.75rem;">No UAM records match "<strong>{{ $search }}</strong>".</p>
+                                            <a href="{{ route('access-matrix.create') }}"
+                                               class="btn-primary-custom"
+                                               style="width:auto;padding:.5rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.4rem;border-radius:8px;text-decoration:none;">
+                                                <i class="bi bi-plus-lg"></i> Add New Record
+                                            </a>
+                                        @else
+                                            {{-- Initial state: no search yet --}}
+                                            <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                                                <i class="bi bi-search" style="font-size:1.6rem;color:var(--secondary);"></i>
+                                            </div>
+                                            <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">Search to view records</h3>
+                                            <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;">
+                                                Enter a <strong>Role</strong> in the search box above to find matching UAM records.
+                                                @if($totalRecords > 0)
+                                                    <br>There are <strong>{{ number_format($totalRecords) }}</strong> records available.
                                                 @else
-                                                    <span style="color:var(--text-muted);">—</span>
+                                                    <br>No data imported yet. Use <strong>Import Excel</strong> or <strong>Add Record</strong> to get started.
                                                 @endif
-                                            </td>
-                                            <td style="padding:.75rem 1rem;white-space:nowrap;">
-                                                <div class="d-flex align-items-center gap-1">
-                                                    {{-- Detail UI Only --}}
-                                                    <button type="button"
-                                                        style="background:var(--secondary-light);color:var(--secondary);border:none;border-radius:6px;padding:.3rem .55rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
-                                                        onmouseenter="this.style.filter='brightness(0.9)'"
-                                                        onmouseleave="this.style.filter=''"
-                                                        onclick="alert('Role detail view is under development.')">
-                                                        <i class="bi bi-eye"></i> Detail
-                                                    </button>
-                                                    {{-- Edit UI Only --}}
-                                                    <button type="button"
-                                                        style="background:#fef3c7;color:#d97706;border:none;border-radius:6px;padding:.3rem .55rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
-                                                        onmouseenter="this.style.filter='brightness(0.95)'"
-                                                        onmouseleave="this.style.filter=''"
-                                                        onclick="alert('Edit Role feature is under development.')">
-                                                        <i class="bi bi-pencil"></i> Edit
-                                                    </button>
-                                                    {{-- Delete UI Only --}}
-                                                    <button type="button"
-                                                        style="background:var(--primary-light);color:var(--primary);border:none;border-radius:6px;padding:.3rem .55rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
-                                                        onmouseenter="this.style.filter='brightness(0.95)'"
-                                                        onmouseleave="this.style.filter=''"
-                                                        onclick="alert('Delete Role feature is under development.')">
-                                                        <i class="bi bi-trash"></i> Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {{-- Pagination --}}
-                        @if ($roles->hasPages())
-                            <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-                                <div style="font-size:.78rem;color:var(--text-muted);">
-                                    Page {{ $roles->currentPage() }} of {{ $roles->lastPage() }}
-                                </div>
-                                <div style="display:flex;gap:.35rem;">
-                                    @if ($roles->onFirstPage())
-                                        <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--text-muted);opacity:.5;">← Prev</span>
-                                    @else
-                                        <a href="{{ $roles->previousPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
-                                            onmouseenter="this.style.background='var(--secondary-light)'"
-                                            onmouseleave="this.style.background=''">← Prev</a>
-                                    @endif
-
-                                    @if ($roles->hasMorePages())
-                                        <a href="{{ $roles->nextPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
-                                            onmouseenter="this.style.background='var(--secondary-light)'"
-                                            onmouseleave="this.style.background=''">Next →</a>
-                                    @else
-                                        <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--text-muted);opacity:.5;">Next →</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-                    @else
-                        {{-- Search Empty State --}}
-                        <div class="text-center" style="padding:3rem 1rem;">
-                            <div style="width:56px;height:56px;background:var(--secondary-light);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                                <i class="bi bi-search" style="font-size:1.4rem;color:var(--secondary);"></i>
-                            </div>
-                            <h3 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">No matching roles found</h3>
-                            <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:0;">Try adjusting your search query or module filters.</p>
-                        </div>
-                    @endif
-
+                                            </p>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        @else
-            {{-- ──────────────────────────────────────
-               RAW UPLOADED DATA TAB
-            ────────────────────────────────────── --}}
-            <div class="animate-in animate-in-delay-3 mb-4">
-                <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
-                    
-                    {{-- Table Header --}}
-                    <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-                        <div style="display:flex;align-items:center;gap:.65rem;">
-                            <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                                <i class="bi bi-file-earmark-spreadsheet" style="color:var(--secondary);font-size:.95rem;"></i>
-                            </div>
-                            <div>
-                                <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">Imported Records (UAM Data)</div>
-                                <div style="font-size:.72rem;color:var(--text-muted);">
-                                    Showing {{ $rawRecords->firstItem() }}–{{ $rawRecords->lastItem() }} of {{ $rawRecords->total() }} records
-                                </div>
-                            </div>
+
+                {{-- Pagination --}}
+                @if ($records->hasPages())
+                    <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+                        <div style="font-size:.78rem;color:var(--text-muted);">
+                            Page {{ $records->currentPage() }} of {{ $records->lastPage() }}
                         </div>
-                        <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;">
-                            {{ $rawRecords->total() }} Total Rows
-                        </span>
+                        <div style="display:flex;gap:.35rem;">
+                            @if ($records->onFirstPage())
+                                <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--text-muted);opacity:.5;">← Prev</span>
+                            @else
+                                <a href="{{ $records->previousPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
+                                   onmouseenter="this.style.background='var(--secondary-light)'"
+                                   onmouseleave="this.style.background=''">← Prev</a>
+                            @endif
+
+                            @foreach ($records->getUrlRange(max(1, $records->currentPage() - 2), min($records->lastPage(), $records->currentPage() + 2)) as $page => $url)
+                                @if ($page == $records->currentPage())
+                                    <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--secondary);font-size:.78rem;background:var(--secondary);color:#fff;font-weight:700;">{{ $page }}</span>
+                                @else
+                                    <a href="{{ $url }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
+                                       onmouseenter="this.style.background='var(--secondary-light)'"
+                                       onmouseleave="this.style.background=''">{{ $page }}</a>
+                                @endif
+                            @endforeach
+
+                            @if ($records->hasMorePages())
+                                <a href="{{ $records->nextPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
+                                   onmouseenter="this.style.background='var(--secondary-light)'"
+                                   onmouseleave="this.style.background=''">Next →</a>
+                            @else
+                                <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--text-muted);opacity:.5;">Next →</span>
+                            @endif
+                        </div>
                     </div>
+                @endif
 
-                    @if($rawRecords->total() > 0)
-                        {{-- Scrollable Table --}}
-                        <div style="overflow-x:auto;">
-                            <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
-                                <thead>
-                                    <tr style="background:var(--secondary-light);">
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">No</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">NIP</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Nama</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Jabatan</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Department</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Aplikasi</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Hak Akses</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Status</th>
-                                        <th style="padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);">Keterangan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($rawRecords as $i => $rec)
-                                    <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
-                                        onmouseenter="this.style.background='var(--secondary-light)'"
-                                        onmouseleave="this.style.background=''">
-                                        <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;">{{ $rec->no ?? $rawRecords->firstItem() + $i }}</td>
-                                        <td style="padding:.7rem 1rem;font-weight:600;color:var(--secondary);white-space:nowrap;">{{ $rec->nip ?? '—' }}</td>
-                                        <td style="padding:.7rem 1rem;font-weight:500;white-space:nowrap;">{{ $rec->nama ?? '—' }}</td>
-                                        <td style="padding:.7rem 1rem;color:var(--text-muted);white-space:nowrap;">{{ $rec->jabatan ?? '—' }}</td>
-                                        <td style="padding:.7rem 1rem;white-space:nowrap;">{{ $rec->department ?? '—' }}</td>
-                                        <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                            @if ($rec->aplikasi)
-                                                <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--secondary-light);color:var(--secondary);border-radius:6px;padding:.2rem .55rem;font-size:.75rem;font-weight:600;border:1px solid rgba(11,46,109,.12);">
-                                                    <i class="bi bi-app-indicator" style="font-size:.7rem;"></i>{{ $rec->aplikasi }}
-                                                </span>
-                                            @else
-                                                <span style="color:var(--text-muted);">—</span>
-                                            @endif
-                                        </td>
-                                        <td style="padding:.7rem 1rem;white-space:nowrap;font-family:monospace;font-weight:600;color:var(--secondary);">{{ $rec->hak_akses ?? '—' }}</td>
-                                        <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                            @php
-                                                $statusVal = strtolower($rec->status ?? '');
-                                                $isActive  = in_array($statusVal, ['active', 'aktif', '1', 'yes', 'ya']);
-                                            @endphp
-                                            @if ($rec->status)
-                                                <span style="display:inline-flex;align-items:center;gap:.3rem;border-radius:20px;padding:.2rem .65rem;font-size:.72rem;font-weight:700;
-                                                    background:{{ $isActive ? '#e8f5e9' : 'var(--primary-light)' }};
-                                                    color:{{ $isActive ? '#2e7d32' : 'var(--primary)' }}; border:1px solid {{ $isActive ? '#c8e6c9' : '#ffcdd2' }}">
-                                                    <i class="bi {{ $isActive ? 'bi-check-circle-fill' : 'bi-x-circle-fill' }}" style="font-size:.65rem;"></i>
-                                                    {{ $rec->status }}
-                                                </span>
-                                            @else
-                                                <span style="color:var(--text-muted);">—</span>
-                                            @endif
-                                        </td>
-                                        <td style="padding:.7rem 1rem;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ $rec->keterangan }}">
-                                            {{ $rec->keterangan ?? '—' }}
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {{-- Pagination --}}
-                        @if ($rawRecords->hasPages())
-                        <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-                            <div style="font-size:.78rem;color:var(--text-muted);">
-                                Page {{ $rawRecords->currentPage() }} of {{ $rawRecords->lastPage() }}
-                            </div>
-                            <div style="display:flex;gap:.35rem;">
-                                @if ($rawRecords->onFirstPage())
-                                    <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--text-muted);opacity:.5;">← Prev</span>
-                                @else
-                                    <a href="{{ $rawRecords->previousPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
-                                        onmouseenter="this.style.background='var(--secondary-light)'"
-                                        onmouseleave="this.style.background=''">← Prev</a>
-                                @endif
-
-                                @if ($rawRecords->hasMorePages())
-                                    <a href="{{ $rawRecords->nextPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
-                                        onmouseenter="this.style.background='var(--secondary-light)'"
-                                        onmouseleave="this.style.background=''">Next →</a>
-                                @else
-                                    <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--text-muted);opacity:.5;">Next →</span>
-                                @endif
-                            </div>
-                        </div>
-                        @endif
-                    @else
-                        {{-- Search Empty State --}}
-                        <div class="text-center" style="padding:3rem 1rem;">
-                            <div style="width:56px;height:56px;background:var(--secondary-light);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                                <i class="bi bi-search" style="font-size:1.4rem;color:var(--secondary);"></i>
-                            </div>
-                            <h3 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">No matching records found</h3>
-                            <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:0;">Try adjusting your search query or module filters.</p>
-                        </div>
-                    @endif
-
-                </div>
             </div>
-        @endif
+        </div>
 
     </main>
 
@@ -570,7 +484,6 @@
 
 @push('styles')
 <style>
-    /* Drag-over highlight */
     #uploadCard.dragover {
         border-color: var(--secondary);
         background: var(--secondary-light);
@@ -599,31 +512,42 @@
         profileBtn.style.borderColor = 'var(--border)';
     });
 
-    // Logout spinner
     document.getElementById('logoutForm').addEventListener('submit', function () {
         const btn = document.getElementById('logoutBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging out…';
     });
 
-    // ── Collapsible Upload card ────────────────────────────────────────
-    const toggleUploadBtn = document.getElementById('toggleUploadBtn');
+    // ── Import Panel Toggle ────────────────────────────────────────────
+    const toggleUploadBtn    = document.getElementById('toggleUploadBtn');
     const uploadCardCollapse = document.getElementById('uploadCardCollapse');
-    
-    // Check if there are errors on the page, if so, automatically expand upload card
-    @if ($errors->any())
+
+    function openUploadPanel() {
         uploadCardCollapse.style.display = 'block';
-        toggleUploadBtn.style.background = 'var(--secondary-light)';
-        toggleUploadBtn.style.borderColor = 'var(--secondary)';
-        toggleUploadBtn.style.color = 'var(--secondary)';
+        uploadCardCollapse.dataset.open  = '1';
+        toggleUploadBtn.style.background    = 'var(--secondary-light)';
+        toggleUploadBtn.style.borderColor   = 'var(--secondary)';
+        toggleUploadBtn.style.color         = 'var(--secondary)';
+    }
+
+    function closeUploadPanel() {
+        uploadCardCollapse.style.display = 'none';
+        delete uploadCardCollapse.dataset.open;
+        toggleUploadBtn.style.background  = 'none';
+        toggleUploadBtn.style.borderColor = 'var(--border)';
+        toggleUploadBtn.style.color       = 'var(--text-muted)';
+    }
+
+    @if ($errors->any())
+        openUploadPanel();
     @endif
 
-    toggleUploadBtn.addEventListener('click', function() {
-        const isHidden = uploadCardCollapse.style.display === 'none';
-        uploadCardCollapse.style.display = isHidden ? 'block' : 'none';
-        toggleUploadBtn.style.background = isHidden ? 'var(--secondary-light)' : 'none';
-        toggleUploadBtn.style.borderColor = isHidden ? 'var(--secondary)' : 'var(--border)';
-        toggleUploadBtn.style.color = isHidden ? 'var(--secondary)' : 'var(--text-muted)';
+    toggleUploadBtn.addEventListener('click', function () {
+        if (uploadCardCollapse.dataset.open) {
+            closeUploadPanel();
+        } else {
+            openUploadPanel();
+        }
     });
 
     // ── File Input & Drag-Drop ─────────────────────────────────────────
@@ -643,18 +567,18 @@
     }
 
     function showFile(file) {
-        fileNameEl.textContent  = file.name;
-        fileSizeEl.textContent  = formatSize(file.size);
-        filePreview.style.display = 'flex';
+        fileNameEl.textContent      = file.name;
+        fileSizeEl.textContent      = formatSize(file.size);
+        filePreview.style.display   = 'flex';
         submitWrapper.style.display = 'block';
-        dropZone.style.opacity = '0.5';
+        dropZone.style.opacity      = '0.5';
     }
 
     function clearFile() {
-        fileInput.value = '';
-        filePreview.style.display = 'none';
+        fileInput.value             = '';
+        filePreview.style.display   = 'none';
         submitWrapper.style.display = 'none';
-        dropZone.style.opacity = '1';
+        dropZone.style.opacity      = '1';
     }
 
     fileInput.addEventListener('change', function () {
@@ -663,7 +587,6 @@
 
     removeBtn.addEventListener('click', clearFile);
 
-    // Drag and drop
     ['dragenter', 'dragover'].forEach(evt => {
         uploadCard.addEventListener(evt, e => {
             e.preventDefault();
@@ -679,29 +602,29 @@
     });
 
     uploadCard.addEventListener('drop', function (e) {
-        const file = e.dataTransfer.files[0];
+        const file    = e.dataTransfer.files[0];
         if (!file) return;
-
         const allowed = ['xlsx', 'xls', 'csv'];
         const ext     = file.name.split('.').pop().toLowerCase();
-
         if (!allowed.includes(ext)) {
             alert('Only .xlsx, .xls, and .csv files are accepted.');
             return;
         }
-
-        // Assign to the input via DataTransfer
         const dt = new DataTransfer();
         dt.items.add(file);
         fileInput.files = dt.files;
         showFile(file);
+        openUploadPanel();
     });
 
-    // Submit spinner
     document.getElementById('importForm').addEventListener('submit', function () {
         const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
+        btn.disabled  = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Importing…';
     });
+
+    // Auto-focus search input
+    const si = document.getElementById('searchInput');
+    if (si && !si.value) si.focus();
 </script>
 @endpush
