@@ -43,12 +43,9 @@ class AccessMatrixController extends Controller
         $availableModules = UamRecord::select('module')->whereNotNull('module')->where('module', '!=', '')->distinct()->pluck('module')->values();
         $availablePeriods = UamRecord::select('period')->whereNotNull('period')->where('period', '!=', '')->distinct()->pluck('period')->values();
 
-        // Only default if data exists; otherwise it will reset to empty placeholder
-        $defaultModule = $availableModules->first() ?? '';
-        $defaultPeriod = $availablePeriods->first() ?? '';
-
-        $module       = trim($request->input('module', $defaultModule));
-        $period       = trim($request->input('period', $defaultPeriod));
+        // Keep dropdowns at default placeholders by default
+        $module       = trim($request->input('module', ''));
+        $period       = trim($request->input('period', ''));
 
         $query = UamRecord::query();
 
