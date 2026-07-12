@@ -37,24 +37,29 @@ class AccessMatrixController extends Controller
     public function sap(Request $request)
     {
         $search       = trim($request->input('search', ''));
-        $module       = trim($request->input('module', ''));
-        $period       = trim($request->input('period', ''));
+        // Default to PS and Q2 2026 so records are shown immediately
+        $module       = trim($request->input('module', 'PS'));
+        $period       = trim($request->input('period', 'Q2 2026'));
         $totalRecords = UamRecord::count();
 
-        if ($search !== '' && $module !== '' && $period !== '') {
-            $records = UamRecord::where('module', $module)
-                ->where('period', $period)
-                ->where('role', 'like', "%{$search}%")
-                ->orderBy('role')
-                ->orderBy('tcode')
-                ->paginate(20)
-                ->withQueryString();
-        } else {
-            $records = new \Illuminate\Pagination\LengthAwarePaginator(
-                [], 0, 20, 1,
-                ['path' => $request->url(), 'query' => $request->query()]
-            );
+        $query = UamRecord::query();
+
+        if ($module !== '') {
+            $query->where('module', $module);
         }
+        
+        if ($period !== '') {
+            $query->where('period', $period);
+        }
+
+        if ($search !== '') {
+            $query->where('role', 'like', "%{$search}%");
+        }
+
+        $records = $query->orderBy('role')
+            ->orderBy('tcode')
+            ->paginate(20)
+            ->withQueryString();
 
         return view('access-matrix.sap', compact('records', 'search', 'module', 'period', 'totalRecords'));
     }

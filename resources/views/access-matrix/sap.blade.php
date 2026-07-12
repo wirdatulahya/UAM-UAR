@@ -320,15 +320,17 @@
                         <div>
                             <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">UAM Records</div>
                             <div style="font-size:.72rem;color:var(--text-muted);">
-                                @if ($search)
-                                    @if ($records->total() > 0)
-                                        Showing {{ $records->firstItem() }}–{{ $records->lastItem() }} of {{ $records->total() }} records for
-                                        <strong style="color:var(--secondary);">"{{ $search }}"</strong>
-                                    @else
-                                        No records found for <strong>"{{ $search }}"</strong>
+                                @if ($records->total() > 0)
+                                    Showing {{ $records->firstItem() }}–{{ $records->lastItem() }} of {{ $records->total() }} records
+                                    @if ($search)
+                                        for <strong style="color:var(--secondary);">"{{ $search }}"</strong>
                                     @endif
                                 @else
-                                    Enter a Role above to search
+                                    @if ($search)
+                                        No records found for <strong>"{{ $search }}"</strong>
+                                    @else
+                                        No records available
+                                    @endif
                                 @endif
                             </div>
                         </div>
@@ -434,18 +436,13 @@
                                                 <i class="bi bi-plus-lg"></i> Add New Record
                                             </a>
                                         @else
-                                            {{-- Initial state: no search yet --}}
+                                            {{-- Initial state: no data at all --}}
                                             <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                                                <i class="bi bi-search" style="font-size:1.6rem;color:var(--secondary);"></i>
+                                                <i class="bi bi-folder2-open" style="font-size:1.6rem;color:var(--secondary);"></i>
                                             </div>
-                                            <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">Search to view records</h3>
+                                            <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">No records available</h3>
                                             <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;">
-                                                Enter a <strong>Role</strong> in the search box above to find matching UAM records.
-                                                @if($totalRecords > 0)
-                                                    <br>There are <strong>{{ number_format($totalRecords) }}</strong> records available.
-                                                @else
-                                                    <br>No data imported yet. Use <strong>Import Excel</strong> or <strong>Add Record</strong> to get started.
-                                                @endif
+                                                There are currently no records for this Module and Period. Use <strong>Import Excel</strong> or <strong>Add Record</strong> to get started.
                                             </p>
                                         @endif
                                     </td>
