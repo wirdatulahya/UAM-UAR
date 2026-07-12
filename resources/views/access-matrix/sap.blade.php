@@ -320,14 +320,14 @@
                         <div>
                             <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">UAM Records</div>
                             <div style="font-size:.72rem;color:var(--text-muted);">
-                                @if ($records->total() > 0)
-                                    Showing {{ $records->firstItem() }}–{{ $records->lastItem() }} of {{ $records->total() }} records
+                                @if ($roles->total() > 0)
+                                    Showing {{ $roles->firstItem() }}–{{ $roles->lastItem() }} of {{ $roles->total() }} roles
                                     @if ($search)
                                         for <strong style="color:var(--secondary);">"{{ $search }}"</strong>
                                     @endif
                                 @else
                                     @if ($search)
-                                        No records found for <strong>"{{ $search }}"</strong>
+                                        No roles found for <strong>"{{ $search }}"</strong>
                                     @else
                                         No records available
                                     @endif
@@ -336,9 +336,9 @@
                         </div>
                     </div>
 
-                    @if($records->total() > 0)
+                    @if($roles->total() > 0)
                         <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;">
-                            {{ $records->total() }} Result(s)
+                            {{ $roles->total() }} Role(s)
                         </span>
                     @endif
                 </div>
@@ -360,35 +360,49 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($records as $i => $rec)
+                            @forelse ($roles as $i => $roleData)
+                                @php
+                                    $roleRecords = $recordsMap[$roleData->role] ?? collect();
+                                    $firstRec = $roleRecords->first();
+                                    $rowId = 'row-' . md5($roleData->role);
+                                @endphp
                                 <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
                                     onmouseenter="this.style.background='var(--secondary-light)'"
                                     onmouseleave="this.style.background=''">
                                     <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;">
-                                        {{ $records->firstItem() + $i }}
+                                        {{ $roles->firstItem() + $i }}
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;max-width:260px;">
                                         <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:700;color:var(--secondary);">
-                                            {{ $rec->role ?? '—' }}
+                                            {{ $roleData->role ?? '—' }}
                                         </span>
                                     </td>
                                     <td style="padding:.7rem 1rem;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                                        title="{{ $rec->description_role }}">
-                                        {{ $rec->description_role ?? '—' }}
+                                        title="{{ $roleData->description_role }}">
+                                        {{ $roleData->description_role ?? '—' }}
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                        @if($rec->tcode)
-                                            <span style="display:inline-flex;align-items:center;background:#eff6ff;color:#1d4ed8;border-radius:6px;padding:.2rem .5rem;font-size:.75rem;font-weight:600;border:1px solid #bfdbfe;font-family:monospace;">
-                                                {{ $rec->tcode }}
-                                            </span>
+                                        @if($roleRecords->count() > 0)
+                                            <select class="form-select tcode-selector" 
+                                                    data-row-id="{{ $rowId }}"
+                                                    style="padding:.2rem 1.6rem .2rem .5rem;font-size:.75rem;font-weight:600;font-family:monospace;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1d4ed8;cursor:pointer;min-width:100px;">
+                                                @foreach($roleRecords as $rec)
+                                                    <option value="{{ $rec->tcode }}" 
+                                                            data-id="{{ $rec->id }}"
+                                                            data-edit-url="{{ route('access-matrix.edit', $rec->id) }}"
+                                                            data-delete-url="{{ route('access-matrix.destroy', $rec->id) }}">
+                                                        {{ $rec->tcode ?: '—' }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
                                         @else
                                             <span style="color:var(--text-muted);">—</span>
                                         @endif
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                        <button type="button" onclick="openAccessModal(this)"
-                                            data-role="{{ htmlspecialchars($rec->role ?? '—') }}"
-                                            data-tcode="{{ htmlspecialchars($rec->tcode ?? '') }}"
+                                        <button type="button" class="view-access-btn-{{ $rowId }}" onclick="openAccessModal(this)"
+                                            data-role="{{ htmlspecialchars($roleData->role ?? '—') }}"
+                                            data-tcode="{{ htmlspecialchars($firstRec->tcode ?? '') }}"
                                             style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
                                             onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
                                             onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
@@ -398,15 +412,17 @@
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
                                         <div class="d-flex align-items-center gap-1">
                                             {{-- Edit --}}
-                                            <a href="{{ route('access-matrix.edit', $rec->id) }}"
+                                            <a href="{{ $firstRec ? route('access-matrix.edit', $firstRec->id) : '#' }}"
+                                               class="edit-btn-{{ $rowId }}"
                                                style="display:inline-flex;align-items:center;gap:.3rem;background:#fef3c7;color:#d97706;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);text-decoration:none;"
                                                onmouseenter="this.style.filter='brightness(0.95)'"
                                                onmouseleave="this.style.filter=''">
                                                 <i class="bi bi-pencil-fill"></i> Edit
                                             </a>
                                             {{-- Delete --}}
-                                            <form method="POST" action="{{ route('access-matrix.destroy', $rec->id) }}"
-                                                  onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($rec->role) }}\nTCODE: {{ addslashes($rec->tcode ?? '—') }}')"
+                                            <form method="POST" action="{{ $firstRec ? route('access-matrix.destroy', $firstRec->id) : '#' }}"
+                                                  class="delete-form-{{ $rowId }}"
+                                                  onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($roleData->role) }}\nTCODE: ' + document.querySelector('.tcode-selector[data-row-id=\'{{ $rowId }}\']').value)"
                                                   style="margin:0;">
                                                 @csrf
                                                 @method('DELETE')
@@ -453,32 +469,32 @@
                 </div>
 
                 {{-- Pagination --}}
-                @if ($records->hasPages())
+                @if ($roles->hasPages())
                     <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
                         <div style="font-size:.78rem;color:var(--text-muted);">
-                            Page {{ $records->currentPage() }} of {{ $records->lastPage() }}
+                            Page {{ $roles->currentPage() }} of {{ $roles->lastPage() }}
                         </div>
                         <div style="display:flex;gap:.35rem;">
-                            @if ($records->onFirstPage())
+                            @if ($roles->onFirstPage())
                                 <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--text-muted);opacity:.5;">← Prev</span>
                             @else
-                                <a href="{{ $records->previousPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
+                                <a href="{{ $roles->previousPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
                                    onmouseenter="this.style.background='var(--secondary-light)'"
                                    onmouseleave="this.style.background=''">← Prev</a>
                             @endif
 
-                            @foreach ($records->getUrlRange(max(1, $records->currentPage() - 2), min($records->lastPage(), $records->currentPage() + 2)) as $page => $url)
-                                @if ($page == $records->currentPage())
-                                    <span style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--secondary);font-size:.78rem;background:var(--secondary);color:#fff;font-weight:700;">{{ $page }}</span>
+                            @foreach ($roles->getUrlRange(max(1, $roles->currentPage() - 2), min($roles->lastPage(), $roles->currentPage() + 2)) as $page => $url)
+                                @if ($page == $roles->currentPage())
+                                    <span style="padding:.3rem .7rem;border-radius:6px;background:var(--secondary);color:#fff;font-size:.78rem;font-weight:700;">{{ $page }}</span>
                                 @else
-                                    <a href="{{ $url }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
-                                       onmouseenter="this.style.background='var(--secondary-light)'"
-                                       onmouseleave="this.style.background=''">{{ $page }}</a>
+                                    <a href="{{ $url }}" style="padding:.3rem .7rem;border-radius:6px;border:1px solid transparent;font-size:.78rem;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
+                                       onmouseenter="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';"
+                                       onmouseleave="this.style.background='';this.style.color='var(--text-muted)';">{{ $page }}</a>
                                 @endif
                             @endforeach
 
-                            @if ($records->hasMorePages())
-                                <a href="{{ $records->nextPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
+                            @if ($roles->hasMorePages())
+                                <a href="{{ $roles->nextPageUrl() }}" style="padding:.3rem .7rem;border-radius:6px;border:1.5px solid var(--border);font-size:.78rem;color:var(--secondary);text-decoration:none;transition:all var(--transition);"
                                    onmouseenter="this.style.background='var(--secondary-light)'"
                                    onmouseleave="this.style.background=''">Next →</a>
                             @else
@@ -904,6 +920,32 @@
 
     // Initial check on load
     checkSearchAvailability();
+
+    // ── TCode Dropdown Change Handler ───────────────────────────────────
+    document.querySelectorAll('.tcode-selector').forEach(select => {
+        select.addEventListener('change', function() {
+            const rowId = this.dataset.rowId;
+            const selectedOption = this.options[this.selectedIndex];
+            
+            // Update View Access button
+            const viewBtn = document.querySelector(`.view-access-btn-${rowId}`);
+            if (viewBtn) {
+                viewBtn.dataset.tcode = selectedOption.value;
+            }
+            
+            // Update Edit button
+            const editBtn = document.querySelector(`.edit-btn-${rowId}`);
+            if (editBtn) {
+                editBtn.href = selectedOption.dataset.editUrl;
+            }
+            
+            // Update Delete form action
+            const deleteForm = document.querySelector(`.delete-form-${rowId}`);
+            if (deleteForm) {
+                deleteForm.action = selectedOption.dataset.deleteUrl;
+            }
+        });
+    });
 
 </script>
 @endpush

@@ -56,12 +56,24 @@ class AccessMatrixController extends Controller
             $query->where('role', 'like', "%{$search}%");
         }
 
-        $records = $query->orderBy('role')
-            ->orderBy('tcode')
+        // Paginate by distinct roles instead of individual records
+        $roles = (clone $query)
+            ->select('role', 'description_role')
+            ->distinct()
+            ->orderBy('role')
             ->paginate(20)
             ->withQueryString();
 
-        return view('access-matrix.sap', compact('records', 'search', 'module', 'period', 'totalRecords'));
+        $roleNames = $roles->pluck('role');
+
+        // Fetch all specific records (TCodes, IDs, etc.) for the roles on this page
+        $recordsMap = (clone $query)
+            ->whereIn('role', $roleNames)
+            ->orderBy('tcode')
+            ->get()
+            ->groupBy('role');
+
+        return view('access-matrix.sap', compact('roles', 'recordsMap', 'search', 'module', 'period', 'totalRecords'));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
