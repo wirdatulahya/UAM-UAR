@@ -110,14 +110,12 @@ class AccessMatrixController extends Controller
 
         // ── 1. Load spreadsheet ───────────────────────────────────────────────
         try {
-            if ($ext === 'csv') {
-                $raw = $this->readCsv($file->getRealPath());
-            } else {
-                $spreadsheet = IOFactory::load($file->getRealPath());
-                $sheet       = $spreadsheet->getActiveSheet();
+            $spreadsheet = IOFactory::load($file->getRealPath());
+            $sheet       = $spreadsheet->getActiveSheet();
+            if ($ext !== 'csv') {
                 $this->expandMergedCells($sheet);
-                $raw = array_values($sheet->toArray(null, false, true, false));
             }
+            $raw = array_values($sheet->toArray(null, false, true, false));
         } catch (\Throwable $e) {
             return back()->withErrors(['file' => 'Could not parse the file: ' . $e->getMessage()]);
         }
@@ -143,10 +141,6 @@ class AccessMatrixController extends Controller
             'tcode'             => 'tcode', 't_code'            => 'tcode',
             'transaction_code'  => 'tcode', 'transaction'       => 'tcode',
             'tcodes'            => 'tcode', 'transaction_codes' => 'tcode',
-            'unit'              => 'unit',  'unit_kerja'        => 'unit',
-            'business_unit'     => 'unit',
-            'bpo'               => 'bpo',   'business_process_owner' => 'bpo',
-            'access_owner'      => 'access_owner', 'ao' => 'access_owner', 'access_matrix' => 'access_owner',
         ];
 
         $headerRowIdx = -1;
@@ -205,6 +199,41 @@ class AccessMatrixController extends Controller
 
         $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
         $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
+
+        // Bidirectional localized fill to propagate values horizontally
+        $startIdx = $tcodeColIdx !== false ? $tcodeColIdx + 1 : 6;
+        
+        $fillRowLocalized = function (array $row, int $start, array $labels) {
+            for ($c = $start; $c < count($row); $c++) {
+                $val = trim((string)($row[$c] ?? ''));
+                $clean = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($val)));
+                if (in_array($clean, $labels, true)) {
+                    $row[$c] = '';
+                }
+            }
+            $curr = '';
+            for ($c = $start; $c < count($row); $c++) {
+                $val = trim((string)($row[$c] ?? ''));
+                if ($val !== '') {
+                    $curr = $val;
+                } else {
+                    $row[$c] = $curr;
+                }
+            }
+            $curr = '';
+            for ($c = count($row) - 1; $c >= $start; $c--) {
+                $val = trim((string)($row[$c] ?? ''));
+                if ($val !== '') {
+                    $curr = $val;
+                } else {
+                    $row[$c] = $curr;
+                }
+            }
+            return $row;
+        };
+
+        $unitRowCleaned = $fillRowLocalized($unitRow, $startIdx, ['unit', 'unit kerja', 'nama unit']);
+        $bpoRowCleaned  = $fillRowLocalized($bpoRow, $startIdx, ['bpo', 'business process owner', 'business_process_owner']);
         
         $matrixAoCols = [];
         $aoUnitMap    = [];
@@ -212,12 +241,12 @@ class AccessMatrixController extends Controller
         
         if ($tcodeColIdx !== false) {
             $headerRow = array_values((array)$raw[$headerRowIdx]);
-            for ($c = (int)$tcodeColIdx + 1; $c < count($headerRow); $c++) {
+            for ($c = $startIdx; $c < count($headerRow); $c++) {
                 $aoName = trim((string)($headerRow[$c] ?? ''));
                 if ($aoName === '' || isset($colMap[$c])) continue;
                 $matrixAoCols[$c] = $aoName;
-                $aoUnitMap[$c]    = trim((string)($unitRow[$c] ?? ''));
-                $aoBpoMap[$c]     = trim((string)($bpoRow[$c]  ?? ''));
+                $aoUnitMap[$c]    = trim((string)($unitRowCleaned[$c] ?? ''));
+                $aoBpoMap[$c]     = trim((string)($bpoRowCleaned[$c]  ?? ''));
             }
         }
 
@@ -235,9 +264,6 @@ class AccessMatrixController extends Controller
                 'role'             => null,
                 'tcode'            => null,
                 'description_role' => null,
-                'unit'             => null,
-                'bpo'              => null,
-                'access_owner'     => null,
             ];
 
             foreach ($colMap as $idx => $dbCol) {
@@ -251,6 +277,9 @@ class AccessMatrixController extends Controller
             if (empty($record['role']) || empty($record['tcode'])) continue;
 
             $matrixData = [];
+            $rowBpos    = [];
+            $rowUnits   = [];
+
             foreach ($matrixAoCols as $colIdx => $ownerName) {
                 $cellVal = $row[$colIdx] ?? null;
                 $isOne = ($cellVal === 1) || ($cellVal === 1.0) || (is_string($cellVal) && trim($cellVal) === '1');
@@ -258,6 +287,9 @@ class AccessMatrixController extends Controller
                 if ($isOne) {
                     $u = trim((string)($aoUnitMap[$colIdx] ?? '')) ?: '—';
                     $b = trim((string)($aoBpoMap[$colIdx] ?? '')) ?: '—';
+                    if ($u !== '—') $rowUnits[] = $u;
+                    if ($b !== '—') $rowBpos[]  = $b;
+
                     if (!isset($matrixData[$u])) {
                         $matrixData[$u] = [];
                     }
@@ -274,9 +306,9 @@ class AccessMatrixController extends Controller
                 'role'             => $record['role'],
                 'tcode'            => $record['tcode'],
                 'description_role' => $record['description_role'],
-                'unit'             => $record['unit'],
-                'bpo'              => $record['bpo'],
-                'access_owner'     => $record['access_owner'],
+                'unit'             => empty($rowUnits) ? null : implode(', ', array_unique($rowUnits)),
+                'bpo'              => empty($rowBpos) ? null : implode(', ', array_unique($rowBpos)),
+                'access_owner'     => null,
                 'matrix_data'      => empty($matrixData) ? null : json_encode($matrixData),
                 'module'           => 'PS',
                 'period'           => 'Q2 2026',
@@ -326,28 +358,6 @@ class AccessMatrixController extends Controller
                 $sheet->getCell($ref)->setValue($topLeftValue);
             }
         }
-    }
-
-    /**
-     * Read a CSV file into a 2-D numeric array.
-     */
-    private function readCsv(string $path): array
-    {
-        $raw    = [];
-        $handle = fopen($path, 'r');
-
-        $bom = fread($handle, 3);
-        if ($bom !== "\xEF\xBB\xBF") {
-            rewind($handle);
-        }
-
-        while (($line = fgetcsv($handle, 0, ',')) !== false) {
-            $raw[] = array_values($line);
-        }
-        fclose($handle);
-
-        return $raw;
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE — Show add-new-record form
@@ -369,11 +379,11 @@ class AccessMatrixController extends Controller
             'unit'             => ['nullable', 'string', 'max:255'],
             'bpo'              => ['nullable', 'string', 'max:255'],
             'access_owner'     => ['nullable', 'string', 'max:255'],
+            'module'           => ['required', 'string', 'max:255'],
+            'period'           => ['required', 'string', 'max:255'],
         ]);
 
         $validated['imported_by'] = Auth::id();
-        $validated['module'] = $request->input('module', 'PS');
-        $validated['period'] = $request->input('period', 'Q2 2026');
         UamRecord::create($validated);
 
         return redirect()
@@ -401,6 +411,8 @@ class AccessMatrixController extends Controller
             'unit'             => ['nullable', 'string', 'max:255'],
             'bpo'              => ['nullable', 'string', 'max:255'],
             'access_owner'     => ['nullable', 'string', 'max:255'],
+            'module'           => ['required', 'string', 'max:255'],
+            'period'           => ['required', 'string', 'max:255'],
         ]);
 
         $uamRecord->update($validated);
