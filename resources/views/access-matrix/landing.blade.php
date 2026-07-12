@@ -194,9 +194,6 @@
                         </div>
                     </div>
 
-                    <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:1.25rem;flex-grow:1;">
-                        Manage SAP User Access Matrix permissions. Upload authorization Excel files, map business roles, query transaction codes (TCODEs), and search details.
-                    </p>
 
                     {{-- Dynamic stats --}}
                     <div class="row g-2 mb-3">
@@ -231,95 +228,7 @@
                 </a>
             </div>
 
-            {{-- 2. UAM Active Directory (Coming Soon) --}}
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="module-landing-card-disabled">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div style="width:52px;height:52px;background:var(--border);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="bi bi-people-fill" style="font-size:1.5rem;color:var(--text-muted);"></i>
-                        </div>
-                        <div>
-                            <h2 style="font-size:1.15rem;font-weight:800;color:var(--text-muted);margin:0;">Active Directory</h2>
-                            <span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--border);color:var(--text-muted);border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
-                                <i class="bi bi-clock" style="font-size:.6rem;"></i> Planned
-                            </span>
-                        </div>
-                    </div>
 
-                    <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:1.25rem;flex-grow:1;">
-                        Manage domain authentication groups, organizational unit mappings, group memberships, and service account access reviews across the enterprise.
-                    </p>
-
-                    <div class="d-flex align-items-center justify-content-between pt-3" style="border-top:1px solid var(--border); margin-top:auto;">
-                        <span style="font-size:.7rem;color:var(--text-muted);">
-                            Integrations soon
-                        </span>
-                        <span style="font-size:.8rem;font-weight:700;color:var(--text-muted);">
-                            Locked <i class="bi bi-lock-fill"></i>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 3. UAM Salesforce (Coming Soon) --}}
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="module-landing-card-disabled">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div style="width:52px;height:52px;background:var(--border);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="bi bi-cloud-fill" style="font-size:1.5rem;color:var(--text-muted);"></i>
-                        </div>
-                        <div>
-                            <h2 style="font-size:1.15rem;font-weight:800;color:var(--text-muted);margin:0;">Salesforce UAM</h2>
-                            <span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--border);color:var(--text-muted);border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
-                                <i class="bi bi-clock" style="font-size:.6rem;"></i> Planned
-                            </span>
-                        </div>
-                    </div>
-
-                    <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:1.25rem;flex-grow:1;">
-                        Map Salesforce user profiles, permission sets, public groups, and sharing settings to verify data governance policies and object-level permissions.
-                    </p>
-
-                    <div class="d-flex align-items-center justify-content-between pt-3" style="border-top:1px solid var(--border); margin-top:auto;">
-                        <span style="font-size:.7rem;color:var(--text-muted);">
-                            API connections
-                        </span>
-                        <span style="font-size:.8rem;font-weight:700;color:var(--text-muted);">
-                            Locked <i class="bi bi-lock-fill"></i>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 4. UAM Custom Web Apps (Coming Soon) --}}
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="module-landing-card-disabled">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div style="width:52px;height:52px;background:var(--border);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="bi bi-window-sidebar" style="font-size:1.5rem;color:var(--text-muted);"></i>
-                        </div>
-                        <div>
-                            <h2 style="font-size:1.15rem;font-weight:800;color:var(--text-muted);margin:0;">Custom Web Apps</h2>
-                            <span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--border);color:var(--text-muted);border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
-                                <i class="bi bi-clock" style="font-size:.6rem;"></i> Planned
-                            </span>
-                        </div>
-                    </div>
-
-                    <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:1.25rem;flex-grow:1;">
-                        Manage access matrix for proprietary internal portals, custom dashboard views, REST API endpoint security, and role-based routing controls.
-                    </p>
-
-                    <div class="d-flex align-items-center justify-content-between pt-3" style="border-top:1px solid var(--border); margin-top:auto;">
-                        <span style="font-size:.7rem;color:var(--text-muted);">
-                            Custom database map
-                        </span>
-                        <span style="font-size:.8rem;font-weight:700;color:var(--text-muted);">
-                            Locked <i class="bi bi-lock-fill"></i>
-                        </span>
-                    </div>
-                </div>
-            </div>
 
         </div>
     </main>
