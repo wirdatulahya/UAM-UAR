@@ -10,13 +10,20 @@ class UamRecord extends Model
     protected $table = 'uam_records';
 
     protected $fillable = [
+        'module',
+        'period',
         'role',
         'description_role',
         'tcode',
         'unit',
         'bpo',
         'access_owner',
+        'matrix_data',
         'imported_by',
+    ];
+
+    protected $casts = [
+        'matrix_data' => 'array',
     ];
 
     /**

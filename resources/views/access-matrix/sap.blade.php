@@ -261,20 +261,37 @@
         <div class="animate-in animate-in-delay-1 mb-4"
              style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.02);">
             <form method="GET" action="{{ route('access-matrix.sap') }}" id="searchForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-6">
+                        <label for="moduleSelect" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Module</label>
+                        <select name="module" id="moduleSelect" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
+                            <option value="">-- Select Module --</option>
+                            <option value="PS" {{ (isset($module) && $module === 'PS') ? 'selected' : '' }}>PS</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label for="periodSelect" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Period</label>
+                        <select name="period" id="periodSelect" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
+                            <option value="">-- Select Period --</option>
+                            <option value="Q2 2026" {{ (isset($period) && $period === 'Q2 2026') ? 'selected' : '' }}>Q2 2026</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="row g-3 align-items-center">
                     <div class="col-12 col-md-8 col-lg-9">
                         <div class="position-relative">
                             <i class="bi bi-search position-absolute" style="left:1rem;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.9rem;"></i>
                             <input type="text" name="search" id="searchInput" value="{{ $search }}"
                                    class="form-control"
-                                   style="padding-left:2.6rem;font-size:.9rem;"
+                                   style="padding-left:2.6rem;font-size:.9rem;border-radius:10px;border-color:var(--border);"
                                    placeholder="Search by Role (e.g. ZPS-MD-1014-000000-PROJ-CHG)…"
-                                   autocomplete="off">
+                                   autocomplete="off" disabled>
                         </div>
                     </div>
                     <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
-                        <button type="submit" class="btn-primary-custom flex-grow-1"
-                                style="padding:.65rem 1rem;font-size:.9rem;background:var(--secondary);border-radius:10px;box-shadow:none;">
+                        <button type="submit" id="searchSubmitBtn" class="btn-primary-custom flex-grow-1"
+                                style="padding:.65rem 1rem;font-size:.9rem;background:var(--secondary);border-radius:10px;box-shadow:none;" disabled>
                             <i class="bi bi-search me-1"></i> Search
                         </button>
                         @if($search)
@@ -556,7 +573,7 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
                             <div style="display:flex;align-items:center;gap:.45rem;">
                                 <i class="bi bi-people-fill" style="color:#166534;font-size:.9rem;"></i>
-                                <span style="font-size:.72rem;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;">Access Owners</span>
+                                <span style="font-size:.72rem;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;">Access Matrix</span>
                             </div>
                             <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                         </div>
@@ -773,7 +790,7 @@
                  </div>`
             ).join('');
         } else {
-            ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">Select a Unit and BPO to see Access Owners</span>';
+            ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">Select a Unit and BPO to see Access Matrix</span>';
         }
         document.getElementById('modalOwnerScroll').scrollTop = 0;
     }
@@ -865,5 +882,31 @@
             closeAccessModal();
         }
     });
+
+    // ── Module & Period Selection Logic ─────────────────────────────────
+    const moduleSelect = document.getElementById('moduleSelect');
+    const periodSelect = document.getElementById('periodSelect');
+    const searchInput = document.getElementById('searchInput');
+    const searchSubmitBtn = document.getElementById('searchSubmitBtn');
+
+    function checkSearchAvailability() {
+        const hasModule = moduleSelect.value !== '';
+        const hasPeriod = periodSelect.value !== '';
+        
+        if (hasModule && hasPeriod) {
+            searchInput.disabled = false;
+            searchSubmitBtn.disabled = false;
+        } else {
+            searchInput.disabled = true;
+            searchSubmitBtn.disabled = true;
+        }
+    }
+
+    moduleSelect.addEventListener('change', checkSearchAvailability);
+    periodSelect.addEventListener('change', checkSearchAvailability);
+
+    // Initial check on load
+    checkSearchAvailability();
+
 </script>
 @endpush

@@ -197,7 +197,7 @@
 
                             {{-- Access Owner --}}
                             <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">Access Owner</label>
+                                <label for="access_owner" class="form-label">Access Matrix</label>
                                 <input type="text" id="access_owner" name="access_owner"
                                        class="form-control @error('access_owner') is-invalid @enderror"
                                        value="{{ old('access_owner', $uamRecord->access_owner) }}"
