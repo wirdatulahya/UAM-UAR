@@ -37,10 +37,18 @@ class AccessMatrixController extends Controller
     public function sap(Request $request)
     {
         $search       = trim($request->input('search', ''));
-        // Default to PS and Q2 2026 so records are shown immediately
-        $module       = trim($request->input('module', 'PS'));
-        $period       = trim($request->input('period', 'Q2 2026'));
         $totalRecords = UamRecord::count();
+
+        // Get dynamically available modules and periods from imported data
+        $availableModules = UamRecord::select('module')->whereNotNull('module')->where('module', '!=', '')->distinct()->pluck('module')->values();
+        $availablePeriods = UamRecord::select('period')->whereNotNull('period')->where('period', '!=', '')->distinct()->pluck('period')->values();
+
+        // Only default if data exists; otherwise it will reset to empty placeholder
+        $defaultModule = $availableModules->first() ?? '';
+        $defaultPeriod = $availablePeriods->first() ?? '';
+
+        $module       = trim($request->input('module', $defaultModule));
+        $period       = trim($request->input('period', $defaultPeriod));
 
         $query = UamRecord::query();
 
@@ -73,7 +81,7 @@ class AccessMatrixController extends Controller
             ->get()
             ->groupBy('role');
 
-        return view('access-matrix.sap', compact('roles', 'recordsMap', 'search', 'module', 'period', 'totalRecords'));
+        return view('access-matrix.sap', compact('roles', 'recordsMap', 'search', 'module', 'period', 'totalRecords', 'availableModules', 'availablePeriods'));
     }
 
     // ─────────────────────────────────────────────────────────────────────────

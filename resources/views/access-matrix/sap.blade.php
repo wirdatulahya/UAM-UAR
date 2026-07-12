@@ -266,14 +266,22 @@
                         <label for="moduleSelect" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Module</label>
                         <select name="module" id="moduleSelect" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
                             <option value="">-- Select Module --</option>
-                            <option value="PS" {{ (isset($module) && $module === 'PS') ? 'selected' : '' }}>PS</option>
+                            @if(isset($availableModules))
+                                @foreach($availableModules as $mod)
+                                    <option value="{{ $mod }}" {{ (isset($module) && $module === $mod) ? 'selected' : '' }}>{{ $mod }}</option>
+                                @endforeach
+                            @endif
                         </select>
                     </div>
                     <div class="col-12 col-md-6">
                         <label for="periodSelect" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Period</label>
                         <select name="period" id="periodSelect" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
                             <option value="">-- Select Period --</option>
-                            <option value="Q2 2026" {{ (isset($period) && $period === 'Q2 2026') ? 'selected' : '' }}>Q2 2026</option>
+                            @if(isset($availablePeriods))
+                                @foreach($availablePeriods as $per)
+                                    <option value="{{ $per }}" {{ (isset($period) && $period === $per) ? 'selected' : '' }}>{{ $per }}</option>
+                                @endforeach
+                            @endif
                         </select>
                     </div>
                 </div>
