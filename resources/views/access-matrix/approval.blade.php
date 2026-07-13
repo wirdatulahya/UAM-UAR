@@ -146,9 +146,21 @@
                 <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Request Access Matrix</h1>
                 <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Manage user access matrix requests and batches</p>
             </div>
-            <button type="button" class="btn btn-primary d-flex align-items-center gap-2" style="background:#0066cc;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;" data-bs-toggle="modal" data-bs-target="#createUamModal">
-                <i class="bi bi-plus-lg" style="stroke-width: 2px;"></i> Create UAM
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                @if(\App\Models\UamRequest::count() > 0)
+                <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete ALL UAM data? This cannot be undone.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn d-flex align-items-center gap-2" style="background:#fde8e9;color:#c0392b;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;transition:filter var(--transition);" onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
+                        <i class="bi bi-trash-fill"></i> Delete Data
+                    </button>
+                </form>
+                @endif
+
+                <button type="button" class="btn btn-primary d-flex align-items-center gap-2" style="background:#0066cc;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;" data-bs-toggle="modal" data-bs-target="#createUamModal">
+                    <i class="bi bi-plus-lg" style="stroke-width: 2px;"></i> Create UAM
+                </button>
+            </div>
         </div>
 
         {{-- ── Filters & Search ──────────────────────────────────────────────── --}}
@@ -240,7 +252,7 @@
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Period</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Modul</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Requested By</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Records</th>
+                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">AO</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Status</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);text-align:center;">Action</th>
                             </tr>
@@ -264,7 +276,7 @@
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .6rem;font-size:.75rem;font-weight:700;">
-                                        {{ number_format($req->record_count) }}
+                                        {{ $req->ao ?: 'N/A' }}
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
