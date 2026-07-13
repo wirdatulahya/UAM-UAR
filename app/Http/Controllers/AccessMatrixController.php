@@ -154,27 +154,86 @@ class AccessMatrixController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file'        => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
-            'application' => ['required', 'string', 'max:100'],
-            'year'        => ['required', 'digits:4'],
-            'period'      => ['required', 'string', 'max:50'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ], [
-            'file.required'        => 'Please select a file to upload.',
-            'file.mimes'           => 'Only .xlsx, .xls, and .csv files are allowed.',
-            'file.max'             => 'The file may not be larger than 10 MB.',
-            'application.required' => 'Please select an Application.',
-            'year.required'        => 'Please enter a Year.',
-            'year.digits'          => 'Year must be a 4-digit number.',
-            'period.required'      => 'Please select a Period.',
+            'file.required' => 'Please select a file to upload.',
+            'file.mimes'    => 'Only .xlsx, .xls, and .csv files are allowed.',
+            'file.max'      => 'The file may not be larger than 10 MB.',
         ]);
 
-        $file        = $request->file('file');
-        $ext         = strtolower($file->getClientOriginalExtension());
-        $fileName    = $file->getClientOriginalName();
-        $application = trim($request->input('application'));
-        $year        = trim($request->input('year'));
-        $period      = trim($request->input('period'));
-        $batchName   = 'UAM_' . strtoupper($application) . '_' . $period . '_' . $year;
+        $file      = $request->file('file');
+        $ext       = strtolower($file->getClientOriginalExtension());
+        $fileName  = $file->getClientOriginalName();
+        
+        // Auto-detect Application, Year, and Period from the filename
+        $application = null;
+        $year        = null;
+        $period      = null;
+        
+        $upperName = strtoupper($fileName);
+        
+        // Detect Application
+        if (str_contains($upperName, 'SAP')) {
+            $application = 'SAP';
+        } elseif (str_contains($upperName, 'SYGAP')) {
+            $application = 'SYGAP';
+        } elseif (str_contains($upperName, 'EVOLUTION')) {
+            $application = 'EVOLUTION';
+        } elseif (str_contains($upperName, 'NCX') || str_contains($upperName, 'EBIS')) {
+            $application = 'NCX_EBIS';
+        } elseif (str_contains($upperName, 'TGKYPAS') || str_contains($upperName, 'KYPAS')) {
+            $application = 'TGKYPAS';
+        } elseif (str_contains($upperName, 'DIGINETA') || str_contains($upperName, 'NETA')) {
+            $application = 'CDC_DIGINETA';
+        } elseif (str_contains($upperName, 'SC_ONE') || str_contains($upperName, 'SC1') || str_contains($upperName, 'SC ONE')) {
+            $application = 'SC_ONE';
+        } else {
+            $application = 'SAP'; // Default fallback
+        }
+        
+        // Detect Year (4 consecutive digits between 2020 and 2035)
+        if (preg_match('/\b(202[0-9]|203[0-5])\b/', $fileName, $matches)) {
+            $year = $matches[1];
+        } else {
+            $year = now()->format('Y');
+        }
+        
+        // Detect Period
+        $months = [
+            'January' => ['JANUARY', 'JANUARI', 'JAN'],
+            'February' => ['FEBRUARY', 'FEBRUARI', 'FEB'],
+            'March' => ['MARCH', 'MARET', 'MAR'],
+            'April' => ['APRIL', 'APR'],
+            'May' => ['MAY', 'MEI'],
+            'June' => ['JUNE', 'JUNI', 'JUN'],
+            'July' => ['JULY', 'JULI', 'JUL'],
+            'August' => ['AUGUST', 'AGUSTUS', 'AUG'],
+            'September' => ['SEPTEMBER', 'SEP'],
+            'October' => ['OCTOBER', 'OKTOBER', 'OCT'],
+            'November' => ['NOVEMBER', 'NOV'],
+            'December' => ['DECEMBER', 'DESEMBER', 'DEC']
+        ];
+        
+        foreach ($months as $eng => $aliases) {
+            foreach ($aliases as $alias) {
+                if (str_contains($upperName, $alias)) {
+                    $period = $eng;
+                    break 2;
+                }
+            }
+        }
+        
+        if (!$period) {
+            if (preg_match('/Q[1-4]/', $upperName, $matches)) {
+                $period = $matches[0];
+            } else {
+                $period = now()->format('F');
+            }
+        }
+
+        // Auto-generate batch name from filename (without extension) + today's date
+        $baseName  = pathinfo($fileName, PATHINFO_FILENAME);
+        $batchName = 'UAM_' . now()->format('Ymd') . '_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $baseName);
 
         // ── 1. Load spreadsheet ───────────────────────────────────────────────
         try {
@@ -372,7 +431,7 @@ class AccessMatrixController extends Controller
                 'bpo'              => empty($rowBpos)  ? null : implode(', ', array_unique($rowBpos)),
                 'access_owner'     => null,
                 'matrix_data'      => empty($matrixData) ? null : json_encode($matrixData),
-                'module'           => strtoupper($application),
+                'module'           => $application,
                 'period'           => $period . ' ' . $year,
                 'imported_by'      => $userId,
                 'created_at'       => $now,

@@ -156,7 +156,7 @@
                 </div>
                 <div>
                     <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">New UAM Request</div>
-                    <div style="font-size:.72rem;color:var(--text-muted);">Select Application, Year, and Period — then upload the Excel file</div>
+                    <div style="font-size:.72rem;color:var(--text-muted);">Upload the Excel file to create a new UAM request batch</div>
                 </div>
             </div>
 
@@ -164,40 +164,6 @@
                   enctype="multipart/form-data" id="importForm">
                 @csrf
 
-                {{-- Row 1: Application / Year / Period --}}
-                <div class="row g-3 mb-3">
-                    <div class="col-12 col-md-4">
-                        <label for="importApplication" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Application</label>
-                        <select name="application" id="importApplication" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
-                            <option value="">-- Select Application --</option>
-                            <option value="SAP" {{ old('application') == 'SAP' ? 'selected' : '' }}>SAP</option>
-                            <option value="SYGAP" {{ old('application') == 'SYGAP' ? 'selected' : '' }}>SYGAP</option>
-                            <option value="EVOLUTION" {{ old('application') == 'EVOLUTION' ? 'selected' : '' }}>EVOLUTION</option>
-                            <option value="NCX_EBIS" {{ old('application') == 'NCX_EBIS' ? 'selected' : '' }}>NCX EBIS</option>
-                            <option value="TGKYPAS" {{ old('application') == 'TGKYPAS' ? 'selected' : '' }}>TgKypas</option>
-                            <option value="CDC_DIGINETA" {{ old('application') == 'CDC_DIGINETA' ? 'selected' : '' }}>CDC DigiNeTA</option>
-                            <option value="SC_ONE" {{ old('application') == 'SC_ONE' ? 'selected' : '' }}>SC ONE</option>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label for="importYear" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Year</label>
-                        <select name="year" id="importYear" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
-                            <option value="">-- Select Year --</option>
-                            @for ($y = date('Y'); $y >= 2020; $y--)
-                                <option value="{{ $y }}" {{ old('year', date('Y')) == $y ? 'selected' : '' }}>{{ $y }}</option>
-                            @endfor
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label for="importPeriod" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Period</label>
-                        <select name="period" id="importPeriod" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
-                            <option value="">-- Select Period --</option>
-                            @foreach(['January','February','March','April','May','June','July','August','September','October','November','December'] as $month)
-                                <option value="{{ $month }}" {{ old('period') == $month ? 'selected' : '' }}>{{ $month }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
 
                 {{-- Row 2: File upload area --}}
                 <div id="uploadCard"
