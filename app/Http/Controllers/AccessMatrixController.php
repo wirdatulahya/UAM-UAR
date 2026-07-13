@@ -358,6 +358,7 @@ class AccessMatrixController extends Controller
                 $sheet->getCell($ref)->setValue($topLeftValue);
             }
         }
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE — Show add-new-record form

@@ -156,6 +156,36 @@
                         </div>
 
                         <div class="row g-3 mb-3">
+                            {{-- Module --}}
+                            <div class="col-12 col-sm-6">
+                                <label for="module" class="form-label">
+                                    Module <span style="color:var(--primary);">*</span>
+                                </label>
+                                <input type="text" id="module" name="module"
+                                       class="form-control @error('module') is-invalid @enderror"
+                                       value="{{ old('module', $uamRecord->module) }}"
+                                       placeholder="e.g. PS" required>
+                                @error('module')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Period --}}
+                            <div class="col-12 col-sm-6">
+                                <label for="period" class="form-label">
+                                    Period <span style="color:var(--primary);">*</span>
+                                </label>
+                                <input type="text" id="period" name="period"
+                                       class="form-control @error('period') is-invalid @enderror"
+                                       value="{{ old('period', $uamRecord->period) }}"
+                                       placeholder="e.g. Q2 2026" required>
+                                @error('period')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
                             {{-- TCODE --}}
                             <div class="col-12 col-sm-6">
                                 <label for="tcode" class="form-label">TCODE</label>
