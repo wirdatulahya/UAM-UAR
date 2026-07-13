@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'UAM SAP — Access Matrix')
+@section('title', 'UAM SAP — User Access Matrix')
 
 @section('content')
 
@@ -85,7 +85,7 @@
         <div class="sidebar-section-label">Modules</div>
         <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item active">
             <i class="bi bi-table"></i>
-            Access Matrix
+            User Access Matrix
         </a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true">
             <i class="bi bi-clipboard2-check-fill"></i>
@@ -141,7 +141,7 @@
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
                     <a href="{{ route('access-matrix.index') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
-                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Access Matrix</a>
+                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">User Access Matrix</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">UAM SAP</li>
@@ -594,7 +594,7 @@
                         <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
                             <div style="display:flex;align-items:center;gap:.45rem;">
                                 <i class="bi bi-people-fill" style="color:#166534;font-size:.9rem;"></i>
-                                <span style="font-size:.72rem;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;">Access Matrix</span>
+                                <span style="font-size:.72rem;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;">User Access Matrix</span>
                             </div>
                             <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                         </div>
@@ -811,7 +811,7 @@
                  </div>`
             ).join('');
         } else {
-            ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">Select a Unit and BPO to see Access Matrix</span>';
+            ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">Select a Unit and BPO to see User Access Matrix</span>';
         }
         document.getElementById('modalOwnerScroll').scrollTop = 0;
     }

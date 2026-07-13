@@ -86,7 +86,7 @@
 
         <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item">
     <i class="bi bi-table"></i>
-    Access Matrix
+    User Access Matrix
 </a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true">
             <i class="bi bi-clipboard2-check-fill"></i>
@@ -159,7 +159,7 @@
                         'icon' => 'bi-table',
                         'color' => '#0B2E6D',
                         'bg' => '#e8edf7',
-                        'title' => 'Access Matrix',
+                        'title' => 'User Access Matrix',
                         'desc' => 'Manage and track user access permissions across all systems.',
                         'status' => 'active',
                         'route' => route('access-matrix.index')

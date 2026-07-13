@@ -55,7 +55,7 @@
         <div class="sidebar-section-label">Main</div>
         <a href="{{ route('dashboard') }}" class="sidebar-nav-item"><i class="bi bi-grid-fill"></i> Dashboard</a>
         <div class="sidebar-section-label">Modules</div>
-        <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item active"><i class="bi bi-table"></i> Access Matrix</a>
+        <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item active"><i class="bi bi-table"></i> User Access Matrix</a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true"><i class="bi bi-clipboard2-check-fill"></i> Access Review
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span></a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true"><i class="bi bi-graph-up-arrow"></i> Monitoring
@@ -72,7 +72,7 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
-                    <a href="{{ route('access-matrix.index') }}" style="color:var(--text-muted);text-decoration:none;">Access Matrix</a>
+                    <a href="{{ route('access-matrix.index') }}" style="color:var(--text-muted);text-decoration:none;">User Access Matrix</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
@@ -223,7 +223,7 @@
 
                             {{-- Access Owner --}}
                             <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">Access Matrix</label>
+                                <label for="access_owner" class="form-label">User Access Matrix</label>
                                 <input type="text" id="access_owner" name="access_owner"
                                        class="form-control @error('access_owner') is-invalid @enderror"
                                        value="{{ old('access_owner') }}"

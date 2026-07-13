@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Access Matrix Modules')
+@section('title', 'User Access Matrix Modules')
 
 @push('styles')
 <style>
@@ -131,7 +131,7 @@
         <div class="sidebar-section-label">Modules</div>
         <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item active">
             <i class="bi bi-table"></i>
-            Access Matrix
+            User Access Matrix
         </a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true">
             <i class="bi bi-clipboard2-check-fill"></i>
@@ -162,14 +162,14 @@
                        onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Dashboard</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
-                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">Access Matrix</li>
+                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">User Access Matrix</li>
             </ol>
         </nav>
 
         {{-- ── Page Header ── --}}
         <div class="mb-4 animate-in">
             <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                <i class="bi bi-table me-2" style="color:var(--primary);"></i>Access Matrix Dashboard
+                <i class="bi bi-table me-2" style="color:var(--primary);"></i>User Access Matrix Dashboard
             </h1>
             <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
                 Select a target system module to manage permissions, mapping configs, and compliance guidelines.
