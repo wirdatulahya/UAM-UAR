@@ -12,6 +12,7 @@ class UamRequest extends Model
 
     protected $fillable = [
         'application',
+        'module',
         'year',
         'period',
         'batch_name',
@@ -20,6 +21,7 @@ class UamRequest extends Model
         'ao',
         'record_count',
         'requested_by',
+        'requester_nik',
     ];
 
     /**
