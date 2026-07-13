@@ -65,10 +65,10 @@
         <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
             <div style="padding: .25rem 0; background: var(--bg);">
                 <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    User Access Request
+                    Request Access Matrix
                 </a>
                 <a href="#" class="sidebar-nav-item" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    User Access Review
+                    Approval Access Matrix
                 </a>
             </div>
         </div>
