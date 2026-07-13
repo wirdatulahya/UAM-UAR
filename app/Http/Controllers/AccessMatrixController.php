@@ -31,6 +31,72 @@ class AccessMatrixController extends Controller
         return view('access-matrix.landing', compact('totalRecords', 'totalRoles', 'totalTcodes', 'lastUpdated'));
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // APPROVAL UAM LIST
+    // ────────────────────────────────────────────────────────────────────────
+    public function approval(Request $request)
+    {
+        // Mock data for the Approval UAM list
+        $requests = [
+            (object)[
+                'no' => 1,
+                'application' => 'SYGAP',
+                'period' => 'July 2026',
+                'batch_name' => 'UAM SYGAP Jul\'26',
+                'requested_by' => 'SAID HADYAN RADIFAN ALDJUFRI',
+                'division' => '',
+                'status' => 'Draft',
+            ],
+            (object)[
+                'no' => 2,
+                'application' => 'EVOLUTION',
+                'period' => 'July 2026',
+                'batch_name' => 'UAM Q2 2026',
+                'requested_by' => 'IMAM SATRIA',
+                'division' => 'DIV-DIT',
+                'status' => 'Draft',
+            ],
+            (object)[
+                'no' => 3,
+                'application' => 'NCX EBIS',
+                'period' => 'July 2026',
+                'batch_name' => 'UAM_NCX_EBIS_DIV_DIT_Q3_2026',
+                'requested_by' => 'MUHAMMAD ARIJAL',
+                'division' => 'DIV-DIT',
+                'status' => 'Draft',
+            ],
+            (object)[
+                'no' => 4,
+                'application' => 'TgKypas',
+                'period' => 'July 2026',
+                'batch_name' => 'UAM Juli_Q3 2026',
+                'requested_by' => 'NANDA RAHMA ANANTA',
+                'division' => 'DIV-DIT',
+                'status' => 'Draft',
+            ],
+            (object)[
+                'no' => 5,
+                'application' => 'CDC DigiNeTA Wholesale',
+                'period' => 'July 2026',
+                'batch_name' => 'UAM_Digineta_WS_202607',
+                'requested_by' => 'RIDLO QOMARRULLAH',
+                'division' => '',
+                'status' => 'Done',
+            ],
+            (object)[
+                'no' => 6,
+                'application' => 'SC ONE',
+                'period' => 'July 2026',
+                'batch_name' => 'UAM_SCONE_DIT_20260708',
+                'requested_by' => 'JWALITA GALUH GARINI',
+                'division' => 'DIV-DIT',
+                'status' => 'Done',
+            ],
+        ];
+
+        return view('access-matrix.approval', compact('requests'));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // SAP — Search by Role; empty table when no search term
     // ─────────────────────────────────────────────────────────────────────────

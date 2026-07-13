@@ -49,6 +49,9 @@ Route::middleware('auth')->group(function () {
 
     // ── Access Matrix - SAP Module ─────────────────────────────────────────
     Route::prefix('access-matrix/sap')->group(function () {
+        Route::get('/approval', [AccessMatrixController::class, 'approval'])
+            ->name('access-matrix.approval');
+
         Route::get('/', [AccessMatrixController::class, 'sap'])
             ->name('access-matrix.sap');
             

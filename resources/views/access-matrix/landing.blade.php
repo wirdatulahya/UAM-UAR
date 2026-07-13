@@ -194,7 +194,7 @@
 
             {{-- 1. UAM SAP Module Card (Active) --}}
             <div class="col-12 col-md-6 col-xl-4">
-                <a href="{{ route('access-matrix.sap') }}" class="module-landing-card">
+                <a href="{{ route('access-matrix.approval') }}" class="module-landing-card">
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <div style="width:52px;height:52px;background:var(--secondary-light);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                             <i class="bi bi-pc-display-horizontal" style="font-size:1.5rem;color:var(--secondary);"></i>
