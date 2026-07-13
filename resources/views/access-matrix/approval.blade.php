@@ -342,7 +342,22 @@
             <div class="modal-body" style="padding:1.75rem;">
                 <form method="POST" action="{{ route('access-matrix.import') }}" enctype="multipart/form-data" id="importForm">
                     @csrf
-                    
+                    {{-- Metadata Fields --}}
+                    <div style="display:flex;gap:1rem;margin-bottom:1.5rem;">
+                        <div style="flex:1;">
+                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Application <span class="text-danger">*</span></label>
+                            <input type="text" name="application" class="form-control" required placeholder="e.g. SAP S/4HANA" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Year <span class="text-danger">*</span></label>
+                            <input type="number" name="year" min="2026" max="9999" class="form-control" required placeholder="e.g. 2026" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Period <span class="text-danger">*</span></label>
+                            <input type="text" name="period" class="form-control" required placeholder="e.g. Q1" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                        </div>
+                    </div>
+
                     {{-- File upload area --}}
                     <div id="uploadCard"
                          style="background:#fafbff;border:2px dashed var(--border);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;transition:border-color var(--transition),background var(--transition);"

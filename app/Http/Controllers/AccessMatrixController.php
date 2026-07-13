@@ -117,7 +117,11 @@ class AccessMatrixController extends Controller
         }
 
         if ($search !== '') {
-            $query->where('role', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('role', 'like', "%{$search}%")
+                  ->orWhere('tcode', 'like', "%{$search}%")
+                  ->orWhere('description_role', 'like', "%{$search}%");
+            });
         }
 
         // Paginate by distinct roles
@@ -154,7 +158,10 @@ class AccessMatrixController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'application' => ['required', 'string', 'max:255'],
+            'year'        => ['required', 'integer', 'min:2026', 'max:9999'],
+            'period'      => ['required', 'string', 'max:255'],
+            'file'        => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ], [
             'file.required' => 'Please select a file to upload.',
             'file.mimes'    => 'Only .xlsx, .xls, and .csv files are allowed.',
@@ -165,71 +172,9 @@ class AccessMatrixController extends Controller
         $ext       = strtolower($file->getClientOriginalExtension());
         $fileName  = $file->getClientOriginalName();
         
-        // Auto-detect Application, Year, and Period from the filename
-        $application = null;
-        $year        = null;
-        $period      = null;
-        
-        $upperName = strtoupper($fileName);
-        
-        // Detect Application
-        if (str_contains($upperName, 'SAP')) {
-            $application = 'SAP';
-        } elseif (str_contains($upperName, 'SYGAP')) {
-            $application = 'SYGAP';
-        } elseif (str_contains($upperName, 'EVOLUTION')) {
-            $application = 'EVOLUTION';
-        } elseif (str_contains($upperName, 'NCX') || str_contains($upperName, 'EBIS')) {
-            $application = 'NCX_EBIS';
-        } elseif (str_contains($upperName, 'TGKYPAS') || str_contains($upperName, 'KYPAS')) {
-            $application = 'TGKYPAS';
-        } elseif (str_contains($upperName, 'DIGINETA') || str_contains($upperName, 'NETA')) {
-            $application = 'CDC_DIGINETA';
-        } elseif (str_contains($upperName, 'SC_ONE') || str_contains($upperName, 'SC1') || str_contains($upperName, 'SC ONE')) {
-            $application = 'SC_ONE';
-        } else {
-            $application = 'SAP'; // Default fallback
-        }
-        
-        // Detect Year (4 consecutive digits between 2020 and 2035)
-        if (preg_match('/\b(202[0-9]|203[0-5])\b/', $fileName, $matches)) {
-            $year = $matches[1];
-        } else {
-            $year = now()->format('Y');
-        }
-        
-        // Detect Period
-        $months = [
-            'January' => ['JANUARY', 'JANUARI', 'JAN'],
-            'February' => ['FEBRUARY', 'FEBRUARI', 'FEB'],
-            'March' => ['MARCH', 'MARET', 'MAR'],
-            'April' => ['APRIL', 'APR'],
-            'May' => ['MAY', 'MEI'],
-            'June' => ['JUNE', 'JUNI', 'JUN'],
-            'July' => ['JULY', 'JULI', 'JUL'],
-            'August' => ['AUGUST', 'AGUSTUS', 'AUG'],
-            'September' => ['SEPTEMBER', 'SEP'],
-            'October' => ['OCTOBER', 'OKTOBER', 'OCT'],
-            'November' => ['NOVEMBER', 'NOV'],
-            'December' => ['DECEMBER', 'DESEMBER', 'DEC']
-        ];
-        
-        foreach ($months as $eng => $aliases) {
-            foreach ($aliases as $alias) {
-                if (str_contains($upperName, $alias)) {
-                    $period = $eng;
-                    break 2;
-                }
-            }
-        }
-        
-        if (!$period) {
-            if (preg_match('/Q[1-4]/', $upperName, $matches)) {
-                $period = $matches[0];
-            } else {
-                $period = now()->format('F');
-            }
-        }
+        $application = $request->input('application');
+        $year        = $request->input('year');
+        $period      = $request->input('period');
 
         // Auto-generate batch name from filename (without extension) + today's date
         $baseName  = pathinfo($fileName, PATHINFO_FILENAME);
@@ -565,16 +510,10 @@ class AccessMatrixController extends Controller
         if ($aoName) $aoName = preg_replace('/^[\s:\-=]+/', '', $aoName);
         if ($extractedNik) $extractedNik = preg_replace('/^[\s:\-=]+/', '', $extractedNik);
         
-        $application = $extractedApplication ?: 'SAP'; // Default application based on requirement
+        // Values are now bound strictly to the form inputs instead of Excel extraction
         $module = null;
         if ($extractedModul) {
             $module = trim($extractedModul);
-        }
-        if ($extractedPeriod) {
-            $period = ucwords(strtolower(trim($extractedPeriod)));
-        }
-        if ($extractedYear && preg_match('/\b(202[0-9]|203[0-5])\b/', $extractedYear, $matches)) {
-            $year = $matches[1];
         }
 
         // ── 4. Parse data rows ────────────────────────────────────────────────

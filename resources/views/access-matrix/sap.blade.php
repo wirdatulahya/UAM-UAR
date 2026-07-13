@@ -357,6 +357,7 @@
                                         <button type="button" class="view-access-btn-{{ $rowId }}" onclick="openAccessModal(this)"
                                             data-role="{{ htmlspecialchars($roleData->role ?? '—') }}"
                                             data-tcode="{{ htmlspecialchars($firstRec->tcode ?? '') }}"
+                                            data-request-id="{{ $requestId ?? '' }}"
                                             style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
                                             onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
                                             onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
@@ -789,6 +790,7 @@
     async function openAccessModal(btn) {
         const role  = btn.dataset.role;
         const tcode = btn.dataset.tcode || '';
+        const requestId = btn.dataset.requestId || '';
 
         document.getElementById('modalRole').textContent        = role;
         document.getElementById('modalTcodeHeader').textContent = tcode || '—';
@@ -804,7 +806,10 @@
         renderOwners([]);
 
         try {
-            const url = `/access-matrix/sap/role-details?role=${encodeURIComponent(role)}&tcode=${encodeURIComponent(tcode)}`;
+            let url = `/access-matrix/sap/role-details?role=${encodeURIComponent(role)}&tcode=${encodeURIComponent(tcode)}`;
+            if (requestId) {
+                url += `&request_id=${encodeURIComponent(requestId)}`;
+            }
             const res  = await fetch(url);
             const data = await res.json();
 
