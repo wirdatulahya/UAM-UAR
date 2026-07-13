@@ -196,36 +196,6 @@
                     Add Record
                 </a>
 
-                @if ($requestId && $uamRequest)
-                    <form method="POST" action="{{ route('access-matrix.clear') }}" id="clearForm"
-                          onsubmit="return confirm('Delete all {{ $uamRequest->record_count }} records in this request? This cannot be undone.');"
-                          style="margin:0;">
-                        @csrf
-                        @method('DELETE')
-                        <input type="hidden" name="request_id" value="{{ $requestId }}">
-                        <button type="submit" id="clearBtn"
-                            style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.55rem 1.25rem;font-size:.82rem;font-weight:600;color:#c0392b;cursor:pointer;transition:all var(--transition);"
-                            onmouseenter="this.style.borderColor='#c0392b';this.style.background='#fde8e9';"
-                            onmouseleave="this.style.borderColor='var(--border)';this.style.background='none';">
-                            <i class="bi bi-trash3-fill"></i>
-                            Clear Request
-                        </button>
-                    </form>
-                @elseif(!$requestId && $totalRecords > 0)
-                    <form method="POST" action="{{ route('access-matrix.clear') }}" id="clearForm"
-                          onsubmit="return confirm('Delete ALL {{ $totalRecords }} records? This cannot be undone.');"
-                          style="margin:0;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" id="clearBtn"
-                            style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.55rem 1.25rem;font-size:.82rem;font-weight:600;color:#c0392b;cursor:pointer;transition:all var(--transition);"
-                            onmouseenter="this.style.borderColor='#c0392b';this.style.background='#fde8e9';"
-                            onmouseleave="this.style.borderColor='var(--border)';this.style.background='none';">
-                            <i class="bi bi-trash3-fill"></i>
-                            Clear All
-                        </button>
-                    </form>
-                @endif
             </div>
         </div>
 
