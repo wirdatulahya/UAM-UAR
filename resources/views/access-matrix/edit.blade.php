@@ -55,7 +55,23 @@
         <div class="sidebar-section-label">Main</div>
         <a href="{{ route('dashboard') }}" class="sidebar-nav-item"><i class="bi bi-grid-fill"></i> Dashboard</a>
         <div class="sidebar-section-label">Modules</div>
-        <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item active"><i class="bi bi-table"></i> User Access Matrix</a>
+        <a href="#uamCollapse" data-bs-toggle="collapse" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : 'collapsed' }}" role="button" aria-expanded="{{ request()->routeIs('access-matrix.*') ? 'true' : 'false' }}" aria-controls="uamCollapse">
+            <i class="bi bi-table"></i>
+            <span class="d-flex align-items-center w-100">
+                User Access Matrix
+                <i class="bi bi-chevron-down ms-auto" style="font-size:.7rem; transition: transform var(--transition);"></i>
+            </span>
+        </a>
+        <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
+            <div style="padding: .25rem 0; background: var(--bg);">
+                <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                    User Access Request
+                </a>
+                <a href="#" class="sidebar-nav-item" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                    User Access Review
+                </a>
+            </div>
+        </div>
         <a href="#" class="sidebar-nav-item" aria-disabled="true"><i class="bi bi-clipboard2-check-fill"></i> Access Review
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span></a>
         <a href="#" class="sidebar-nav-item" aria-disabled="true"><i class="bi bi-graph-up-arrow"></i> Monitoring

@@ -129,10 +129,23 @@
         </a>
 
         <div class="sidebar-section-label">Modules</div>
-        <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item active">
+        <a href="#uamCollapse" data-bs-toggle="collapse" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : 'collapsed' }}" role="button" aria-expanded="{{ request()->routeIs('access-matrix.*') ? 'true' : 'false' }}" aria-controls="uamCollapse">
             <i class="bi bi-table"></i>
-            User Access Matrix
+            <span class="d-flex align-items-center w-100">
+                User Access Matrix
+                <i class="bi bi-chevron-down ms-auto" style="font-size:.7rem; transition: transform var(--transition);"></i>
+            </span>
         </a>
+        <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
+            <div style="padding: .25rem 0; background: var(--bg);">
+                <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                    User Access Request
+                </a>
+                <a href="#" class="sidebar-nav-item" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                    User Access Review
+                </a>
+            </div>
+        </div>
         <a href="#" class="sidebar-nav-item" aria-disabled="true">
             <i class="bi bi-clipboard2-check-fill"></i>
             Access Review

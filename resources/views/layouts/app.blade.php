@@ -431,6 +431,13 @@
         }
 
         .sidebar-nav-item i { font-size: 1rem; }
+        
+        .sidebar-nav-item[data-bs-toggle="collapse"] .bi-chevron-down {
+            transform: rotate(180deg);
+        }
+        .sidebar-nav-item[data-bs-toggle="collapse"].collapsed .bi-chevron-down {
+            transform: rotate(0deg);
+        }
 
         .sidebar-section-label {
             font-size: .68rem;
