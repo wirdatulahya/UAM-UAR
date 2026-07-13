@@ -158,7 +158,7 @@
                 @endif
 
                 <button type="button" class="btn btn-primary d-flex align-items-center gap-2" style="background:#0066cc;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;" data-bs-toggle="modal" data-bs-target="#createUamModal">
-                    <i class="bi bi-plus-lg" style="stroke-width: 2px;"></i> Create UAM
+                    <i class="bi bi-plus-lg" style="stroke-width: 2px;"></i> CREATE UAM
                 </button>
             </div>
         </div>
@@ -202,21 +202,7 @@
                 @endif
             </form>
 
-            {{-- Search bar --}}
-            <form method="GET" action="{{ route('access-matrix.approval') }}" id="searchForm">
-                @if($filterApplication)<input type="hidden" name="application" value="{{ $filterApplication }}">@endif
-                @if($filterYear)<input type="hidden" name="year" value="{{ $filterYear }}">@endif
-                @if($filterPeriod)<input type="hidden" name="period" value="{{ $filterPeriod }}">@endif
-                <div class="input-group" style="width:250px;">
-                    <span class="input-group-text bg-white border-end-0" style="border-radius:8px 0 0 8px;">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input type="text" name="search" class="form-control border-start-0 ps-0"
-                           placeholder="Search requests..."
-                           value="{{ $search }}"
-                           style="border-radius:0 8px 8px 0;font-size:.85rem;box-shadow:none;">
-                </div>
-            </form>
+
         </div>
 
         {{-- ── Request Table ───────────────────────────────────────────────── --}}
@@ -268,16 +254,14 @@
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->period }} {{ $req->year }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:600;color:var(--secondary);">
-                                        {{ $req->batch_name }}
+                                        {{ $req->module ?: 'N/A' }}
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                    {{ $req->requester?->name ?? Auth::user()->name }}
+                                    {{ $req->requester_nik ?: 'N/A' }}
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                    <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .6rem;font-size:.75rem;font-weight:700;">
-                                        {{ $req->ao ?: 'N/A' }}
-                                    </span>
+                                    {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     @if($req->status == 'Draft')
@@ -409,7 +393,7 @@
                     {{-- Submit button (hidden by default until file is selected) --}}
                     <div id="submitWrapper" style="display:none;margin-top:1.5rem;text-align:right;">
                         <button type="submit" id="submitBtn" class="btn btn-primary" style="background:#0066cc;border:none;border-radius:8px;padding:.6rem 1.75rem;font-weight:600;font-size:.85rem;">
-                            <i class="bi bi-upload me-2"></i> Upload &amp; Create Request
+                            <i class="bi bi-upload me-2"></i> Upload
                         </button>
                     </div>
                 </form>

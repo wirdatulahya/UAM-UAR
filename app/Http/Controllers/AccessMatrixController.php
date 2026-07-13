@@ -376,11 +376,119 @@ class AccessMatrixController extends Controller
             }
         }
 
+        // ── 3b. Extract Metadata automatically from the top rows ──────────────────
+        $aoName = null;
+        $extractedModul = null;
+        $extractedApplication = null;
+        $extractedPeriod = null;
+        $extractedYear = null;
+        $extractedNik = null;
+        
+        // --- Dynamic Search in top 20 rows ---
+        for ($i = 0; $i < min(count($raw), 20); $i++) {
+            $row = array_values((array)($raw[$i] ?? []));
+            foreach ($row as $idx => $cell) {
+                $str = trim((string)($cell ?? ''));
+                if ($str === '') continue;
+
+                $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($str)));
+                
+                // Helper to get value to the right or below
+                $getValue = function() use ($row, $idx, $raw, $i) {
+                    for ($j = $idx + 1; $j < count($row); $j++) {
+                        $nextCell = trim((string)($row[$j] ?? ''));
+                        if (trim(preg_replace('/[^a-zA-Z0-9]/', '', $nextCell)) !== '') {
+                            return preg_replace('/^[\s:\-=]+/', '', $nextCell);
+                        }
+                    }
+                    if (isset($raw[$i + 1])) {
+                        $rowBelow = array_values((array)$raw[$i + 1]);
+                        $belowCell = trim((string)($rowBelow[$idx] ?? ''));
+                        if (trim(preg_replace('/[^a-zA-Z0-9]/', '', $belowCell)) !== '') {
+                            return preg_replace('/^[\s:\-=]+/', '', $belowCell);
+                        }
+                    }
+                    return null;
+                };
+
+                // Application
+                if (!$extractedApplication) {
+                    if (preg_match('/(aplikasi|application|app|system|sistem|platform)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(aplikasi|application|app|system|sistem|platform)\s*[:\-]\s*(.+)$/i', $str, $m)) {
+                        $extractedApplication = trim($m[2]);
+                    } elseif (str_contains($lower, 'aplikasi') || str_contains($lower, 'application') || str_contains($lower, 'app') || str_contains($lower, 'system') || str_contains($lower, 'sistem') || str_contains($lower, 'platform')) {
+                        $extractedApplication = $getValue();
+                    }
+                }
+
+                // Modul
+                if (!$extractedModul) {
+                    if (preg_match('/(modul|module)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(modul|module)\s*[:\-]\s*(.+)$/i', $str, $m)) {
+                        $extractedModul = trim($m[2]);
+                    } elseif (str_contains($lower, 'modul') || str_contains($lower, 'module')) {
+                        $extractedModul = $getValue();
+                    }
+                }
+
+                // AO
+                if (!$aoName) {
+                    if (preg_match('/(ao|access owner|nama ao|nama access owner)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(ao|access owner|nama ao|nama access owner)\s*[:\-]\s*(.+)$/i', $str, $m)) {
+                        $aoName = trim($m[2]);
+                    } elseif (str_contains($lower, 'ao') || str_contains($lower, 'access owner') || str_contains($lower, 'nama ao')) {
+                        $aoName = $getValue();
+                    }
+                }
+
+                // Period / Bulan
+                if (!$extractedPeriod) {
+                    if (preg_match('/(period|periode|bulan|month)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(period|periode|bulan|month)\s*[:\-]\s*(.+)$/i', $str, $m)) {
+                        $extractedPeriod = trim($m[2]);
+                    } elseif (str_contains($lower, 'period') || str_contains($lower, 'periode') || str_contains($lower, 'bulan') || str_contains($lower, 'month')) {
+                        $extractedPeriod = $getValue();
+                    }
+                }
+
+                // Year / Tahun
+                if (!$extractedYear) {
+                    if (preg_match('/(year|tahun)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(year|tahun)\s*[:\-]\s*(.+)$/i', $str, $m)) {
+                        $extractedYear = trim($m[2]);
+                    } elseif (str_contains($lower, 'year') || str_contains($lower, 'tahun')) {
+                        $extractedYear = $getValue();
+                    }
+                }
+
+                // NIK / Requester
+                if (!$extractedNik) {
+                    if (preg_match('/(nik|requester|requestor|pemohon)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(nik|requester|requestor|pemohon)\s*[:\-]\s*(.+)$/i', $str, $m)) {
+                        $extractedNik = trim($m[2]);
+                    } elseif (str_contains($lower, 'nik') || str_contains($lower, 'requester') || str_contains($lower, 'requestor') || str_contains($lower, 'pemohon')) {
+                        $extractedNik = $getValue();
+                    }
+                }
+            }
+        }
+
+        // Clean up extracted values robustly
+        if ($extractedApplication) $extractedApplication = preg_replace('/^[\s:\-=]+/', '', $extractedApplication);
+        if ($extractedModul) $extractedModul = preg_replace('/^[\s:\-=]+/', '', $extractedModul);
+        if ($aoName) $aoName = preg_replace('/^[\s:\-=]+/', '', $aoName);
+        if ($extractedNik) $extractedNik = preg_replace('/^[\s:\-=]+/', '', $extractedNik);
+        
+        $application = $extractedApplication ?: 'SAP'; // Default application based on requirement
+        $module = null;
+        if ($extractedModul) {
+            $module = trim($extractedModul);
+        }
+        if ($extractedPeriod) {
+            $period = ucwords(strtolower(trim($extractedPeriod)));
+        }
+        if ($extractedYear && preg_match('/\b(202[0-9]|203[0-5])\b/', $extractedYear, $matches)) {
+            $year = $matches[1];
+        }
+
         // ── 4. Parse data rows ────────────────────────────────────────────────
         $userId  = Auth::id();
         $now     = now();
         $inserts = [];
-
         foreach (array_slice($raw, $headerRowIdx + 1) as $row) {
             $row      = array_values((array)$row);
             $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
@@ -431,7 +539,7 @@ class AccessMatrixController extends Controller
                 'bpo'              => empty($rowBpos)  ? null : implode(', ', array_unique($rowBpos)),
                 'access_owner'     => null,
                 'matrix_data'      => empty($matrixData) ? null : json_encode($matrixData),
-                'module'           => $application,
+                'module'           => $module,
                 'period'           => $period . ' ' . $year,
                 'imported_by'      => $userId,
                 'created_at'       => $now,
@@ -443,113 +551,19 @@ class AccessMatrixController extends Controller
             return back()->withErrors(['file' => 'No valid data rows containing Role and TCODE found.']);
         }
 
-        // ── Extract Metadata automatically from the top rows ──────────────────
-        $aoName = null;
-        $extractedModul = null;
-        $extractedPeriod = null;
-        $extractedYear = null;
-
-        // --- 1. Primary Source of Truth: Known Coordinates (B4 and B5) ---
-        if (isset($raw[3])) { // Row 4
-            $row4 = array_values((array)$raw[3]);
-            if (isset($row4[1]) && trim((string)$row4[1]) !== '') { // Col B
-                $val = trim((string)$row4[1]);
-                $extractedModul = preg_replace('/^(modul|module|aplikasi|application|app|system|sistem)\s*[:\-]?\s*/i', '', $val);
-            }
-        }
-
-        if (isset($raw[4])) { // Row 5
-            $row5 = array_values((array)$raw[4]);
-            if (isset($row5[1]) && trim((string)$row5[1]) !== '') { // Col B
-                $val = trim((string)$row5[1]);
-                $aoName = preg_replace('/^(ao|access owner)\s*[:\-]?\s*/i', '', $val);
-            }
-        }
-        
-        // --- 2. Dynamic Search Fallback (if B4/B5 were empty or for other fields) ---
-        for ($i = 0; $i < min(count($raw), 15); $i++) {
-            $row = array_values((array)($raw[$i] ?? []));
-            foreach ($row as $idx => $cell) {
-                $str = trim((string)($cell ?? ''));
-                if ($str === '') continue;
-
-                $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($str)));
-                
-                // Helper to get value to the right or below
-                $getValue = function() use ($row, $idx, $raw, $i) {
-                    for ($j = $idx + 1; $j < count($row); $j++) {
-                        $nextCell = trim((string)($row[$j] ?? ''));
-                        if (trim(preg_replace('/[^a-zA-Z0-9]/', '', $nextCell)) !== '') {
-                            return ltrim($nextCell, " \t\n\r\0\x0B:-=");
-                        }
-                    }
-                    if (isset($raw[$i + 1])) {
-                        $rowBelow = array_values((array)$raw[$i + 1]);
-                        $belowCell = trim((string)($rowBelow[$idx] ?? ''));
-                        if (trim(preg_replace('/[^a-zA-Z0-9]/', '', $belowCell)) !== '') {
-                            return ltrim($belowCell, " \t\n\r\0\x0B:-=");
-                        }
-                    }
-                    return null;
-                };
-
-                // AO (Only if not found in B5)
-                if (!$aoName) {
-                    if (str_contains($lower, 'ao') || str_contains($lower, 'access owner') || str_contains($lower, 'nama ao')) {
-                        $aoName = $getValue();
-                    } elseif (preg_match('/^(ao|access owner|nama ao|nama access owner)\s*[:\-]?\s*(.+)$/i', $str, $m)) {
-                        $aoName = trim($m[2]);
-                    }
-                }
-
-                // Modul / Application (Only if not found in B4)
-                if (!$extractedModul) {
-                    if (str_contains($lower, 'modul') || str_contains($lower, 'module') || str_contains($lower, 'aplikasi') || str_contains($lower, 'system') || str_contains($lower, 'sistem')) {
-                        $extractedModul = $getValue();
-                    } elseif (preg_match('/^(modul|module|aplikasi|application|app|system|sistem|platform)\s*[:\-]?\s*(.+)$/i', $str, $m)) {
-                        $extractedModul = trim($m[2]);
-                    }
-                }
-
-                // Period / Bulan
-                if (in_array($lower, ['period', 'periode', 'bulan', 'month'])) {
-                    $extractedPeriod = $extractedPeriod ?? $getValue();
-                } elseif (!$extractedPeriod && preg_match('/^(period|periode|bulan|month)\s*[:\-]?\s*(.+)$/i', $str, $m)) {
-                    $extractedPeriod = trim($m[2]);
-                }
-
-                // Year / Tahun
-                if (in_array($lower, ['year', 'tahun'])) {
-                    $extractedYear = $extractedYear ?? $getValue();
-                } elseif (!$extractedYear && preg_match('/^(year|tahun)\s*[:\-]?\s*(.+)$/i', $str, $m)) {
-                    $extractedYear = trim($m[2]);
-                }
-            }
-        }
-        
-        // Override filename defaults if extracted from the file
-        if ($extractedModul) {
-            // Keep original casing for exact match representation, just trim
-            $application = trim($extractedModul);
-        }
-        if ($extractedPeriod) {
-            $period = ucwords(strtolower(trim($extractedPeriod)));
-        }
-        if ($extractedYear && preg_match('/\b(202[0-9]|203[0-5])\b/', $extractedYear, $matches)) {
-            $year = $matches[1];
-        }
-
         // ── 5. Create UAM Request record ──────────────────────────────────────
         $uamRequest = UamRequest::create([
-            'application'  => $application,
-            'year'         => $year,
-            'period'       => $period,
-            'batch_name'   => $batchName,
-            'file_name'    => $fileName,
-            'status'       => 'Draft',
-            'ao'           => $aoName,
-            'record_count' => count($inserts),
-            'requested_by' => $userId,
+            'application'   => $application,
+            'module'        => $module,
+            'year'          => $year,
+            'period'        => $period,
+            'batch_name'    => $batchName,
+            'file_name'     => $fileName,
+            'status'        => 'Draft',
+            'ao'            => $aoName,
+            'requester_nik' => $extractedNik,
+            'record_count'  => count($inserts),
+            'requested_by'  => $userId,
         ]);
 
         // ── 6. Stamp request_id and insert records ────────────────────────────
