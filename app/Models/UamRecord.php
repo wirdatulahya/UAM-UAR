@@ -10,6 +10,7 @@ class UamRecord extends Model
     protected $table = 'uam_records';
 
     protected $fillable = [
+        'request_id',
         'module',
         'period',
         'role',
@@ -25,6 +26,14 @@ class UamRecord extends Model
     protected $casts = [
         'matrix_data' => 'array',
     ];
+
+    /**
+     * The UAM request batch this record belongs to.
+     */
+    public function uamRequest(): BelongsTo
+    {
+        return $this->belongsTo(UamRequest::class, 'request_id');
+    }
 
     /**
      * The user who imported this record.

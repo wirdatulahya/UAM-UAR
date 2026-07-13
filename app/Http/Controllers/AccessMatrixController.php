@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\UamRecord;
+use App\Models\UamRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -13,9 +14,6 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class AccessMatrixController extends Controller
 {
     // ─────────────────────────────────────────────────────────────────────────
-    // INDEX — Search by Role; empty table when no search term
-    // ─────────────────────────────────────────────────────────────────────────
-    // ─────────────────────────────────────────────────────────────────────────
     // LANDING — Dashboard-style module selection page
     // ─────────────────────────────────────────────────────────────────────────
     public function landing()
@@ -23,7 +21,7 @@ class AccessMatrixController extends Controller
         $totalRecords = UamRecord::count();
         $totalRoles   = UamRecord::distinct('role')->count('role');
         $totalTcodes  = UamRecord::distinct('tcode')->count('tcode');
-        
+
         // Get last updated time
         $lastUpdatedRecord = UamRecord::orderBy('updated_at', 'desc')->first();
         $lastUpdated = $lastUpdatedRecord ? $lastUpdatedRecord->updated_at : null;
@@ -32,93 +30,59 @@ class AccessMatrixController extends Controller
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // APPROVAL UAM LIST
+    // APPROVAL — Request UAM list (real DB data)
     // ────────────────────────────────────────────────────────────────────────
     public function approval(Request $request)
     {
-        // Mock data for the Approval UAM list
-        $requests = [
-            (object)[
-                'no' => 1,
-                'application' => 'SYGAP',
-                'period' => 'July 2026',
-                'batch_name' => 'UAM SYGAP Jul\'26',
-                'requested_by' => 'SAID HADYAN RADIFAN ALDJUFRI',
-                'division' => '',
-                'status' => 'Draft',
-            ],
-            (object)[
-                'no' => 2,
-                'application' => 'EVOLUTION',
-                'period' => 'July 2026',
-                'batch_name' => 'UAM Q2 2026',
-                'requested_by' => 'IMAM SATRIA',
-                'division' => 'DIV-DIT',
-                'status' => 'Draft',
-            ],
-            (object)[
-                'no' => 3,
-                'application' => 'NCX EBIS',
-                'period' => 'July 2026',
-                'batch_name' => 'UAM_NCX_EBIS_DIV_DIT_Q3_2026',
-                'requested_by' => 'MUHAMMAD ARIJAL',
-                'division' => 'DIV-DIT',
-                'status' => 'Draft',
-            ],
-            (object)[
-                'no' => 4,
-                'application' => 'TgKypas',
-                'period' => 'July 2026',
-                'batch_name' => 'UAM Juli_Q3 2026',
-                'requested_by' => 'NANDA RAHMA ANANTA',
-                'division' => 'DIV-DIT',
-                'status' => 'Draft',
-            ],
-            (object)[
-                'no' => 5,
-                'application' => 'CDC DigiNeTA Wholesale',
-                'period' => 'July 2026',
-                'batch_name' => 'UAM_Digineta_WS_202607',
-                'requested_by' => 'RIDLO QOMARRULLAH',
-                'division' => '',
-                'status' => 'Done',
-            ],
-            (object)[
-                'no' => 6,
-                'application' => 'SC ONE',
-                'period' => 'July 2026',
-                'batch_name' => 'UAM_SCONE_DIT_20260708',
-                'requested_by' => 'JWALITA GALUH GARINI',
-                'division' => 'DIV-DIT',
-                'status' => 'Done',
-            ],
-        ];
+        $requests = UamRequest::with('requester')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($req, $i) {
+                $req->no = $i + 1;
+                return $req;
+            });
 
         return view('access-matrix.approval', compact('requests'));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // SAP — Search by Role; empty table when no search term
+    // SAP — Search by Role; filter by request_id when provided
     // ─────────────────────────────────────────────────────────────────────────
     public function sap(Request $request)
     {
-        $search       = trim($request->input('search', ''));
+        $search     = trim($request->input('search', ''));
+        $module     = trim($request->input('module', ''));
+        $period     = trim($request->input('period', ''));
+        $requestId  = $request->input('request_id');
+
         $totalRecords = UamRecord::count();
 
-        // Get dynamically available modules and periods from imported data
-        $availableModules = UamRecord::select('module')->whereNotNull('module')->where('module', '!=', '')->distinct()->pluck('module')->values();
-        $availablePeriods = UamRecord::select('period')->whereNotNull('period')->where('period', '!=', '')->distinct()->pluck('period')->values();
+        // Load the active UAM request batch (if scoped)
+        $uamRequest = null;
+        if ($requestId) {
+            $uamRequest = UamRequest::find($requestId);
+        }
 
-        // Keep dropdowns at default placeholders by default
-        $module       = trim($request->input('module', ''));
-        $period       = trim($request->input('period', ''));
+        // Get dynamically available modules and periods
+        $baseQuery = UamRecord::query();
+        if ($requestId) {
+            $baseQuery->where('request_id', $requestId);
+        }
+
+        $availableModules = (clone $baseQuery)->select('module')->whereNotNull('module')->where('module', '!=', '')->distinct()->pluck('module')->values();
+        $availablePeriods = (clone $baseQuery)->select('period')->whereNotNull('period')->where('period', '!=', '')->distinct()->pluck('period')->values();
 
         $query = UamRecord::query();
+
+        // Scope to request batch if provided
+        if ($requestId) {
+            $query->where('request_id', $requestId);
+        }
 
         if ($module !== '') {
             $query->where('module', $module);
         }
-        
+
         if ($period !== '') {
             $query->where('period', $period);
         }
@@ -127,7 +91,7 @@ class AccessMatrixController extends Controller
             $query->where('role', 'like', "%{$search}%");
         }
 
-        // Paginate by distinct roles instead of individual records
+        // Paginate by distinct roles
         $roles = (clone $query)
             ->select('role', 'description_role')
             ->distinct()
@@ -144,35 +108,44 @@ class AccessMatrixController extends Controller
             ->get()
             ->groupBy('role');
 
-        return view('access-matrix.sap', compact('roles', 'recordsMap', 'search', 'module', 'period', 'totalRecords', 'availableModules', 'availablePeriods'));
+        return view('access-matrix.sap', compact(
+            'roles', 'recordsMap', 'search', 'module', 'period',
+            'totalRecords', 'availableModules', 'availablePeriods',
+            'requestId', 'uamRequest'
+        ));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // IMPORT — Handles multi-level merged headers (UNIT / BPO / Access Owner)
+    // IMPORT — Handles Excel upload from Request UAM page
     //
-    // Expected Excel structure (rows are 1-indexed in Excel, 0-indexed here):
-    //
-    //   Row N-2  │ [empty] │ [empty] │ [empty] │ [empty] │ UNIT_A ──────────── │ UNIT_B ──── │ …
-    //   Row N-1  │ [empty] │ [empty] │ [empty] │ [empty] │ BPO_A1 ─── │ BPO_A2 │ BPO_B1 ─── │ …
-    //   Row N    │  No     │ Hak     │ Ket.    │ TCODE   │ AO_1       │ AO_2   │ AO_3       │ …
-    //   Row N+1  │  1      │ ZPS-…   │ Desc…   │ SU01    │  1         │        │  1         │ …
-    //
-    // Merged cells in rows N-2 and N-1 are expanded before reading so every
-    // Access Owner column knows its parent UNIT and BPO.
+    // Accepts: application, year, period + file
+    // Creates a UamRequest record, then inserts UamRecord rows linked to it.
+    // Does NOT truncate existing data — each import is its own batch.
     // ─────────────────────────────────────────────────────────────────────────
     public function import(Request $request)
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'file'        => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+            'application' => ['required', 'string', 'max:100'],
+            'year'        => ['required', 'digits:4'],
+            'period'      => ['required', 'string', 'max:50'],
         ], [
-            'file.required' => 'Please select a file to upload.',
-            'file.mimes'    => 'Only .xlsx, .xls, and .csv files are allowed.',
-            'file.max'      => 'The file may not be larger than 10 MB.',
+            'file.required'        => 'Please select a file to upload.',
+            'file.mimes'           => 'Only .xlsx, .xls, and .csv files are allowed.',
+            'file.max'             => 'The file may not be larger than 10 MB.',
+            'application.required' => 'Please select an Application.',
+            'year.required'        => 'Please enter a Year.',
+            'year.digits'          => 'Year must be a 4-digit number.',
+            'period.required'      => 'Please select a Period.',
         ]);
 
-        $file     = $request->file('file');
-        $ext      = strtolower($file->getClientOriginalExtension());
-        $fileName = $file->getClientOriginalName();
+        $file        = $request->file('file');
+        $ext         = strtolower($file->getClientOriginalExtension());
+        $fileName    = $file->getClientOriginalName();
+        $application = trim($request->input('application'));
+        $year        = trim($request->input('year'));
+        $period      = trim($request->input('period'));
+        $batchName   = 'UAM_' . strtoupper($application) . '_' . $period . '_' . $year;
 
         // ── 1. Load spreadsheet ───────────────────────────────────────────────
         try {
@@ -190,7 +163,7 @@ class AccessMatrixController extends Controller
             return back()->withErrors(['file' => 'The file appears to be empty.']);
         }
 
-        // ── 2. Detect the header row ──────
+        // ── 2. Detect the header row ──────────────────────────────────────────
         $norm = fn($v) => trim(preg_replace('/_+/', '_', preg_replace('/[^a-z0-9]+/', '_', strtolower(trim((string)($v ?? ''))))), '_');
 
         $aliases = [
@@ -236,9 +209,9 @@ class AccessMatrixController extends Controller
             ]);
         }
 
-        // ── 3. Find Unit, BPO, and Access Owner Headers ─────────────────────
+        // ── 3. Find Unit, BPO, and Access Owner Headers ──────────────────────
         $tcodeColIdx = array_search('tcode', $colMap);
-        
+
         $unitRowIdx = -1;
         $bpoRowIdx  = -1;
         for ($i = 0; $i < $headerRowIdx; $i++) {
@@ -255,7 +228,7 @@ class AccessMatrixController extends Controller
                 }
             }
         }
-        
+
         if ($unitRowIdx < 0 && $headerRowIdx >= 2) {
             $unitRowIdx = $headerRowIdx - 2;
         }
@@ -266,12 +239,11 @@ class AccessMatrixController extends Controller
         $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
         $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
 
-        // Bidirectional localized fill to propagate values horizontally
         $startIdx = $tcodeColIdx !== false ? $tcodeColIdx + 1 : 6;
-        
+
         $fillRowLocalized = function (array $row, int $start, array $labels) {
             for ($c = $start; $c < count($row); $c++) {
-                $val = trim((string)($row[$c] ?? ''));
+                $val   = trim((string)($row[$c] ?? ''));
                 $clean = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($val)));
                 if (in_array($clean, $labels, true)) {
                     $row[$c] = '';
@@ -300,11 +272,11 @@ class AccessMatrixController extends Controller
 
         $unitRowCleaned = $fillRowLocalized($unitRow, $startIdx, ['unit', 'unit kerja', 'nama unit']);
         $bpoRowCleaned  = $fillRowLocalized($bpoRow, $startIdx, ['bpo', 'business process owner', 'business_process_owner']);
-        
+
         $matrixAoCols = [];
         $aoUnitMap    = [];
         $aoBpoMap     = [];
-        
+
         if ($tcodeColIdx !== false) {
             $headerRow = array_values((array)$raw[$headerRowIdx]);
             for ($c = $startIdx; $c < count($headerRow); $c++) {
@@ -316,9 +288,9 @@ class AccessMatrixController extends Controller
             }
         }
 
-        // ── 4. Parse data rows exactly as they are ───────────────────────────
-        $userId = Auth::id();
-        $now    = now();
+        // ── 4. Parse data rows ────────────────────────────────────────────────
+        $userId  = Auth::id();
+        $now     = now();
         $inserts = [];
 
         foreach (array_slice($raw, $headerRowIdx + 1) as $row) {
@@ -339,7 +311,6 @@ class AccessMatrixController extends Controller
                 }
             }
 
-            // Skip rows without a role or tcode
             if (empty($record['role']) || empty($record['tcode'])) continue;
 
             $matrixData = [];
@@ -348,20 +319,16 @@ class AccessMatrixController extends Controller
 
             foreach ($matrixAoCols as $colIdx => $ownerName) {
                 $cellVal = $row[$colIdx] ?? null;
-                $isOne = ($cellVal === 1) || ($cellVal === 1.0) || (is_string($cellVal) && trim($cellVal) === '1');
-                
+                $isOne   = ($cellVal === 1) || ($cellVal === 1.0) || (is_string($cellVal) && trim($cellVal) === '1');
+
                 if ($isOne) {
                     $u = trim((string)($aoUnitMap[$colIdx] ?? '')) ?: '—';
-                    $b = trim((string)($aoBpoMap[$colIdx] ?? '')) ?: '—';
+                    $b = trim((string)($aoBpoMap[$colIdx]  ?? '')) ?: '—';
                     if ($u !== '—') $rowUnits[] = $u;
                     if ($b !== '—') $rowBpos[]  = $b;
 
-                    if (!isset($matrixData[$u])) {
-                        $matrixData[$u] = [];
-                    }
-                    if (!isset($matrixData[$u][$b])) {
-                        $matrixData[$u][$b] = [];
-                    }
+                    if (!isset($matrixData[$u])) $matrixData[$u] = [];
+                    if (!isset($matrixData[$u][$b])) $matrixData[$u][$b] = [];
                     if (!in_array($ownerName, $matrixData[$u][$b], true)) {
                         $matrixData[$u][$b][] = $ownerName;
                     }
@@ -373,11 +340,11 @@ class AccessMatrixController extends Controller
                 'tcode'            => $record['tcode'],
                 'description_role' => $record['description_role'],
                 'unit'             => empty($rowUnits) ? null : implode(', ', array_unique($rowUnits)),
-                'bpo'              => empty($rowBpos) ? null : implode(', ', array_unique($rowBpos)),
+                'bpo'              => empty($rowBpos)  ? null : implode(', ', array_unique($rowBpos)),
                 'access_owner'     => null,
                 'matrix_data'      => empty($matrixData) ? null : json_encode($matrixData),
-                'module'           => 'PS',
-                'period'           => 'Q2 2026',
+                'module'           => strtoupper($application),
+                'period'           => $period . ' ' . $year,
                 'imported_by'      => $userId,
                 'created_at'       => $now,
                 'updated_at'       => $now,
@@ -388,20 +355,38 @@ class AccessMatrixController extends Controller
             return back()->withErrors(['file' => 'No valid data rows containing Role and TCODE found.']);
         }
 
-        UamRecord::truncate();
+        // ── 5. Create UAM Request record ──────────────────────────────────────
+        $uamRequest = UamRequest::create([
+            'application'  => $application,
+            'year'         => $year,
+            'period'       => $period,
+            'batch_name'   => $batchName,
+            'file_name'    => $fileName,
+            'status'       => 'Draft',
+            'record_count' => count($inserts),
+            'requested_by' => $userId,
+        ]);
+
+        // ── 6. Stamp request_id and insert records ────────────────────────────
+        foreach ($inserts as &$ins) {
+            $ins['request_id'] = $uamRequest->id;
+        }
+        unset($ins);
 
         foreach (array_chunk($inserts, 500) as $chunk) {
             UamRecord::insert($chunk);
         }
 
         Log::info('UAM import: successful', [
-            'file'         => $fileName,
-            'records'      => count($inserts)
+            'request_id'  => $uamRequest->id,
+            'batch_name'  => $batchName,
+            'file'        => $fileName,
+            'records'     => count($inserts),
         ]);
 
         return redirect()
-            ->route('access-matrix.sap')
-            ->with('success', 'Successfully imported ' . count($inserts) . " record(s) from \"{$fileName}\".");
+            ->route('access-matrix.approval')
+            ->with('success', 'Successfully imported ' . count($inserts) . " record(s) from \"{$fileName}\" — Request \"{$batchName}\" created.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -429,9 +414,11 @@ class AccessMatrixController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE — Show add-new-record form
     // ─────────────────────────────────────────────────────────────────────────
-    public function create()
+    public function create(Request $request)
     {
-        return view('access-matrix.create');
+        $requestId  = $request->input('request_id');
+        $uamRequest = $requestId ? UamRequest::find($requestId) : null;
+        return view('access-matrix.create', compact('requestId', 'uamRequest'));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -448,13 +435,19 @@ class AccessMatrixController extends Controller
             'access_owner'     => ['nullable', 'string', 'max:255'],
             'module'           => ['required', 'string', 'max:255'],
             'period'           => ['required', 'string', 'max:255'],
+            'request_id'       => ['nullable', 'integer', 'exists:uam_requests,id'],
         ]);
 
         $validated['imported_by'] = Auth::id();
         UamRecord::create($validated);
 
+        $redirectParams = ['search' => $validated['role']];
+        if (!empty($validated['request_id'])) {
+            $redirectParams['request_id'] = $validated['request_id'];
+        }
+
         return redirect()
-            ->route('access-matrix.sap', ['search' => $validated['role']])
+            ->route('access-matrix.sap', $redirectParams)
             ->with('success', 'Record created successfully.');
     }
 
@@ -484,8 +477,13 @@ class AccessMatrixController extends Controller
 
         $uamRecord->update($validated);
 
+        $redirectParams = ['search' => $uamRecord->role];
+        if ($uamRecord->request_id) {
+            $redirectParams['request_id'] = $uamRecord->request_id;
+        }
+
         return redirect()
-            ->route('access-matrix.sap', ['search' => $uamRecord->role])
+            ->route('access-matrix.sap', $redirectParams)
             ->with('success', 'Record updated successfully.');
     }
 
@@ -494,20 +492,34 @@ class AccessMatrixController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function destroy(UamRecord $uamRecord)
     {
-        $role = $uamRecord->role;
+        $role      = $uamRecord->role;
+        $requestId = $uamRecord->request_id;
         $uamRecord->delete();
 
+        $redirectParams = [];
+        if ($requestId) {
+            $redirectParams['request_id'] = $requestId;
+        }
+
         return redirect()
-            ->route('access-matrix.sap')
+            ->route('access-matrix.sap', $redirectParams)
             ->with('success', "Record for role \"{$role}\" has been deleted.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CLEAR — Truncate all records
+    // CLEAR — Delete all records for a request (or all if no request)
     // ─────────────────────────────────────────────────────────────────────────
-    public function clear()
+    public function clear(Request $request)
     {
-        UamRecord::truncate();
+        $requestId = $request->input('request_id');
+
+        if ($requestId) {
+            UamRecord::where('request_id', $requestId)->delete();
+            // Also delete the request itself
+            UamRequest::destroy($requestId);
+        } else {
+            UamRecord::truncate();
+        }
 
         return redirect()
             ->route('access-matrix.sap')
@@ -516,14 +528,12 @@ class AccessMatrixController extends Controller
 
     // ─────────────────────────────────────────────────────────────────────────
     // ROLE DETAILS (AJAX) — Return all data for the Access modal
-    //
-    // Reads directly from the DB — no file re-parsing needed.
-    // Returns aggregated unit/bpo/access_owner and all distinct TCODEs.
     // ─────────────────────────────────────────────────────────────────────────
     public function roleDetails(Request $request)
     {
-        $role  = trim($request->input('role', ''));
-        $tcode = trim($request->input('tcode', ''));
+        $role      = trim($request->input('role', ''));
+        $tcode     = trim($request->input('tcode', ''));
+        $requestId = $request->input('request_id');
 
         if ($role === '') {
             return response()->json(['error' => 'Role parameter is required.'], 400);
@@ -533,6 +543,9 @@ class AccessMatrixController extends Controller
         if ($tcode !== '') {
             $query->where('tcode', $tcode);
         }
+        if ($requestId) {
+            $query->where('request_id', $requestId);
+        }
 
         $records = $query->get();
 
@@ -541,20 +554,15 @@ class AccessMatrixController extends Controller
         }
 
         // Build hierarchy:  unit => bpo => [owner, …]
-        $tree = [];          // ['UNIT_A']['BPO_X'] = ['OWNER1', 'OWNER2', …]
+        $tree = [];
 
         foreach ($records as $rec) {
             $matrix = $rec->matrix_data;
             if (is_array($matrix) && !empty($matrix)) {
-                // Use matrix data from JSON column
                 foreach ($matrix as $unit => $bpos) {
-                    if (!isset($tree[$unit])) {
-                        $tree[$unit] = [];
-                    }
+                    if (!isset($tree[$unit])) $tree[$unit] = [];
                     foreach ($bpos as $bpo => $owners) {
-                        if (!isset($tree[$unit][$bpo])) {
-                            $tree[$unit][$bpo] = [];
-                        }
+                        if (!isset($tree[$unit][$bpo])) $tree[$unit][$bpo] = [];
                         foreach ($owners as $owner) {
                             if (!in_array($owner, $tree[$unit][$bpo], true)) {
                                 $tree[$unit][$bpo][] = $owner;
@@ -563,11 +571,9 @@ class AccessMatrixController extends Controller
                     }
                 }
             } else {
-                // Fallback to traditional flat columns
                 $unit = trim((string) ($rec->unit ?? '')) ?: '—';
                 $bpo  = trim((string) ($rec->bpo  ?? '')) ?: '—';
 
-                // Split pipe-delimited owners; filter blanks
                 $owners = collect(explode('|', (string) ($rec->access_owner ?? '')))
                     ->map(fn ($o) => trim($o))
                     ->filter(fn ($o) => $o !== '' && $o !== '—')
@@ -577,17 +583,14 @@ class AccessMatrixController extends Controller
                 if (empty($owners)) continue;
 
                 foreach ($owners as $owner) {
-                    if (! isset($tree[$unit][$bpo])) {
-                        $tree[$unit][$bpo] = [];
-                    }
-                    if (! in_array($owner, $tree[$unit][$bpo], true)) {
+                    if (!isset($tree[$unit][$bpo])) $tree[$unit][$bpo] = [];
+                    if (!in_array($owner, $tree[$unit][$bpo], true)) {
                         $tree[$unit][$bpo][] = $owner;
                     }
                 }
             }
         }
 
-        // Serialise to JSON-friendly list
         $hierarchy = [];
         foreach ($tree as $unit => $bpos) {
             $bpoList = [];
@@ -600,7 +603,7 @@ class AccessMatrixController extends Controller
         return response()->json([
             'role'      => $role,
             'tcode'     => $tcode,
-            'hierarchy' => $hierarchy,           // full tree for dropdown logic
+            'hierarchy' => $hierarchy,
             'units'     => array_column($hierarchy, 'unit'),
         ]);
     }

@@ -107,7 +107,7 @@
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">Create a new User Access Matrix entry</p>
             </div>
-            <a href="{{ route('access-matrix.sap') }}"
+            <a href="{{ route('access-matrix.sap', $requestId ? ['request_id' => $requestId] : []) }}"
                style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
                onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
@@ -140,6 +140,9 @@
 
                     <form method="POST" action="{{ route('access-matrix.store') }}" id="createForm">
                         @csrf
+                        @if($requestId)
+                            <input type="hidden" name="request_id" value="{{ $requestId }}">
+                        @endif
 
                         {{-- Role --}}
                         <div class="mb-3">

@@ -153,11 +153,16 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
-                    <a href="{{ route('access-matrix.index') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
-                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">User Access Matrix</a>
+                    <a href="{{ route('access-matrix.approval') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
+                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Request Access Matrix</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
-                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">UAM SAP</li>
+                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">
+                    UAM SAP
+                    @if($uamRequest)
+                        &nbsp;<span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.1rem .55rem;font-size:.7rem;font-weight:700;">{{ $uamRequest->batch_name }}</span>
+                    @endif
+                </li>
             </ol>
         </nav>
 
@@ -166,34 +171,47 @@
             <div>
                 <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
                     <i class="bi bi-pc-display-horizontal me-2" style="color:var(--primary);"></i>UAM SAP Module
+                    @if($uamRequest)
+                        <span style="font-size:.75rem;font-weight:600;background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .65rem;vertical-align:middle;margin-left:.5rem;">{{ $uamRequest->batch_name }}</span>
+                    @endif
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                    Search by Role to view, add, edit, or delete access records
-                    @if($totalRecords > 0)
-                        &nbsp;·&nbsp; <strong>{{ number_format($totalRecords) }}</strong> records in database
+                    @if($uamRequest)
+                        Records from request &mdash; {{ $uamRequest->period }} {{ $uamRequest->year }} &mdash; {{ $uamRequest->record_count }} record(s)
+                    @else
+                        Search by Role to view, add, edit, or delete access records
+                        @if($totalRecords > 0)
+                            &nbsp;·&nbsp; <strong>{{ number_format($totalRecords) }}</strong> records in database
+                        @endif
                     @endif
                 </p>
             </div>
 
             <div class="d-flex align-items-center flex-wrap gap-2">
-                {{-- Import Excel Button --}}
-                <button type="button" id="toggleUploadBtn"
-                    style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.55rem 1.25rem;font-size:.82rem;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all var(--transition);"
-                    onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
-                    onmouseleave="if(!uploadCardCollapse.dataset.open){this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';}">
-                    <i class="bi bi-file-earmark-arrow-up-fill"></i>
-                    Import Excel
-                </button>
-
                 {{-- Add New Record --}}
-                <a href="{{ route('access-matrix.create') }}"
+                <a href="{{ route('access-matrix.create', $requestId ? ['request_id' => $requestId] : []) }}"
                     class="btn-primary-custom"
                     style="width:auto;padding:.55rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.45rem;border-radius:10px;text-decoration:none;">
                     <i class="bi bi-plus-lg"></i>
                     Add Record
                 </a>
 
-                @if ($totalRecords > 0)
+                @if ($requestId && $uamRequest)
+                    <form method="POST" action="{{ route('access-matrix.clear') }}" id="clearForm"
+                          onsubmit="return confirm('Delete all {{ $uamRequest->record_count }} records in this request? This cannot be undone.');"
+                          style="margin:0;">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="request_id" value="{{ $requestId }}">
+                        <button type="submit" id="clearBtn"
+                            style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.55rem 1.25rem;font-size:.82rem;font-weight:600;color:#c0392b;cursor:pointer;transition:all var(--transition);"
+                            onmouseenter="this.style.borderColor='#c0392b';this.style.background='#fde8e9';"
+                            onmouseleave="this.style.borderColor='var(--border)';this.style.background='none';">
+                            <i class="bi bi-trash3-fill"></i>
+                            Clear Request
+                        </button>
+                    </form>
+                @elseif(!$requestId && $totalRecords > 0)
                     <form method="POST" action="{{ route('access-matrix.clear') }}" id="clearForm"
                           onsubmit="return confirm('Delete ALL {{ $totalRecords }} records? This cannot be undone.');"
                           style="margin:0;">
@@ -211,69 +229,14 @@
             </div>
         </div>
 
-        {{-- ── Collapsible Import Card ── --}}
-        <div id="uploadCardCollapse" class="animate-in animate-in-delay-1 mb-4" style="display:none;">
-            <div id="uploadCard" style="background:#fff;border:2px dashed var(--border);border-radius:16px;padding:2rem;transition:border-color var(--transition),background var(--transition);">
-
-                <form method="POST" action="{{ route('access-matrix.import') }}"
-                      enctype="multipart/form-data" id="importForm">
-                    @csrf
-
-                    <div id="dropZone" style="text-align:center;cursor:pointer;" onclick="document.getElementById('fileInput').click();">
-                        <div style="width:56px;height:56px;background:var(--secondary-light);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                            <i class="bi bi-file-earmark-arrow-up-fill" style="font-size:1.6rem;color:var(--secondary);"></i>
-                        </div>
-                        <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">
-                            Drag &amp; Drop your UAM Excel file here
-                        </h3>
-                        <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                            Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> &nbsp;·&nbsp; Max 10 MB
-                        </p>
-                        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                            Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNIT</code>, <code>BPO</code>, <code>Access Owner</code>
-                        </p>
-
-                        <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display:none;">
-
-                        <div id="fileLabel"
-                            style="display:inline-flex;align-items:center;gap:.5rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.55rem 1.25rem;font-size:.85rem;font-weight:600;cursor:pointer;transition:filter var(--transition);"
-                            onmouseenter="this.style.filter='brightness(1.1)'"
-                            onmouseleave="this.style.filter=''">
-                            <i class="bi bi-folder2-open"></i>
-                            Browse File
-                        </div>
-                    </div>
-
-                    {{-- File preview --}}
-                    <div id="filePreview" style="display:none;margin-top:1.25rem;padding:1rem;background:var(--secondary-light);border-radius:10px;align-items:center;gap:.75rem;">
-                        <div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08);">
-                            <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:1.2rem;color:var(--secondary);"></i>
-                        </div>
-                        <div style="flex:1;min-width:0;">
-                            <div id="fileName" style="font-size:.85rem;font-weight:600;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                            <div id="fileSize" style="font-size:.72rem;color:var(--text-muted);"></div>
-                        </div>
-                        <button type="button" id="removeFile"
-                            style="background:none;border:none;padding:.2rem .4rem;color:var(--text-muted);cursor:pointer;border-radius:6px;font-size:1rem;flex-shrink:0;"
-                            title="Remove file">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
-
-                    {{-- Submit --}}
-                    <div id="submitWrapper" style="display:none;margin-top:1rem;text-align:right;">
-                        <button type="submit" id="submitBtn" class="btn-primary-custom" style="width:auto;padding:.6rem 1.75rem;">
-                            <i class="bi bi-upload me-1"></i> Import Data
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         {{-- ── Search Bar ── --}}
+
         <div class="animate-in animate-in-delay-1 mb-4"
              style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.02);">
             <form method="GET" action="{{ route('access-matrix.sap') }}" id="searchForm">
+                @if($requestId)
+                    <input type="hidden" name="request_id" value="{{ $requestId }}">
+                @endif
                 <div class="row g-3 mb-3">
                     <div class="col-12 col-md-6">
                         <label for="moduleSelect" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Module</label>
@@ -479,7 +442,7 @@
                                             </div>
                                             <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">No records available</h3>
                                             <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;">
-                                                There are currently no records for this Module and Period. Use <strong>Import Excel</strong> or <strong>Add Record</strong> to get started.
+                                                There are currently no records for this request. Use <strong>Add Record</strong> to get started, or go back to <a href="{{ route('access-matrix.approval') }}" style="color:var(--secondary);">Request Access Matrix</a>.
                                             </p>
                                         @endif
                                     </td>

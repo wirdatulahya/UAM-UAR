@@ -47,35 +47,38 @@ Route::middleware('auth')->group(function () {
     Route::get('/access-matrix', [AccessMatrixController::class, 'landing'])
         ->name('access-matrix.index');
 
+    // ── Request Access Matrix ──────────────────────────────────────────────
+    Route::get('/access-matrix/request', [AccessMatrixController::class, 'approval'])
+        ->name('access-matrix.approval');
+
+    // ── Import Excel (from Request UAM page) ──────────────────────────────
+    Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])
+        ->name('access-matrix.import');
+
     // ── Access Matrix - SAP Module ─────────────────────────────────────────
     Route::prefix('access-matrix/sap')->group(function () {
-        Route::get('/approval', [AccessMatrixController::class, 'approval'])
-            ->name('access-matrix.approval');
 
         Route::get('/', [AccessMatrixController::class, 'sap'])
             ->name('access-matrix.sap');
-            
+
         Route::get('/role-details', [AccessMatrixController::class, 'roleDetails'])
             ->name('access-matrix.role-details');
-
-        Route::post('/import', [AccessMatrixController::class, 'import'])
-            ->name('access-matrix.import');
 
         Route::delete('/clear', [AccessMatrixController::class, 'clear'])
             ->name('access-matrix.clear');
 
         Route::get('/create', [AccessMatrixController::class, 'create'])
             ->name('access-matrix.create');
-            
+
         Route::post('/', [AccessMatrixController::class, 'store'])
             ->name('access-matrix.store');
 
         Route::get('/{uamRecord}/edit', [AccessMatrixController::class, 'edit'])
             ->name('access-matrix.edit');
-            
+
         Route::put('/{uamRecord}', [AccessMatrixController::class, 'update'])
             ->name('access-matrix.update');
-            
+
         Route::delete('/{uamRecord}', [AccessMatrixController::class, 'destroy'])
             ->name('access-matrix.destroy');
     });
