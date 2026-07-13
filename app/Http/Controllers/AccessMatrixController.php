@@ -30,19 +30,48 @@ class AccessMatrixController extends Controller
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // APPROVAL — Request UAM list (real DB data)
+    // APPROVAL — Request UAM list (real DB data, filterable)
     // ────────────────────────────────────────────────────────────────────────
     public function approval(Request $request)
     {
-        $requests = UamRequest::with('requester')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($req, $i) {
-                $req->no = $i + 1;
-                return $req;
-            });
+        $filterApplication = trim($request->input('application', ''));
+        $filterYear        = trim($request->input('year', ''));
+        $filterPeriod      = trim($request->input('period', ''));
+        $search            = trim($request->input('search', ''));
 
-        return view('access-matrix.approval', compact('requests'));
+        $query = UamRequest::with('requester')->orderBy('created_at', 'desc');
+
+        if ($filterApplication !== '') {
+            $query->where('application', $filterApplication);
+        }
+        if ($filterYear !== '') {
+            $query->where('year', $filterYear);
+        }
+        if ($filterPeriod !== '') {
+            $query->where('period', $filterPeriod);
+        }
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('batch_name', 'like', "%{$search}%")
+                  ->orWhere('application', 'like', "%{$search}%");
+            });
+        }
+
+        $requests = $query->get()->map(function ($req, $i) {
+            $req->no = $i + 1;
+            return $req;
+        });
+
+        // Distinct option lists for filter dropdowns
+        $availableApplications = UamRequest::distinct()->orderBy('application')->pluck('application');
+        $availableYears        = UamRequest::distinct()->orderByDesc('year')->pluck('year');
+        $availablePeriods      = UamRequest::distinct()->orderBy('period')->pluck('period');
+
+        return view('access-matrix.approval', compact(
+            'requests',
+            'filterApplication', 'filterYear', 'filterPeriod', 'search',
+            'availableApplications', 'availableYears', 'availablePeriods'
+        ));
     }
 
     // ─────────────────────────────────────────────────────────────────────────

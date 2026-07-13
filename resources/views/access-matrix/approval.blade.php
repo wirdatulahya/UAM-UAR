@@ -256,8 +256,64 @@
             </form>
         </div>
 
+        {{-- ── Filters & Search ──────────────────────────────────────────────── --}}
+        <div class="d-flex align-items-center justify-content-between mb-4 animate-in animate-in-delay-2" style="gap:1rem;flex-wrap:wrap;">
+            <form method="GET" action="{{ route('access-matrix.approval') }}" id="filterForm"
+                  class="d-flex align-items-center gap-3 flex-wrap" style="flex:1;">
+                <select name="application" class="form-select" style="width:200px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
+                        onchange="document.getElementById('filterForm').submit()">
+                    <option value="">Choose Application</option>
+                    @foreach($availableApplications as $app)
+                        <option value="{{ $app }}" {{ $filterApplication === $app ? 'selected' : '' }}>{{ $app }}</option>
+                    @endforeach
+                </select>
+                <select name="year" class="form-select" style="width:130px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
+                        onchange="document.getElementById('filterForm').submit()">
+                    <option value="">Year</option>
+                    @foreach($availableYears as $yr)
+                        <option value="{{ $yr }}" {{ $filterYear === $yr ? 'selected' : '' }}>{{ $yr }}</option>
+                    @endforeach
+                </select>
+                <select name="period" class="form-select" style="width:130px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
+                        onchange="document.getElementById('filterForm').submit()">
+                    <option value="">Period</option>
+                    @foreach($availablePeriods as $per)
+                        <option value="{{ $per }}" {{ $filterPeriod === $per ? 'selected' : '' }}>{{ $per }}</option>
+                    @endforeach
+                </select>
+                <button type="submit" class="btn btn-primary d-flex align-items-center gap-2"
+                        style="background:#0066cc;border:none;border-radius:8px;padding:.45rem 1.25rem;font-weight:600;font-size:.85rem;">
+                    <i class="bi bi-search" style="font-size:.8rem;"></i> SEARCH
+                </button>
+                @if($filterApplication || $filterYear || $filterPeriod || $search)
+                    <a href="{{ route('access-matrix.approval') }}"
+                       style="display:inline-flex;align-items:center;gap:.3rem;padding:.45rem .9rem;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
+                       onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
+                       onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+                        <i class="bi bi-x-lg"></i> Clear
+                    </a>
+                @endif
+            </form>
+
+            {{-- Search bar --}}
+            <form method="GET" action="{{ route('access-matrix.approval') }}" id="searchForm">
+                @if($filterApplication)<input type="hidden" name="application" value="{{ $filterApplication }}">@endif
+                @if($filterYear)<input type="hidden" name="year" value="{{ $filterYear }}">@endif
+                @if($filterPeriod)<input type="hidden" name="period" value="{{ $filterPeriod }}">@endif
+                <div class="input-group" style="width:250px;">
+                    <span class="input-group-text bg-white border-end-0" style="border-radius:8px 0 0 8px;">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control border-start-0 ps-0"
+                           placeholder="Search requests..."
+                           value="{{ $search }}"
+                           style="border-radius:0 8px 8px 0;font-size:.85rem;box-shadow:none;">
+                </div>
+            </form>
+        </div>
+
         {{-- ── Request Table ───────────────────────────────────────────────── --}}
-        <div class="animate-in animate-in-delay-2">
+        <div class="animate-in animate-in-delay-3">
             <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
 
                 {{-- Table Header --}}
@@ -268,7 +324,14 @@
                         </div>
                         <div>
                             <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">UAM Requests</div>
-                            <div style="font-size:.72rem;color:var(--text-muted);">{{ $requests->count() }} request(s) in total</div>
+                            <div style="font-size:.72rem;color:var(--text-muted);">
+                                {{ $requests->count() }} request(s)
+                                @if($filterApplication || $filterYear || $filterPeriod || $search)
+                                    &nbsp;·&nbsp; <span style="color:var(--secondary);font-weight:600;">Filtered</span>
+                                @else
+                                    &nbsp;in total
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
