@@ -140,6 +140,35 @@ class AccessMatrixController extends Controller
         return redirect()->back()->with('success', 'Status updated successfully.');
     }
 
+    // ────────────────────────────────────────────────────────────────────────
+    // APPROVE DECISION — AO submits Approved / Need Revision from SAP page
+    // ────────────────────────────────────────────────────────────────────────
+    public function approveDecision(Request $request, UamRequest $uamRequest)
+    {
+        $validated = $request->validate([
+            'decision'         => ['required', 'in:Approved,Need Revision'],
+            'approver_comment' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        // Comment is required when decision is Need Revision
+        if ($validated['decision'] === 'Need Revision' && empty(trim($validated['approver_comment'] ?? ''))) {
+            return redirect()->back()
+                ->withErrors(['approver_comment' => 'A comment is required when requesting revision.'])
+                ->withInput();
+        }
+
+        $uamRequest->update([
+            'status'           => $validated['decision'],
+            'approver_comment' => trim($validated['approver_comment'] ?? ''),
+        ]);
+
+        $label = $validated['decision'] === 'Approved' ? 'approved' : 'returned for revision';
+
+        return redirect()
+            ->route('access-matrix.approval.sap')
+            ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully.");
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // SAP — Search by Role; filter by request_id when provided
     // ─────────────────────────────────────────────────────────────────────────

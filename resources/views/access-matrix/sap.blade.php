@@ -596,7 +596,7 @@
             </div>
         </div>
 
-        {{-- Submit Action at the very bottom --}}
+        {{-- Submit Action (for Requester) --}}
         @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision']))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
                 <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
@@ -610,6 +610,126 @@
                     </button>
                 </form>
             </div>
+        @endif
+
+        {{-- Approval Decision (for Approver when status is Review) --}}
+        @php $isApprovalView = isset($uamRequest) && $uamRequest && $uamRequest->status === 'Review' && isset($isApproval) && $isApproval; @endphp
+        @if($isApprovalView)
+            <div class="animate-in animate-in-delay-3 mt-4" style="margin-bottom:2rem;">
+                <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
+
+                    {{-- Header --}}
+                    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--secondary-light);display:flex;align-items:center;gap:.65rem;">
+                        <div style="width:36px;height:36px;background:var(--secondary);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="bi bi-patch-check-fill" style="color:#fff;font-size:1rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:.9rem;font-weight:800;color:var(--secondary);">Approval Decision</div>
+                            <div style="font-size:.72rem;color:var(--text-muted);">Review the UAM records above, then submit your decision below</div>
+                        </div>
+                    </div>
+
+                    {{-- Form --}}
+                    <form action="{{ route('access-matrix.approve-decision', $uamRequest->id) }}" method="POST" id="approvalDecisionForm" style="padding:1.5rem;">
+                        @csrf
+
+                        {{-- Validation Errors --}}
+                        @if($errors->any())
+                            <div style="background:#fde8e9;border-left:4px solid #c0392b;border-radius:8px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.82rem;color:#7b0d0f;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ $errors->first() }}
+                            </div>
+                        @endif
+
+                        {{-- Decision Radio Buttons --}}
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;" id="decisionOptions">
+
+                            {{-- Approved --}}
+                            <label for="decisionApproved" id="labelApproved"
+                                   style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.25rem;border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;">
+                                <input type="radio" name="decision" id="decisionApproved" value="Approved" required
+                                       style="width:18px;height:18px;accent-color:#22c55e;cursor:pointer;"
+                                       onchange="handleDecisionChange(this)">
+                                <div>
+                                    <div style="font-size:.88rem;font-weight:700;color:#15803d;display:flex;align-items:center;gap:.4rem;">
+                                        <i class="bi bi-check-circle-fill" style="font-size:1rem;"></i> Approved
+                                    </div>
+                                    <div style="font-size:.72rem;color:var(--text-muted);margin-top:.15rem;">Confirm and approve this UAM request</div>
+                                </div>
+                            </label>
+
+                            {{-- Need Revision --}}
+                            <label for="decisionRevision" id="labelRevision"
+                                   style="display:flex;align-items:center;gap:.85rem;padding:1rem 1.25rem;border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;">
+                                <input type="radio" name="decision" id="decisionRevision" value="Need Revision"
+                                       style="width:18px;height:18px;accent-color:#ef4444;cursor:pointer;"
+                                       onchange="handleDecisionChange(this)">
+                                <div>
+                                    <div style="font-size:.88rem;font-weight:700;color:#c0392b;display:flex;align-items:center;gap:.4rem;">
+                                        <i class="bi bi-arrow-counterclockwise" style="font-size:1rem;"></i> Need Revision
+                                    </div>
+                                    <div style="font-size:.72rem;color:var(--text-muted);margin-top:.15rem;">Return request to requester for changes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        {{-- Comment --}}
+                        <div id="commentWrapper" style="margin-bottom:1.25rem;">
+                            <label for="approverComment" style="font-size:.82rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;display:block;">
+                                Comment
+                                <span id="commentRequired" style="color:#ef4444;display:none;"> *required for Need Revision</span>
+                            </label>
+                            <textarea name="approver_comment" id="approverComment" rows="3"
+                                      placeholder="Add your notes or revision instructions here…"
+                                      style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.75rem 1rem;font-size:.85rem;color:var(--text);resize:vertical;transition:border-color .2s;outline:none;font-family:inherit;"
+                                      onfocus="this.style.borderColor='var(--secondary)'"
+                                      onblur="this.style.borderColor='var(--border)'">{{ old('approver_comment') }}</textarea>
+                        </div>
+
+                        {{-- Submit --}}
+                        <div style="display:flex;justify-content:flex-end;gap:.75rem;">
+                            <a href="{{ route('access-matrix.approval.sap') }}"
+                               style="display:inline-flex;align-items:center;gap:.4rem;padding:.65rem 1.5rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all .2s;"
+                               onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
+                               onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+                                <i class="bi bi-arrow-left"></i> Back to List
+                            </a>
+                            <button type="submit" id="submitDecisionBtn"
+                                    style="display:inline-flex;align-items:center;gap:.5rem;background:#0b2e6d;color:#fff;border:none;border-radius:10px;padding:.65rem 2rem;font-size:.85rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(11,46,109,.25);transition:all .2s;"
+                                    onmouseenter="this.style.background='#0a2355';this.style.transform='translateY(-1px)';"
+                                    onmouseleave="this.style.background='#0b2e6d';this.style.transform='none';">
+                                <i class="bi bi-send-fill" style="font-size:.8rem;"></i>
+                                Submit Decision
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+            function handleDecisionChange(radio) {
+                const labelApproved  = document.getElementById('labelApproved');
+                const labelRevision  = document.getElementById('labelRevision');
+                const commentRequired = document.getElementById('commentRequired');
+                const commentArea    = document.getElementById('approverComment');
+
+                if (radio.value === 'Approved') {
+                    labelApproved.style.borderColor = '#22c55e';
+                    labelApproved.style.background  = '#f0fdf4';
+                    labelRevision.style.borderColor = 'var(--border)';
+                    labelRevision.style.background  = '';
+                    commentRequired.style.display   = 'none';
+                    commentArea.required = false;
+                } else {
+                    labelRevision.style.borderColor = '#ef4444';
+                    labelRevision.style.background  = '#fff5f5';
+                    labelApproved.style.borderColor = 'var(--border)';
+                    labelApproved.style.background  = '';
+                    commentRequired.style.display   = 'inline';
+                    commentArea.required = true;
+                }
+            }
+            </script>
         @endif
 
     </main>

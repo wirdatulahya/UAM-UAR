@@ -18,6 +18,7 @@ class UamRequest extends Model
         'batch_name',
         'file_name',
         'status',
+        'approver_comment',
         'ao',
         'record_count',
         'requested_by',

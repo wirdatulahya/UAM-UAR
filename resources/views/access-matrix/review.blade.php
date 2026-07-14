@@ -269,20 +269,27 @@
                                     {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;" onclick="event.stopPropagation();">
-                                    <select class="form-select form-select-sm status-dropdown" data-id="{{ $req->id }}" style="font-weight:600; border-radius:6px; cursor:pointer; width:140px;
-                                        background-color: {{ $req->status == 'Approved' ? '#e8f5e9' : ($req->status == 'Need Revision' ? '#fde8e9' : ($req->status == 'Draft' ? '#e3f2fd' : '#fff3cd')) }};
-                                        color: {{ $req->status == 'Approved' ? '#2e7d32' : ($req->status == 'Need Revision' ? '#c0392b' : ($req->status == 'Draft' ? '#0288d1' : '#856404')) }};
-                                        border-color: transparent;">
-                                        <option value="Review" {{ $req->status == 'Review' ? 'selected' : '' }} style="color:#856404;background:#fff;">Under Review</option>
-                                        <option value="Approved" {{ $req->status == 'Approved' ? 'selected' : '' }} style="color:#2e7d32;background:#fff;">Approved</option>
-                                        <option value="Need Revision" {{ $req->status == 'Need Revision' ? 'selected' : '' }} style="color:#c0392b;background:#fff;">Need Revision</option>
-                                        <option value="Draft" {{ $req->status == 'Draft' ? 'selected' : '' }} style="color:#0288d1;background:#fff;">Draft</option>
-                                    </select>
+                                    @php
+                                        $badge = match($req->status) {
+                                            'Approved'     => ['bg' => '#e8f5e9', 'color' => '#2e7d32',  'icon' => 'bi-check-circle-fill',   'label' => 'Approved'],
+                                            'Need Revision'=> ['bg' => '#fde8e9', 'color' => '#c0392b',  'icon' => 'bi-arrow-counterclockwise','label' => 'Need Revision'],
+                                            'Draft'        => ['bg' => '#e3f2fd', 'color' => '#0288d1',  'icon' => 'bi-pencil-fill',          'label' => 'Draft'],
+                                            default        => ['bg' => '#fff3cd', 'color' => '#856404',  'icon' => 'bi-hourglass-split',      'label' => 'Under Review'],
+                                        };
+                                    @endphp
+                                    <span style="display:inline-flex;align-items:center;gap:.35rem;background:{{ $badge['bg'] }};color:{{ $badge['color'] }};border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;white-space:nowrap;">
+                                        <i class="bi {{ $badge['icon'] }}" style="font-size:.7rem;"></i>
+                                        {{ $badge['label'] }}
+                                    </span>
                                 </td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;">
-                                    <button class="btn btn-sm d-inline-flex align-items-center gap-1" type="button" style="background:var(--secondary-light);color:var(--secondary);border:none;border-radius:6px;font-weight:600;font-size:.75rem;padding:.3rem .6rem;transition:all var(--transition);" onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';" onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
-                                        <i class="bi bi-box-arrow-in-right"></i> Review
-                                    </button>
+                                <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;" onclick="event.stopPropagation();">
+                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id]) }}"
+                                       class="btn btn-sm d-inline-flex align-items-center gap-1"
+                                       style="background:var(--secondary-light);color:var(--secondary);border:none;border-radius:6px;font-weight:600;font-size:.75rem;padding:.3rem .6rem;transition:all var(--transition);text-decoration:none;"
+                                       onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
+                                       onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
+                                        <i class="bi bi-eye-fill"></i> Review
+                                    </a>
                                 </td>
                             </tr>
                             @empty
@@ -332,50 +339,6 @@
         });
 
         menu.addEventListener('click', function(e) { e.stopPropagation(); });
-
-    // ── Status Update AJAX ──────────────────────────────────────────────────
-    const statusSelects = document.querySelectorAll('.status-dropdown');
-    statusSelects.forEach(select => {
-        select.addEventListener('change', function() {
-            const reqId = this.dataset.id;
-            const newStatus = this.value;
-            const url = `{{ url('/access-matrix/approval') }}/${reqId}/status`;
-            const token = document.querySelector('meta[name="csrf-token"]').content;
-            
-            // Update the styling based on the selection
-            let bgColor = '';
-            let textColor = '';
-            if (newStatus === 'Approved') { bgColor = '#e8f5e9'; textColor = '#2e7d32'; }
-            else if (newStatus === 'Need Revision') { bgColor = '#fde8e9'; textColor = '#c0392b'; }
-            else if (newStatus === 'Draft') { bgColor = '#e3f2fd'; textColor = '#0288d1'; }
-            else { bgColor = '#fff3cd'; textColor = '#856404'; }
-            
-            this.style.backgroundColor = bgColor;
-            this.style.color = textColor;
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ status: newStatus })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    console.log('Status updated successfully');
-                } else {
-                    alert('Failed to update status.');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert('An error occurred while updating status.');
-            });
-        });
-    });
     });
 </script>
 @endpush
