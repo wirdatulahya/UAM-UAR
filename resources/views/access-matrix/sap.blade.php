@@ -551,7 +551,7 @@
                                             </div>
                                             <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">No records available</h3>
                                             <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;">
-                                                There are currently no records for this request. Use <strong>Add Record</strong> to get started, or go back to <a href="{{ route('access-matrix.approval') }}" style="color:var(--secondary);">Request Access Matrix</a>.
+                                                There are currently no records for this request. Use <strong>Add Record</strong> to get started, or go back to <a href="{{ $moduleRoute }}" style="color:var(--secondary);">{{ $moduleName }}</a>.
                                             </p>
                                         @endif
                                     </td>

@@ -190,13 +190,26 @@ class AccessMatrixController extends Controller
             });
         }
 
-        // Paginate by distinct roles
-        $roles = (clone $query)
+        // Count distinct roles correctly
+        $totalRoles = (clone $query)->distinct()->count('role');
+
+        // Paginate manually to avoid Laravel's distinct pagination count bug
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 20;
+        $items = (clone $query)
             ->select('role', 'description_role')
             ->distinct()
             ->orderBy('role')
-            ->paginate(20)
-            ->withQueryString();
+            ->forPage($page, $perPage)
+            ->get();
+
+        $roles = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $totalRoles,
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
 
         $roleNames = $roles->pluck('role');
 
