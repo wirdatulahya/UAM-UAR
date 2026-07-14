@@ -260,6 +260,7 @@
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Requested By</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">AO</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Status</th>
+                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Revision Notes</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);text-align:center;">Action</th>
                             </tr>
                         </thead>
@@ -304,6 +305,16 @@
                                          <span class="badge bg-secondary" style="padding:.35rem .65rem;border-radius:20px;font-weight:600;">{{ $req->status }}</span>
                                      @endif
                                 </td>
+                                <td style="padding:.85rem 1.25rem;vertical-align:middle;max-width:240px;">
+                                    @if($req->status === 'Need Revision' && !empty($req->approver_comment))
+                                        <div style="display:flex;align-items:flex-start;gap:.4rem;">
+                                            <i class="bi bi-chat-left-text-fill" style="color:#c0392b;font-size:.72rem;margin-top:.18rem;flex-shrink:0;"></i>
+                                            <span style="font-size:.78rem;color:#7b1216;line-height:1.4;word-break:break-word;">{{ $req->approver_comment }}</span>
+                                        </div>
+                                    @else
+                                        <span style="color:var(--text-muted);font-size:.78rem;">—</span>
+                                    @endif
+                                </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;">
                                     <div class="dropdown" onclick="event.stopPropagation();">
                                         <button class="btn btn-sm btn-link text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding:0;">
@@ -332,7 +343,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
+                                <td colspan="9" style="padding:3.5rem 1rem;text-align:center;">
                                     <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
                                         <i class="bi bi-inbox" style="font-size:1.6rem;color:var(--secondary);"></i>
                                     </div>
