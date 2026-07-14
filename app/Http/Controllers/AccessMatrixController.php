@@ -14,21 +14,23 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class AccessMatrixController extends Controller
 {
     // ─────────────────────────────────────────────────────────────────────────
-    // LANDING — Dashboard-style module selection page
+    // MODULES — Landing pages for Request and Approval sections
     // ─────────────────────────────────────────────────────────────────────────
-    public function landing()
+    public function requestModules()
     {
-        $totalRecords = UamRecord::count();
-        $totalRoles   = UamRecord::distinct('role')->count('role');
-        $totalTcodes  = UamRecord::distinct('tcode')->count('tcode');
-
-        // Get last updated time
         $lastUpdatedRecord = UamRecord::orderBy('updated_at', 'desc')->first();
         $lastUpdated = $lastUpdatedRecord ? $lastUpdatedRecord->updated_at : null;
-
-        return view('access-matrix.landing', compact('totalRecords', 'totalRoles', 'totalTcodes', 'lastUpdated'));
+        
+        return view('access-matrix.modules', ['type' => 'request', 'lastUpdated' => $lastUpdated]);
     }
 
+    public function approvalModules()
+    {
+        $lastUpdatedRecord = UamRecord::orderBy('updated_at', 'desc')->first();
+        $lastUpdated = $lastUpdatedRecord ? $lastUpdatedRecord->updated_at : null;
+        
+        return view('access-matrix.modules', ['type' => 'approval', 'lastUpdated' => $lastUpdated]);
+    }
     // ────────────────────────────────────────────────────────────────────────
     // APPROVAL — Request UAM list (real DB data, filterable)
     // ────────────────────────────────────────────────────────────────────────
@@ -72,6 +74,70 @@ class AccessMatrixController extends Controller
             'filterApplication', 'filterYear', 'filterPeriod', 'search',
             'availableApplications', 'availableYears', 'availablePeriods'
         ));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // REVIEW — Approval Access Matrix list (Submitted requests only)
+    // ────────────────────────────────────────────────────────────────────────
+    public function review(Request $request)
+    {
+        $filterApplication = trim($request->input('application', ''));
+        $filterYear        = trim($request->input('year', ''));
+        $filterPeriod      = trim($request->input('period', ''));
+        $search            = trim($request->input('search', ''));
+
+        // Exclude Drafts for the review view
+        $query = UamRequest::with('requester')->where('status', '!=', 'Draft')->orderBy('created_at', 'desc');
+
+        if ($filterApplication !== '') {
+            $query->where('application', $filterApplication);
+        }
+        if ($filterYear !== '') {
+            $query->where('year', $filterYear);
+        }
+        if ($filterPeriod !== '') {
+            $query->where('period', $filterPeriod);
+        }
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('batch_name', 'like', "%{$search}%")
+                  ->orWhere('application', 'like', "%{$search}%");
+            });
+        }
+
+        $requests = $query->get()->map(function ($req, $i) {
+            $req->no = $i + 1;
+            return $req;
+        });
+
+        // Distinct option lists for filter dropdowns (only from non-drafts)
+        $availableApplications = UamRequest::where('status', '!=', 'Draft')->distinct()->orderBy('application')->pluck('application');
+        $availableYears        = UamRequest::where('status', '!=', 'Draft')->distinct()->orderByDesc('year')->pluck('year');
+        $availablePeriods      = UamRequest::where('status', '!=', 'Draft')->distinct()->orderBy('period')->pluck('period');
+
+        return view('access-matrix.review', compact(
+            'requests',
+            'filterApplication', 'filterYear', 'filterPeriod', 'search',
+            'availableApplications', 'availableYears', 'availablePeriods'
+        ));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // UPDATE REQUEST STATUS (AJAX) — Approvers changing status
+    // ────────────────────────────────────────────────────────────────────────
+    public function updateRequestStatus(Request $request, UamRequest $uamRequest)
+    {
+        $request->validate([
+            'status' => ['required', 'string', 'in:Approved,Draft,Need Revision,Review,Pending,Done,Rejected'],
+        ]);
+
+        $uamRequest->update(['status' => $request->input('status')]);
+        
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'status' => $uamRequest->status]);
+        }
+        
+        return redirect()->back()->with('success', 'Status updated successfully.');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -615,7 +681,7 @@ class AccessMatrixController extends Controller
         ]);
 
         return redirect()
-            ->route('access-matrix.approval')
+            ->route('access-matrix.request.sap')
             ->with('success', 'Successfully imported ' . count($inserts) . " record(s) from \"{$fileName}\" — Request \"{$batchName}\" created.");
     }
 
@@ -893,6 +959,6 @@ class AccessMatrixController extends Controller
     public function submitRequest(UamRequest $uamRequest)
     {
         $uamRequest->update(['status' => 'Review']);
-        return redirect()->back()->with('success', 'UAM request submitted successfully for review.');
+        return redirect()->route('access-matrix.request.sap')->with('success', 'UAM request submitted successfully for review.');
     }
 }

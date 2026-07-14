@@ -64,10 +64,10 @@
         </a>
         <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
             <div style="padding: .25rem 0; background: var(--bg);">
-                <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
-                <a href="{{ route('access-matrix.approval') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Approval Access Matrix
                 </a>
             </div>
@@ -88,11 +88,11 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
-                    <a href="{{ route('access-matrix.index') }}" style="color:var(--text-muted);text-decoration:none;">User Access Matrix</a>
+                    <a href="{{ route('access-matrix.request.index') }}" style="color:var(--text-muted);text-decoration:none;">Request Access Matrix</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
-                    <a href="{{ route('access-matrix.sap') }}" style="color:var(--text-muted);text-decoration:none;">UAM SAP</a>
+                    <a href="{{ route('access-matrix.request.sap') }}" style="color:var(--text-muted);text-decoration:none;">UAM SAP</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">Add Record</li>
@@ -301,3 +301,6 @@
     });
 </script>
 @endpush
+
+
+

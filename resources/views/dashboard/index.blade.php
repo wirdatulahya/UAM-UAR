@@ -9,7 +9,8 @@
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
 
-            {{-- Brand --}}
+            <div class="d-flex align-items-center gap-2">
+                {{-- Brand --}}
             <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
                 <div class="brand-dot">
                     <i class="bi bi-shield-lock-fill"></i>
@@ -19,6 +20,7 @@
                     <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
                 </div>
             </a>
+            </div>
 
             {{-- Right — Profile Dropdown --}}
             <div class="position-relative" id="profileDropdownWrapper">
@@ -93,10 +95,10 @@
         </a>
         <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
             <div style="padding: .25rem 0; background: var(--bg);">
-                <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
-                <a href="#" class="sidebar-nav-item" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Approval Access Matrix
                 </a>
             </div>
@@ -175,17 +177,9 @@
                         'title' => 'User Access Matrix',
                         'desc' => 'Manage and track user access permissions across all systems.',
                         'status' => 'active',
-                        'route' => route('access-matrix.index')
+                        'route' => route('access-matrix.request.index')
                     ],
-                    [
-                        'icon' => 'bi-clipboard2-check-fill',
-                        'color' => '#0B2E6D',
-                        'bg' => '#e8edf7',
-                        'title' => 'Access Review',
-                        'desc' => 'Conduct periodic reviews and certifications of user access rights.',
-                        'status' => 'coming-soon',
-                        'route' => '#'
-                    ],
+
                     [
                         'icon' => 'bi-graph-up-arrow',
                         'color' => '#0B2E6D',
@@ -279,3 +273,6 @@
     });
 </script>
 @endpush
+
+
+

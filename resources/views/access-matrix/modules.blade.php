@@ -55,7 +55,13 @@
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
 
-            {{-- Brand --}}
+            <div class="d-flex align-items-center gap-2">
+                {{-- Generic Back Button --}}
+                <button type="button" onclick="window.history.back();" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0;font-size:1.4rem;display:flex;align-items:center;transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'" title="Go Back">
+                    <i class="bi bi-arrow-left-circle"></i>
+                </button>
+
+                {{-- Brand --}}
             <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
                 <div class="brand-dot">
                     <i class="bi bi-shield-lock-fill"></i>
@@ -65,6 +71,7 @@
                     <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
                 </div>
             </a>
+            </div>
 
             {{-- Right — Profile Dropdown --}}
             <div class="position-relative" id="profileDropdownWrapper">
@@ -138,10 +145,10 @@
         </a>
         <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
             <div style="padding: .25rem 0; background: var(--bg);">
-                <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
-                <a href="#" class="sidebar-nav-item" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Approval Access Matrix
                 </a>
             </div>
@@ -175,52 +182,49 @@
                        onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Dashboard</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
-                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">User Access Matrix</li>
+                <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">
+                    {{ $type === 'request' ? 'Request Access Matrix' : 'Approval Access Matrix' }}
+                </li>
             </ol>
         </nav>
 
         {{-- ── Page Header ── --}}
         <div class="mb-4 animate-in">
             <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                <i class="bi bi-table me-2" style="color:var(--primary);"></i>User Access Matrix Dashboard
+                <i class="bi bi-table me-2" style="color:var(--primary);"></i>
+                {{ $type === 'request' ? 'Request Access Matrix Modules' : 'Approval Access Matrix Modules' }}
             </h1>
             <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                Select a target system module to manage permissions, mapping configs, and compliance guidelines.
+                Select a target system module to {{ $type === 'request' ? 'submit and manage requests' : 'review and approve requests' }}.
             </p>
         </div>
 
         {{-- ── Modules Grid ── --}}
         <div class="row g-4 animate-in animate-in-delay-1">
 
-            {{-- 1. UAM SAP Module Card (Active) --}}
+            {{-- 1. UAM SAP Module Card --}}
             <div class="col-12 col-md-6 col-xl-4">
-                <a href="{{ route('access-matrix.approval') }}" class="module-landing-card">
+                <a href="{{ $type === 'request' ? route('access-matrix.request.sap') : route('access-matrix.approval.sap') }}" class="module-landing-card">
                     <div class="d-flex align-items-center gap-3 mb-3">
-                        <div style="width:52px;height:52px;background:var(--secondary-light);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="bi bi-pc-display-horizontal" style="font-size:1.5rem;color:var(--secondary);"></i>
+                        <div style="width:52px;height:52px;background:{{ $type === 'request' ? 'var(--secondary-light)' : '#fde8e9' }};border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="bi {{ $type === 'request' ? 'bi-pc-display-horizontal' : 'bi-check2-square' }}" style="font-size:1.5rem;color:{{ $type === 'request' ? 'var(--secondary)' : '#E31E24' }};"></i>
                         </div>
                         <div>
-                            <h2 style="font-size:1.15rem;font-weight:800;color:var(--secondary);margin:0;">UAM SAP</h2>
+                            <h2 style="font-size:1.15rem;font-weight:800;color:{{ $type === 'request' ? 'var(--secondary)' : '#E31E24' }};margin:0;">UAM SAP</h2>
                             <span style="display:inline-flex;align-items:center;gap:.25rem;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
                                 <i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Active
                             </span>
                         </div>
                     </div>
 
-
-
+                    <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.5rem;">
+                        {{ $type === 'request' ? 'Submit and manage user access matrix requests for SAP modules.' : 'Review, approve, or revise submitted UAM SAP requests.' }}
+                    </p>
 
                     <div class="d-flex align-items-center justify-content-between pt-3" style="border-top:1px solid var(--border); margin-top:auto;">
                         <span style="font-size:.7rem;color:var(--text-muted);">
                             <i class="bi bi-clock-history me-1"></i> {{ $lastUpdated ? 'Updated ' . $lastUpdated->diffForHumans() : 'No updates' }}
                         </span>
-                        <span class="btn-enter" style="font-size:.8rem;font-weight:700;color:var(--primary);display:inline-flex;align-items:center;gap:.25rem;">
-                            Manage Matrix <i class="bi bi-arrow-right" style="font-size:.9rem; transition: transform 0.2s;"></i>
-                        </span>
-                    </div>
-                </a>
-            </div>
-
 
 
         </div>
@@ -259,3 +263,6 @@
     });
 </script>
 @endpush
+
+
+

@@ -9,7 +9,13 @@
     <div class="container-fluid px-4">
         <div class="d-flex align-items-center justify-content-between">
 
-            {{-- Brand --}}
+            <div class="d-flex align-items-center gap-2">
+                {{-- Generic Back Button --}}
+                <button type="button" onclick="window.history.back();" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0;font-size:1.4rem;display:flex;align-items:center;transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'" title="Go Back">
+                    <i class="bi bi-arrow-left-circle"></i>
+                </button>
+
+                {{-- Brand --}}
             <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
                 <div class="brand-dot">
                     <i class="bi bi-shield-lock-fill"></i>
@@ -19,6 +25,7 @@
                     <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
                 </div>
             </a>
+            </div>
 
             {{-- Right — Profile Dropdown --}}
             <div class="position-relative" id="profileDropdownWrapper">
@@ -92,10 +99,10 @@
         </a>
         <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
             <div style="padding: .25rem 0; background: var(--bg);">
-                <a href="{{ route('access-matrix.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
-                <a href="#" class="sidebar-nav-item" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Approval Access Matrix
                 </a>
             </div>
@@ -152,13 +159,24 @@
                        onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Dashboard</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
+                @php
+                    $isApproval = $uamRequest && !in_array($uamRequest->status, ['Draft']);
+                    $moduleRoute = $isApproval ? route('access-matrix.approval.index') : route('access-matrix.request.index');
+                    $moduleName  = $isApproval ? 'Approval Access Matrix' : 'Request Access Matrix';
+                    $tableRoute  = $isApproval ? route('access-matrix.approval.sap') : route('access-matrix.request.sap');
+                @endphp
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
-                    <a href="{{ route('access-matrix.approval') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
-                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Request Access Matrix</a>
+                    <a href="{{ $moduleRoute }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
+                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">{{ $moduleName }}</a>
+                    <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
+                </li>
+                <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
+                    <a href="{{ $tableRoute }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
+                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">UAM SAP</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">
-                    UAM SAP
+                    Request Details
                     @if($uamRequest)
                         &nbsp;<span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.1rem .55rem;font-size:.7rem;font-weight:700;">{{ $uamRequest->batch_name }}</span>
                     @endif
@@ -192,11 +210,13 @@
                 @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision']))
                 <a href="{{ route('access-matrix.create', $requestId ? ['request_id' => $requestId] : []) }}"
                     class="btn-primary-custom"
-                    style="width:auto;padding:.55rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.45rem;border-radius:10px;text-decoration:none;">
+                    style="background:var(--primary);width:auto;padding:.55rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.45rem;border-radius:10px;text-decoration:none;">
                     <i class="bi bi-plus-lg"></i>
                     Add Record
                 </a>
                 @endif
+                
+
             </div>
         </div>
 
@@ -1061,3 +1081,5 @@
 
 </script>
 @endpush
+
+

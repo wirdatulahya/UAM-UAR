@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Request Access Matrix')
+@section('title', 'Approval Access Matrix')
 
 @section('content')
 {{-- Navbar --}}
@@ -133,8 +133,8 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center">
-                    <a href="{{ route('access-matrix.request.index') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
-                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Request Access Matrix</a>
+                    <a href="{{ route('access-matrix.approval.index') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
+                       onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Approval Access Matrix</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">UAM SAP</li>
@@ -167,29 +167,14 @@
         {{-- Page Header --}}
         <div class="mb-4 animate-in d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Request Access Matrix</h1>
-                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Manage user access matrix requests and batches</p>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                @if(\App\Models\UamRequest::count() > 0)
-                <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete ALL UAM data? This cannot be undone.');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn d-flex align-items-center gap-2" style="background:#fde8e9;color:#c0392b;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;transition:filter var(--transition);" onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
-                        <i class="bi bi-trash-fill"></i> Delete Data
-                    </button>
-                </form>
-                @endif
-
-                <button type="button" class="btn btn-primary d-flex align-items-center gap-2" style="background:#0066cc;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;" data-bs-toggle="modal" data-bs-target="#createUamModal">
-                    <i class="bi bi-plus-lg" style="stroke-width: 2px;"></i> CREATE UAM
-                </button>
+                <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Approval Access Matrix</h1>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Review and approve submitted user access matrix requests</p>
             </div>
         </div>
 
         {{-- ── Filters & Search ──────────────────────────────────────────────── --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in animate-in-delay-2" style="gap:1rem;flex-wrap:wrap;">
-            <form method="GET" action="{{ route('access-matrix.request.sap') }}" id="filterForm"
+            <form method="GET" action="{{ route('access-matrix.approval.sap') }}" id="filterForm"
                   class="d-flex align-items-center gap-3 flex-wrap" style="flex:1;">
                 <select name="application" class="form-select" style="width:200px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
                         onchange="document.getElementById('filterForm').submit()">
@@ -217,7 +202,7 @@
                     <i class="bi bi-search" style="font-size:.8rem;"></i> SEARCH
                 </button>
                 @if($filterApplication || $filterYear || $filterPeriod || $search)
-                    <a href="{{ route('access-matrix.request.sap') }}"
+                    <a href="{{ route('access-matrix.approval.sap') }}"
                        style="display:inline-flex;align-items:center;gap:.3rem;padding:.45rem .9rem;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
                        onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
@@ -287,51 +272,21 @@
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
                                 </td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                     @if($req->status == 'Draft')
-                                         <span class="badge" style="background:#e3f2fd;color:#0288d1;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-pencil-fill" style="font-size:.7rem;"></i> Draft
-                                         </span>
-                                     @elseif($req->status == 'Review')
-                                         <span class="badge" style="background:#fff3cd;color:#856404;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-hourglass-split" style="font-size:.7rem;"></i> Under Review
-                                         </span>
-                                     @elseif($req->status == 'Done' || $req->status == 'Approved')
-                                         <span class="badge" style="background:#e8f5e9;color:#2e7d32;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i> Approved
-                                         </span>
-                                     @elseif($req->status == 'Need Revision')
-                                         <span class="badge" style="background:#fde8e9;color:#c0392b;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-exclamation-circle-fill" style="font-size:.7rem;"></i> Need Revision
-                                         </span>
-                                     @else
-                                         <span class="badge bg-secondary" style="padding:.35rem .65rem;border-radius:20px;font-weight:600;">{{ $req->status }}</span>
-                                     @endif
+                                <td style="padding:1rem 1.25rem;vertical-align:middle;" onclick="event.stopPropagation();">
+                                    <select class="form-select form-select-sm status-dropdown" data-id="{{ $req->id }}" style="font-weight:600; border-radius:6px; cursor:pointer; width:140px;
+                                        background-color: {{ $req->status == 'Approved' ? '#e8f5e9' : ($req->status == 'Need Revision' ? '#fde8e9' : ($req->status == 'Draft' ? '#e3f2fd' : '#fff3cd')) }};
+                                        color: {{ $req->status == 'Approved' ? '#2e7d32' : ($req->status == 'Need Revision' ? '#c0392b' : ($req->status == 'Draft' ? '#0288d1' : '#856404')) }};
+                                        border-color: transparent;">
+                                        <option value="Review" {{ $req->status == 'Review' ? 'selected' : '' }} style="color:#856404;background:#fff;">Under Review</option>
+                                        <option value="Approved" {{ $req->status == 'Approved' ? 'selected' : '' }} style="color:#2e7d32;background:#fff;">Approved</option>
+                                        <option value="Need Revision" {{ $req->status == 'Need Revision' ? 'selected' : '' }} style="color:#c0392b;background:#fff;">Need Revision</option>
+                                        <option value="Draft" {{ $req->status == 'Draft' ? 'selected' : '' }} style="color:#0288d1;background:#fff;">Draft</option>
+                                    </select>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;">
-                                    <div class="dropdown" onclick="event.stopPropagation();">
-                                        <button class="btn btn-sm btn-link text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding:0;">
-                                            <i class="bi bi-three-dots-vertical" style="font-size:1.1rem;"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end" style="border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:var(--border);">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('access-matrix.sap', ['request_id' => $req->id]) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;">
-                                                    <i class="bi bi-eye"></i> View Records
-                                                </a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;" onsubmit="return confirm('Delete this request and all its records? This cannot be undone.');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <input type="hidden" name="request_id" value="{{ $req->id }}">
-                                                    <button type="submit" class="dropdown-item text-danger" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;">
-                                                        <i class="bi bi-trash"></i> Delete Request
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                    <button class="btn btn-sm d-inline-flex align-items-center gap-1" type="button" style="background:var(--secondary-light);color:var(--secondary);border:none;border-radius:6px;font-weight:600;font-size:.75rem;padding:.3rem .6rem;transition:all var(--transition);" onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';" onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
+                                        <i class="bi bi-box-arrow-in-right"></i> Review
+                                    </button>
                                 </td>
                             </tr>
                             @empty
@@ -356,104 +311,6 @@
 </div>
 
 {{-- Create UAM Modal --}}
-<div class="modal fade" id="createUamModal" tabindex="-1" aria-labelledby="createUamModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content" style="border:none;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
-            <div class="modal-header" style="border-bottom:1px solid var(--border);padding:1.5rem 1.75rem;">
-                <div style="display:flex;align-items:center;gap:.65rem;">
-                    <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <i class="bi bi-file-earmark-arrow-up-fill" style="color:var(--secondary);font-size:.95rem;"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title" id="createUamModalLabel" style="font-size:1.05rem;font-weight:800;color:var(--secondary);margin:0;">New UAM Request</h5>
-                        <div style="font-size:.75rem;color:var(--text-muted);">Upload the Excel file to create a new UAM request batch</div>
-                    </div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" style="padding:1.75rem;">
-                <form method="POST" action="{{ route('access-matrix.import') }}" enctype="multipart/form-data" id="importForm">
-                    @csrf
-                    {{-- Metadata Fields --}}
-                    <div style="display:flex;gap:1rem;margin-bottom:1.5rem;">
-                        <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Application <span class="text-danger">*</span></label>
-                            <input type="text" name="application" class="form-control" required placeholder="e.g. SAP S/4HANA" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
-                        </div>
-                        <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Year <span class="text-danger">*</span></label>
-                            <input type="number" name="year" min="2026" max="9999" class="form-control" required placeholder="e.g. 2026" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
-                        </div>
-                        <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Period <span class="text-danger">*</span></label>
-                            <select name="period" class="form-select" required style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
-                                <option value="" disabled selected>-- Select --</option>
-                                <option value="Q1">Q1 (First Period)</option>
-                                <option value="Q2">Q2 (Second Period)</option>
-                                <option value="Q3">Q3 (Third Period)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {{-- File upload area --}}
-                    <div id="uploadCard"
-                         style="background:#fafbff;border:2px dashed var(--border);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;transition:border-color var(--transition),background var(--transition);"
-                         onclick="document.getElementById('fileInput').click();"
-                         ondragover="event.preventDefault();this.style.borderColor='var(--secondary)';this.style.background='var(--secondary-light)';"
-                         ondragleave="this.style.borderColor='var(--border)';this.style.background='#fafbff';"
-                         ondrop="handleDrop(event)">
-                        <div style="width:56px;height:56px;background:var(--secondary-light);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                            <i class="bi bi-file-earmark-arrow-up-fill" style="font-size:1.6rem;color:var(--secondary);"></i>
-                        </div>
-                        <h3 style="font-size:1.05rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">
-                            Drag &amp; Drop your UAM Excel file here
-                        </h3>
-                        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;">
-                            Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> &nbsp;·&nbsp; Max 10 MB
-                        </p>
-                        <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                            Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNIT</code>, <code>BPO</code>, <code>Access Owner</code>
-                        </p>
-    
-                        <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display:none;">
-    
-                        <div id="fileLabel"
-                            style="display:inline-flex;align-items:center;gap:.5rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.6rem 1.5rem;font-size:.85rem;font-weight:600;cursor:pointer;transition:filter var(--transition);"
-                            onmouseenter="this.style.filter='brightness(1.1)'"
-                            onmouseleave="this.style.filter=''">
-                            <i class="bi bi-folder2-open"></i>
-                            Browse File
-                        </div>
-                    </div>
-    
-                    {{-- File preview --}}
-                    <div id="filePreview" style="display:none;margin-top:1.25rem;padding:1rem 1.25rem;background:var(--secondary-light);border-radius:12px;align-items:center;gap:.75rem;">
-                        <div style="width:42px;height:42px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08);">
-                            <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:1.2rem;color:var(--secondary);"></i>
-                        </div>
-                        <div style="flex:1;min-width:0;">
-                            <div id="fileName" style="font-size:.9rem;font-weight:600;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                            <div id="fileSize" style="font-size:.75rem;color:var(--text-muted);"></div>
-                        </div>
-                        <button type="button" id="removeFile"
-                            style="background:none;border:none;padding:.2rem .4rem;color:var(--text-muted);cursor:pointer;border-radius:6px;font-size:1.1rem;flex-shrink:0;"
-                            title="Remove file">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
-    
-                    {{-- Submit button (hidden by default until file is selected) --}}
-                    <div id="submitWrapper" style="display:none;margin-top:1.5rem;text-align:right;">
-                        <button type="submit" id="submitBtn" class="btn btn-primary" style="background:#0066cc;border:none;border-radius:8px;padding:.6rem 1.75rem;font-weight:600;font-size:.85rem;">
-                            <i class="bi bi-upload me-2"></i> Upload
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @push('scripts')
 <script>
     // ── Profile dropdown ──────────────────────────────────────────────────────
@@ -480,56 +337,50 @@
 
         menu.addEventListener('click', function(e) { e.stopPropagation(); });
 
-        // ── File upload handling ──────────────────────────────────────────────
-        const fileInput    = document.getElementById('fileInput');
-        const filePreview  = document.getElementById('filePreview');
-        const fileNameEl   = document.getElementById('fileName');
-        const fileSizeEl   = document.getElementById('fileSize');
-        const removeBtn    = document.getElementById('removeFile');
-        const submitWrapper = document.getElementById('submitWrapper');
+    // ── Status Update AJAX ──────────────────────────────────────────────────
+    const statusSelects = document.querySelectorAll('.status-dropdown');
+    statusSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            const reqId = this.dataset.id;
+            const newStatus = this.value;
+            const url = `{{ url('/access-matrix/approval') }}/${reqId}/status`;
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+            
+            // Update the styling based on the selection
+            let bgColor = '';
+            let textColor = '';
+            if (newStatus === 'Approved') { bgColor = '#e8f5e9'; textColor = '#2e7d32'; }
+            else if (newStatus === 'Need Revision') { bgColor = '#fde8e9'; textColor = '#c0392b'; }
+            else if (newStatus === 'Draft') { bgColor = '#e3f2fd'; textColor = '#0288d1'; }
+            else { bgColor = '#fff3cd'; textColor = '#856404'; }
+            
+            this.style.backgroundColor = bgColor;
+            this.style.color = textColor;
 
-        function formatBytes(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / 1048576).toFixed(1) + ' MB';
-        }
-
-        function showFile(file) {
-            fileNameEl.textContent = file.name;
-            fileSizeEl.textContent = formatBytes(file.size);
-            filePreview.style.display  = 'flex';
-            submitWrapper.style.display = 'block';
-        }
-
-        function clearFile() {
-            fileInput.value = '';
-            filePreview.style.display   = 'none';
-            submitWrapper.style.display = 'none';
-        }
-
-        fileInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) showFile(this.files[0]);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    console.log('Status updated successfully');
+                } else {
+                    alert('Failed to update status.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred while updating status.');
+            });
         });
-
-        removeBtn.addEventListener('click', clearFile);
     });
-
-    // ── Drag-and-drop handler ────────────────────────────────────────────────
-    function handleDrop(e) {
-        e.preventDefault();
-        const card = document.getElementById('uploadCard');
-        card.style.borderColor = 'var(--border)';
-        card.style.background  = '#fafbff';
-        const dt = e.dataTransfer;
-        if (dt.files && dt.files[0]) {
-            const fileInput = document.getElementById('fileInput');
-            // Create a new DataTransfer to set files
-            const transfer = new DataTransfer();
-            transfer.items.add(dt.files[0]);
-            fileInput.files = transfer.files;
-            fileInput.dispatchEvent(new Event('change'));
-        }
-    }
+    });
 </script>
 @endpush
 @endsection
