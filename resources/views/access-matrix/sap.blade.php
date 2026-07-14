@@ -209,6 +209,38 @@
                 @endif
 
                 @if(isset($uamRequest) && $uamRequest)
+                {{-- Progress Tracker --}}
+                <div style="display:flex; align-items:center; justify-content:center; gap:2.5rem; margin-bottom:1.75rem; padding:0.5rem 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1.25rem;">
+                    
+                    {{-- Step 1: Update UAM --}}
+                    <div style="display:flex; align-items:center; gap:0.65rem;">
+                        <div style="width:32px; height:32px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(0, 102, 204, 0.15); transition: all var(--transition);">
+                            <i class="bi bi-pencil-fill" style="font-size:0.8rem;"></i>
+                        </div>
+                        <div style="display:flex; flex-direction:column; line-height:1.2;">
+                            <span style="font-size:0.82rem; font-weight:800; color:var(--primary); letter-spacing:0.2px;">1. Update UAM</span>
+                            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Active Editing</span>
+                        </div>
+                    </div>
+
+                    {{-- Connecting line --}}
+                    <div style="flex:1; max-width:140px; height:3px; background:var(--border); border-radius:2px; position:relative;">
+                        <div style="position:absolute; left:0; top:0; height:100%; width:0%; background:var(--primary); border-radius:2px;"></div>
+                    </div>
+
+                    {{-- Step 2: Review UAM --}}
+                    <div style="display:flex; align-items:center; gap:0.65rem; opacity:0.55;">
+                        <div style="width:32px; height:32px; background:#fff; border:2px solid var(--text-muted); color:var(--text-muted); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700;">
+                            <i class="bi bi-clipboard2-check-fill" style="font-size:0.85rem;"></i>
+                        </div>
+                        <div style="display:flex; flex-direction:column; line-height:1.2;">
+                            <span style="font-size:0.82rem; font-weight:700; color:var(--text-muted); letter-spacing:0.2px;">2. Review UAM</span>
+                            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Upcoming</span>
+                        </div>
+                    </div>
+
+                </div>
+
                 <div style="display:flex;align-items:stretch;gap:.6rem;margin-bottom:1rem;">
                     {{-- Module card — LEFT --}}
                     <div style="flex:1;display:flex;align-items:center;gap:.6rem;padding:.4rem .9rem;background:var(--secondary-light);border:1.5px solid rgba(11,46,109,.13);border-radius:10px;">
@@ -465,6 +497,20 @@
 
             </div>
         </div>
+
+        {{-- Submit Action at the very bottom --}}
+        @if(isset($uamRequest) && $uamRequest && $uamRequest->status === 'Draft')
+            <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
+                <button type="button" class="btn btn-primary" id="submitApprovalBtn"
+                        onclick="alert('Submit request workflow is not yet implemented.')"
+                        style="background:#0066cc;border:none;border-radius:10px;padding:.75rem 2.25rem;font-weight:700;font-size:.88rem;box-shadow:0 4px 14px rgba(0,102,204,.25);letter-spacing:.3px;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:all var(--transition);"
+                        onmouseenter="this.style.background='#0052a3';this.style.transform='translateY(-1px)';"
+                        onmouseleave="this.style.background='#0066cc';this.style.transform='none';">
+                    <i class="bi bi-send-fill" style="font-size:.85rem;"></i>
+                    Submit Request
+                </button>
+            </div>
+        @endif
 
     </main>
 
