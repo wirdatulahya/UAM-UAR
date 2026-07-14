@@ -268,7 +268,7 @@
                             <tr style="cursor:pointer;transition:background var(--transition);"
                                 onmouseenter="this.style.background='var(--secondary-light)'"
                                 onmouseleave="this.style.background=''"
-                                onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id]) }}'">
+                                onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request']) }}'">
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;color:var(--text-muted);">{{ $req->no }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;font-weight:500;">{{ $req->application }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->period }} {{ $req->year }}</td>
@@ -305,7 +305,7 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end" style="border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:var(--border);">
                                             <li>
-                                                <a class="dropdown-item" href="{{ route('access-matrix.sap', ['request_id' => $req->id]) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;">
+                                                <a class="dropdown-item" href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request']) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;">
                                                     <i class="bi bi-eye"></i> View Records
                                                 </a>
                                             </li>

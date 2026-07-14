@@ -156,7 +156,9 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 @php
-                    $isApproval = $uamRequest && !in_array($uamRequest->status, ['Draft']);
+                    // Strict check: Only show Approval features if they came from the Approval Access Matrix (source=approval)
+                    $isApproval = request('source') === 'approval';
+                    
                     $moduleRoute = $isApproval ? route('access-matrix.approval.index') : route('access-matrix.request.index');
                     $moduleName  = $isApproval ? 'Approval Access Matrix' : 'Request Access Matrix';
                     $tableRoute  = $isApproval ? route('access-matrix.approval.sap') : route('access-matrix.request.sap');

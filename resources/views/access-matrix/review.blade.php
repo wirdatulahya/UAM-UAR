@@ -253,7 +253,7 @@
                             <tr style="cursor:pointer;transition:background var(--transition);"
                                 onmouseenter="this.style.background='var(--secondary-light)'"
                                 onmouseleave="this.style.background=''"
-                                onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id]) }}'">
+                                onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'approval']) }}'">
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;color:var(--text-muted);">{{ $req->no }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;font-weight:500;">{{ $req->application }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->period }} {{ $req->year }}</td>
@@ -284,12 +284,11 @@
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;" onclick="event.stopPropagation();">
-                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id]) }}"
-                                       title="Open request"
-                                       style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
-                                       onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';this.style.background='var(--secondary-light)';"
-                                       onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background=''">
-                                        <i class="bi bi-box-arrow-up-right" style="font-size:.72rem;"></i>
+                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'approval']) }}"
+                                       class="btn btn-sm"
+                                       style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;transition:filter var(--transition);"
+                                       onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
+                                       <i class="bi bi-box-arrow-in-up-right me-1"></i> Review
                                     </a>
                                 </td>
                             </tr>
