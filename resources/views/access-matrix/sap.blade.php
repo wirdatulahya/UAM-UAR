@@ -177,8 +177,8 @@
                 </li>
                 <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">
                     Request Details
-                    @if($uamRequest)
-                        &nbsp;<span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.1rem .55rem;font-size:.7rem;font-weight:700;">{{ $uamRequest->batch_name }}</span>
+                    @if($uamRequest && $uamRequest->module)
+                        &nbsp;<span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.1rem .55rem;font-size:.7rem;font-weight:700;">{{ $uamRequest->module }}</span>
                     @endif
                 </li>
             </ol>
@@ -189,8 +189,8 @@
             <div>
                 <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
                     <i class="bi bi-pc-display-horizontal me-2" style="color:var(--primary);"></i>UAM SAP Module
-                    @if($uamRequest)
-                        <span style="font-size:.75rem;font-weight:600;background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .65rem;vertical-align:middle;margin-left:.5rem;">{{ $uamRequest->batch_name }}</span>
+                    @if($uamRequest && $uamRequest->module)
+                        <span style="font-size:.75rem;font-weight:600;background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .65rem;vertical-align:middle;margin-left:.5rem;">{{ $uamRequest->module }}</span>
                     @endif
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
