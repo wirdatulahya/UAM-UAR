@@ -209,24 +209,10 @@
 
 
                     {{-- Dynamic stats --}}
-                    <div class="row g-2 mb-3">
-                        <div class="col-4">
-                            <div style="background:var(--bg); border: 1px solid var(--border); padding:.45rem; border-radius:10px; text-align:center;">
-                                <div style="font-size:1.1rem; font-weight:800; color:var(--secondary);">{{ number_format($totalRecords) }}</div>
-                                <div style="font-size:.6rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing: 0.2px;">Records</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div style="background:var(--bg); border: 1px solid var(--border); padding:.45rem; border-radius:10px; text-align:center;">
-                                <div style="font-size:1.1rem; font-weight:800; color:var(--secondary);">{{ number_format($totalRoles) }}</div>
-                                <div style="font-size:.6rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing: 0.2px;">Roles</div>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div style="background:var(--bg); border: 1px solid var(--border); padding:.45rem; border-radius:10px; text-align:center;">
-                                <div style="font-size:1.1rem; font-weight:800; color:var(--secondary);">{{ number_format($totalTcodes) }}</div>
-                                <div style="font-size:.6rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing: 0.2px;">TCODEs</div>
-                            </div>
+                    <div class="mb-3">
+                        <div style="background:var(--bg); border: 1px solid var(--border); padding:.6rem 1rem; border-radius:10px; text-align:center;">
+                            <div style="font-size:1.3rem; font-weight:800; color:var(--secondary);">{{ number_format($totalRecords) }}</div>
+                            <div style="font-size:.65rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing: 0.5px;">Total Records</div>
                         </div>
                     </div>
 
