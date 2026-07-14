@@ -268,27 +268,28 @@
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
                                 </td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;" onclick="event.stopPropagation();">
+                                <td style="padding:.9rem 1.25rem;vertical-align:middle;" onclick="event.stopPropagation();">
                                     @php
-                                        $badge = match($req->status) {
-                                            'Approved'     => ['bg' => '#e8f5e9', 'color' => '#2e7d32',  'icon' => 'bi-check-circle-fill',   'label' => 'Approved'],
-                                            'Need Revision'=> ['bg' => '#fde8e9', 'color' => '#c0392b',  'icon' => 'bi-arrow-counterclockwise','label' => 'Need Revision'],
-                                            'Draft'        => ['bg' => '#e3f2fd', 'color' => '#0288d1',  'icon' => 'bi-pencil-fill',          'label' => 'Draft'],
-                                            default        => ['bg' => '#fff3cd', 'color' => '#856404',  'icon' => 'bi-hourglass-split',      'label' => 'Under Review'],
+                                        $si = match($req->status) {
+                                            'Draft'         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle-half',           'label' => 'Draft'],
+                                            'Review'        => ['dot' => '#f59e0b', 'color' => '#92400e', 'icon' => 'bi-circle-fill',           'label' => 'Under Review'],
+                                            'Approved','Done'=> ['dot' => '#22c55e', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',    'label' => 'Approved'],
+                                            'Need Revision' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Need Revision'],
+                                            default         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle',               'label' => $req->status],
                                         };
                                     @endphp
-                                    <span style="display:inline-flex;align-items:center;gap:.35rem;background:{{ $badge['bg'] }};color:{{ $badge['color'] }};border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;white-space:nowrap;">
-                                        <i class="bi {{ $badge['icon'] }}" style="font-size:.7rem;"></i>
-                                        {{ $badge['label'] }}
+                                    <span style="display:inline-flex;align-items:center;gap:.45rem;">
+                                        <i class="bi {{ $si['icon'] }}" style="font-size:1rem;color:{{ $si['dot'] }};"></i>
+                                        <span style="font-size:.8rem;font-weight:600;color:{{ $si['color'] }};">{{ $si['label'] }}</span>
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;" onclick="event.stopPropagation();">
                                     <a href="{{ route('access-matrix.sap', ['request_id' => $req->id]) }}"
-                                       class="btn btn-sm d-inline-flex align-items-center gap-1"
-                                       style="background:var(--secondary-light);color:var(--secondary);border:none;border-radius:6px;font-weight:600;font-size:.75rem;padding:.3rem .6rem;transition:all var(--transition);text-decoration:none;"
-                                       onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
-                                       onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
-                                        <i class="bi bi-eye-fill"></i> Review
+                                       title="Open request"
+                                       style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
+                                       onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';this.style.background='var(--secondary-light)';"
+                                       onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background=''">
+                                        <i class="bi bi-box-arrow-up-right" style="font-size:.72rem;"></i>
                                     </a>
                                 </td>
                             </tr>

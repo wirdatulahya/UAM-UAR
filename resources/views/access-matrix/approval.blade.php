@@ -284,26 +284,20 @@
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
                                 </td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                     @if($req->status == 'Draft')
-                                         <span class="badge" style="background:#e3f2fd;color:#0288d1;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-pencil-fill" style="font-size:.7rem;"></i> Draft
-                                         </span>
-                                     @elseif($req->status == 'Review')
-                                         <span class="badge" style="background:#fff3cd;color:#856404;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-hourglass-split" style="font-size:.7rem;"></i> Under Review
-                                         </span>
-                                     @elseif($req->status == 'Done' || $req->status == 'Approved')
-                                         <span class="badge" style="background:#e8f5e9;color:#2e7d32;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i> Approved
-                                         </span>
-                                     @elseif($req->status == 'Need Revision')
-                                         <span class="badge" style="background:#fde8e9;color:#c0392b;padding:.35rem .65rem;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:.3rem;">
-                                             <i class="bi bi-exclamation-circle-fill" style="font-size:.7rem;"></i> Need Revision
-                                         </span>
-                                     @else
-                                         <span class="badge bg-secondary" style="padding:.35rem .65rem;border-radius:20px;font-weight:600;">{{ $req->status }}</span>
-                                     @endif
+                                <td style="padding:.9rem 1.25rem;vertical-align:middle;">
+                                    @php
+                                        $si = match($req->status) {
+                                            'Draft'         => ['dot' => '#9ca3af', 'bg' => '#f3f4f6', 'color' => '#6b7280', 'icon' => 'bi-circle-half',          'label' => 'Draft'],
+                                            'Review'        => ['dot' => '#f59e0b', 'bg' => '#fffbeb', 'color' => '#92400e', 'icon' => 'bi-circle-fill',          'label' => 'Under Review'],
+                                            'Approved','Done'=> ['dot' => '#22c55e', 'bg' => '#f0fdf4', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',   'label' => 'Approved'],
+                                            'Need Revision' => ['dot' => '#ef4444', 'bg' => '#fff5f5', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Need Revision'],
+                                            default         => ['dot' => '#9ca3af', 'bg' => '#f9fafb', 'color' => '#6b7280', 'icon' => 'bi-circle',              'label' => $req->status],
+                                        };
+                                    @endphp
+                                    <span style="display:inline-flex;align-items:center;gap:.45rem;">
+                                        <i class="bi {{ $si['icon'] }}" style="font-size:1rem;color:{{ $si['dot'] }};"></i>
+                                        <span style="font-size:.8rem;font-weight:600;color:{{ $si['color'] }};">{{ $si['label'] }}</span>
+                                    </span>
                                 </td>
                                 <td style="padding:.85rem 1.25rem;vertical-align:middle;max-width:240px;">
                                     @if($req->status === 'Need Revision' && !empty($req->approver_comment))
