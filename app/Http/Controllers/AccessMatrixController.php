@@ -832,10 +832,61 @@ class AccessMatrixController extends Controller
         }
 
         return response()->json([
-            'role'      => $role,
-            'tcode'     => $tcode,
-            'hierarchy' => $hierarchy,
-            'units'     => array_column($hierarchy, 'unit'),
+            'role'       => $role,
+            'tcode'      => $tcode,
+            'hierarchy'  => $hierarchy,
+            'units'      => array_column($hierarchy, 'unit'),
+            'record_ids' => $records->pluck('id')->values()->toArray(),
         ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UPDATE OWNERS (AJAX) — Add / remove owners in matrix_data for a BPO slot
+    // ─────────────────────────────────────────────────────────────────────────
+    public function updateOwners(Request $request)
+    {
+        $request->validate([
+            'role'       => ['required', 'string'],
+            'tcode'      => ['nullable', 'string'],
+            'unit'       => ['required', 'string'],
+            'bpo'        => ['required', 'string'],
+            'owners'     => ['present', 'array'],
+            'owners.*'   => ['string'],
+            'record_ids' => ['nullable', 'array'],
+            'record_ids.*' => ['integer'],
+        ]);
+
+        $role      = trim($request->input('role'));
+        $tcode     = trim($request->input('tcode', ''));
+        $unit      = trim($request->input('unit'));
+        $bpo       = trim($request->input('bpo'));
+        $owners    = array_values(array_filter(array_map('trim', $request->input('owners', []))));
+        $recordIds = $request->input('record_ids', []);
+
+        // Build query
+        $query = UamRecord::where('role', $role);
+        if ($tcode !== '') $query->where('tcode', $tcode);
+        if (!empty($recordIds)) $query->whereIn('id', $recordIds);
+
+        $records = $query->get();
+
+        if ($records->isEmpty()) {
+            return response()->json(['error' => 'No matching records found.'], 404);
+        }
+
+        foreach ($records as $rec) {
+            $matrix = $rec->matrix_data;
+            if (!is_array($matrix)) {
+                $matrix = [];
+            }
+            // Ensure the unit/bpo path exists
+            if (!isset($matrix[$unit])) $matrix[$unit] = [];
+            // Replace the owners list for this unit→bpo
+            $matrix[$unit][$bpo] = $owners;
+            $rec->matrix_data = $matrix;
+            $rec->save();
+        }
+
+        return response()->json(['success' => true, 'updated' => $records->count()]);
     }
 }

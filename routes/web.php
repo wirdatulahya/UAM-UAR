@@ -64,6 +64,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/role-details', [AccessMatrixController::class, 'roleDetails'])
             ->name('access-matrix.role-details');
 
+        Route::post('/update-owners', [AccessMatrixController::class, 'updateOwners'])
+            ->name('access-matrix.update-owners');
+
         Route::delete('/clear', [AccessMatrixController::class, 'clear'])
             ->name('access-matrix.clear');
 

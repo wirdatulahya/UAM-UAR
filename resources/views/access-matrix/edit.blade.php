@@ -219,7 +219,20 @@
                                 @enderror
                             </div>
 
-                            {{-- UNI --}}
+                        <div class="row g-3 mb-3">
+                            {{-- BPO — LEFT --}}
+                            <div class="col-12 col-sm-6">
+                                <label for="bpo" class="form-label">BPO</label>
+                                <input type="text" id="bpo" name="bpo"
+                                       class="form-control @error('bpo') is-invalid @enderror"
+                                       value="{{ old('bpo', $uamRecord->bpo) }}"
+                                       placeholder="Business Process Owner">
+                                @error('bpo')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- UNIT — RIGHT --}}
                             <div class="col-12 col-sm-6">
                                 <label for="unit" class="form-label">UNIT</label>
                                 <input type="text" id="unit" name="unit"
@@ -231,19 +244,6 @@
                                 @enderror
                             </div>
                         </div>
-
-                        <div class="row g-3 mb-4">
-                            {{-- BPO --}}
-                            <div class="col-12 col-sm-6">
-                                <label for="bpo" class="form-label">BPO</label>
-                                <input type="text" id="bpo" name="bpo"
-                                       class="form-control @error('bpo') is-invalid @enderror"
-                                       value="{{ old('bpo', $uamRecord->bpo) }}"
-                                       placeholder="Business Process Owner">
-                                @error('bpo')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
 
                             {{-- Access Owner --}}
                             <div class="col-12 col-sm-6">

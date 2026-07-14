@@ -508,24 +508,10 @@
                 {{-- Content --}}
                 <div id="modalContentWrapper" style="display:none;">
 
-                    {{-- ── Cascading selects: UNIT → BPO ── --}}
+                    {{-- ── Cascading selects: BPO → UNIT ── --}}
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
 
-                        {{-- UNIT dropdown --}}
-                        <div>
-                            <label for="modalUnitSelect"
-                                style="display:block;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem;">Unit</label>
-                            <div style="position:relative;">
-                                <select id="modalUnitSelect"
-                                    style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
-                                    onfocus="this.style.borderColor='var(--secondary)'"
-                                    onblur="this.style.borderColor='var(--border)'">
-                                </select>
-                                <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
-                            </div>
-                        </div>
-
-                        {{-- BPO dropdown --}}
+                        {{-- BPO dropdown — LEFT (primary selection) --}}
                         <div>
                             <label for="modalBpoSelect"
                                 style="display:block;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem;">BPO</label>
@@ -538,6 +524,17 @@
                                 <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
                             </div>
                         </div>
+
+                        {{-- UNIT — RIGHT (auto-filled based on BPO) --}}
+                        <div>
+                            <label for="modalUnitSelect"
+                                style="display:block;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem;">Unit <span style="font-size:.6rem;color:var(--text-muted);font-weight:500;text-transform:none;">(auto)</span></label>
+                            <div id="modalUnitDisplay"
+                                style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--text-muted);background:#f8f9fa;min-height:38px;display:flex;align-items:center;">
+                                <span style="color:var(--text-muted);font-size:.82rem;">— select BPO first —</span>
+                            </div>
+                            <input type="hidden" id="modalUnitSelect">
+                        </div>
                     </div>
 
                     {{-- Access Owners panel --}}
@@ -547,10 +544,38 @@
                                 <i class="bi bi-people-fill" style="color:#166534;font-size:.9rem;"></i>
                                 <span style="font-size:.72rem;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;">User Access Matrix</span>
                             </div>
-                            <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
+                            <div style="display:flex;align-items:center;gap:.5rem;">
+                                <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
+                                {{-- Edit toggle --}}
+                                <button id="editOwnersBtn" type="button" onclick="toggleEditOwners()"
+                                    style="font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;border:1.5px solid #166534;background:#fff;color:#166534;cursor:pointer;transition:all .15s;">
+                                    <i class="bi bi-pencil-fill me-1"></i>Edit
+                                </button>
+                            </div>
                         </div>
                         <div id="modalOwnerScroll" style="max-height:260px;overflow-y:auto;padding:1rem;">
                             <div id="modalOwner" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.55rem;"></div>
+                        </div>
+                        {{-- Add owner row (shown in edit mode) --}}
+                        <div id="addOwnerRow" style="display:none;padding:.65rem 1rem;border-top:1px solid #bbf7d0;background:#f8fffe;">
+                            <div style="display:flex;gap:.5rem;align-items:center;">
+                                <input id="newOwnerInput" type="text" placeholder="Type owner name and press Add…"
+                                    style="flex:1;padding:.4rem .75rem;border:1.5px solid #bbf7d0;border-radius:8px;font-size:.82rem;outline:none;"
+                                    onkeydown="if(event.key==='Enter'){event.preventDefault();addOwner();}">
+                                <button type="button" onclick="addOwner()"
+                                    style="padding:.4rem .9rem;background:#166534;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+                                    <i class="bi bi-plus-lg me-1"></i>Add
+                                </button>
+                            </div>
+                        </div>
+                        {{-- Save / Cancel row (shown in edit mode) --}}
+                        <div id="saveOwnerRow" style="display:none;padding:.6rem 1rem;border-top:1px solid #bbf7d0;background:#f0fdf4;display:none;justify-content:flex-end;gap:.5rem;">
+                            <button type="button" onclick="cancelEditOwners()"
+                                style="padding:.35rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:600;color:var(--text-muted);background:#fff;cursor:pointer;">Cancel</button>
+                            <button type="button" onclick="saveOwners()"
+                                style="padding:.35rem 1rem;background:#166534;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;">
+                                <i class="bi bi-check-lg me-1"></i>Save
+                            </button>
                         </div>
                     </div>
 
@@ -624,7 +649,12 @@
     const ownerCountEl    = document.getElementById('modalOwnerCount');
 
     // Hierarchy cache for the currently open modal
-    let _hierarchy = [];   // [{unit, bpos:[{bpo, owners:[]}]}]
+    let _hierarchy      = [];   // [{unit, bpos:[{bpo, owners:[]}]}]
+    let _currentOwners  = [];   // owners currently shown (mutable in edit mode)
+    let _editMode       = false;
+    let _currentRecordIds = [];  // DB record IDs for saving
+    let _currentRole    = '';
+    let _currentTcode   = '';
 
     // ── Helpers ────────────────────────────────────────────────────
     function setSelectOptions(sel, options, placeholder) {
@@ -648,41 +678,128 @@
     }
 
     function renderOwners(owners) {
+        _currentOwners = [...owners];
         ownerCountEl.textContent = owners.length;
         if (owners.length > 0) {
-            ownerEl.innerHTML = owners.map(o =>
+            ownerEl.innerHTML = owners.map((o, idx) =>
                 `<div style="display:flex;align-items:center;gap:.4rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:.45rem .75rem;min-width:0;">
                     <i class="bi bi-person-check-fill" style="color:#166534;font-size:.8rem;flex-shrink:0;"></i>
-                    <span style="font-size:.78rem;font-weight:600;color:#166534;line-height:1.3;word-break:break-word;">${o}</span>
+                    <span style="flex:1;font-size:.78rem;font-weight:600;color:#166534;line-height:1.3;word-break:break-word;">${o}</span>
+                    ${_editMode ? `<button type="button" onclick="deleteOwner(${idx})" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:.85rem;padding:0;flex-shrink:0;line-height:1;" title="Remove"><i class="bi bi-x-circle-fill"></i></button>` : ''}
                  </div>`
             ).join('');
         } else {
-            ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">Select a Unit and BPO to see User Access Matrix</span>';
+            ownerEl.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">Select a BPO to see User Access Matrix</span>';
         }
         document.getElementById('modalOwnerScroll').scrollTop = 0;
     }
 
-    function getOwnersForSelection() {
-        const unitVal = unitSelect.value;
-        const bpoVal  = bpoSelect.value;
-        if (!unitVal || !bpoVal) { renderOwners([]); return; }
-
-        const unitNode = _hierarchy.find(u => u.unit === unitVal);
-        if (!unitNode) { renderOwners([]); return; }
-
-        const bpoNode = unitNode.bpos.find(b => b.bpo === bpoVal);
-        renderOwners(bpoNode ? bpoNode.owners : []);
+    // ── Edit mode helpers ───────────────────────────────────────────
+    function toggleEditOwners() {
+        _editMode = true;
+        document.getElementById('editOwnersBtn').style.display = 'none';
+        document.getElementById('addOwnerRow').style.display = 'block';
+        document.getElementById('saveOwnerRow').style.display = 'flex';
+        renderOwners(_currentOwners);
     }
 
-    // ── UNIT change → repopulate BPO → refresh owners ──────────────
-    unitSelect.addEventListener('change', function () {
-        const unitNode = _hierarchy.find(u => u.unit === this.value);
-        const bpos = unitNode ? unitNode.bpos.map(b => b.bpo) : [];
-        setSelectOptions(bpoSelect, bpos, bpos.length > 1 ? '— Select BPO —' : null);
+    function cancelEditOwners() {
+        _editMode = false;
+        document.getElementById('editOwnersBtn').style.display = '';
+        document.getElementById('addOwnerRow').style.display = 'none';
+        document.getElementById('saveOwnerRow').style.display = 'none';
+        // Re-fetch fresh from hierarchy
         getOwnersForSelection();
-    });
+    }
 
-    // ── BPO change → refresh owners ────────────────────────────────
+    function deleteOwner(idx) {
+        _currentOwners.splice(idx, 1);
+        renderOwners(_currentOwners);
+    }
+
+    function addOwner() {
+        const input = document.getElementById('newOwnerInput');
+        const val = input.value.trim();
+        if (!val) return;
+        if (_currentOwners.includes(val)) { input.value = ''; return; }
+        _currentOwners.push(val);
+        input.value = '';
+        renderOwners(_currentOwners);
+    }
+
+    async function saveOwners() {
+        const bpoVal  = bpoSelect.value;
+        const unitVal = unitSelect.value;
+        if (!bpoVal) { alert('Please select a BPO first.'); return; }
+
+        const saveBtn = document.querySelector('#saveOwnerRow button:last-child');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+
+        try {
+            const res = await fetch('/access-matrix/sap/update-owners', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                },
+                body: JSON.stringify({
+                    role:    _currentRole,
+                    tcode:   _currentTcode,
+                    unit:    unitVal,
+                    bpo:     bpoVal,
+                    owners:  _currentOwners,
+                    record_ids: _currentRecordIds,
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                // Update local hierarchy so UI stays in sync
+                for (const unitNode of _hierarchy) {
+                    const bpoNode = unitNode.bpos.find(b => b.bpo === bpoVal);
+                    if (bpoNode) { bpoNode.owners = [..._currentOwners]; break; }
+                }
+                cancelEditOwners();
+            } else {
+                alert('Save failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Network error while saving.');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save';
+        }
+    }
+
+    function setUnitDisplay(unitVal) {
+        const unitDisplay = document.getElementById('modalUnitDisplay');
+        if (unitVal) {
+            unitDisplay.innerHTML = `<span style="color:var(--secondary);font-weight:700;">${unitVal}</span>`;
+            unitDisplay.style.borderColor = 'var(--secondary)';
+        } else {
+            unitDisplay.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">— select BPO first —</span>';
+            unitDisplay.style.borderColor = 'var(--border)';
+        }
+    }
+
+    function getOwnersForSelection() {
+        const bpoVal = bpoSelect.value;
+        if (!bpoVal) { setUnitDisplay(''); renderOwners([]); return; }
+
+        // Find the unit that contains this BPO
+        let foundUnit = null;
+        let foundBpoNode = null;
+        for (const unitNode of _hierarchy) {
+            const bpoNode = unitNode.bpos.find(b => b.bpo === bpoVal);
+            if (bpoNode) { foundUnit = unitNode.unit; foundBpoNode = bpoNode; break; }
+        }
+
+        setUnitDisplay(foundUnit || '');
+        unitSelect.value = foundUnit || '';
+        renderOwners(foundBpoNode ? foundBpoNode.owners : []);
+    }
+
+    // ── BPO change → auto-fill Unit → refresh owners ───────────────
     bpoSelect.addEventListener('change', getOwnersForSelection);
 
     // ── Open modal ─────────────────────────────────────────────────
@@ -703,10 +820,19 @@
         document.getElementById('modalLoading').style.display        = 'block';
         document.getElementById('modalContentWrapper').style.display = 'none';
 
+        // Reset edit mode & state
+        _editMode = false;
+        _currentRole  = role;
+        _currentTcode = tcode;
+        _currentRecordIds = [];
+        document.getElementById('editOwnersBtn').style.display = '';
+        document.getElementById('addOwnerRow').style.display   = 'none';
+        document.getElementById('saveOwnerRow').style.display  = 'none';
+
         // Reset dropdowns & owners while loading
         _hierarchy = [];
-        setSelectOptions(unitSelect, [], null);
-        setSelectOptions(bpoSelect,  [], null);
+        setSelectOptions(bpoSelect, [], null);
+        setUnitDisplay('');
         renderOwners([]);
 
         try {
@@ -718,30 +844,25 @@
             const data = await res.json();
 
             if (res.ok) {
-                _hierarchy = data.hierarchy || [];
+                _hierarchy        = data.hierarchy || [];
+                _currentRecordIds = data.record_ids || [];
 
-                // ── Populate UNIT dropdown ──────────────────────────
-                const units = _hierarchy.map(u => u.unit);
-                const hasMultipleUnits = units.length > 1;
-                setSelectOptions(unitSelect, units, hasMultipleUnits ? '— Select Unit —' : null);
+                // ── Collect ALL unique BPOs across all units ─────────
+                const allBpos = [];
+                _hierarchy.forEach(unitNode => {
+                    unitNode.bpos.forEach(b => {
+                        if (!allBpos.includes(b.bpo)) allBpos.push(b.bpo);
+                    });
+                });
 
-                // ── Populate BPO dropdown based on units length ─────
-                if (hasMultipleUnits) {
-                    setSelectOptions(bpoSelect, [], '— Select BPO —');
-                    renderOwners([]);
-                } else if (_hierarchy.length > 0) {
-                    const firstUnit = _hierarchy[0];
-                    const bpos = firstUnit.bpos.map(b => b.bpo);
-                    const hasMultipleBpos = bpos.length > 1;
-                    setSelectOptions(bpoSelect, bpos, hasMultipleBpos ? '— Select BPO —' : null);
-                    
-                    if (hasMultipleBpos) {
-                        renderOwners([]);
-                    } else {
-                        getOwnersForSelection();
-                    }
+                const hasMultipleBpos = allBpos.length > 1;
+                setSelectOptions(bpoSelect, allBpos, hasMultipleBpos ? '— Select BPO —' : null);
+
+                if (!hasMultipleBpos && allBpos.length === 1) {
+                    // Only one BPO — auto-select and fill Unit
+                    getOwnersForSelection();
                 } else {
-                    setSelectOptions(bpoSelect, [], '— Select BPO —');
+                    setUnitDisplay('');
                     renderOwners([]);
                 }
 
