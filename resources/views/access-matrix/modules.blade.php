@@ -56,10 +56,6 @@
         <div class="d-flex align-items-center justify-content-between">
 
             <div class="d-flex align-items-center gap-2">
-                {{-- Generic Back Button --}}
-                <button type="button" onclick="window.history.back();" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0;font-size:1.4rem;display:flex;align-items:center;transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'" title="Go Back">
-                    <i class="bi bi-arrow-left-circle"></i>
-                </button>
 
                 {{-- Brand --}}
             <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
