@@ -198,7 +198,6 @@
                                     <option value="Q1" {{ old('period', $uamRecord->period) == 'Q1' ? 'selected' : '' }}>Q1 (First Period)</option>
                                     <option value="Q2" {{ old('period', $uamRecord->period) == 'Q2' ? 'selected' : '' }}>Q2 (Second Period)</option>
                                     <option value="Q3" {{ old('period', $uamRecord->period) == 'Q3' ? 'selected' : '' }}>Q3 (Third Period)</option>
-                                    <option value="Q4" {{ old('period', $uamRecord->period) == 'Q4' ? 'selected' : '' }}>Q4 (Fourth Period)</option>
                                 </select>
                                 @error('period')
                                     <div class="invalid-feedback">{{ $message }}</div>

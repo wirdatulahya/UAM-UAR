@@ -342,7 +342,7 @@
                                         @if($roleRecords->count() > 0)
                                             <select class="form-select tcode-selector" 
                                                     data-row-id="{{ $rowId }}"
-                                                    style="padding:.2rem 1.6rem .2rem .5rem;font-size:.75rem;font-weight:600;font-family:monospace;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1d4ed8;cursor:pointer;min-width:100px;">
+                                                    style="padding:.2rem 1.6rem .2rem .5rem;font-size:.75rem;font-weight:600;font-family:monospace;border:1px solid #bfdbfe;border-radius:6px;background-color:#eff6ff;color:#1d4ed8;cursor:pointer;min-width:100px;">
                                                 @foreach($roleRecords as $rec)
                                                     <option value="{{ $rec->tcode }}" 
                                                             data-id="{{ $rec->id }}"
@@ -358,6 +358,7 @@
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
                                         <button type="button" class="view-access-btn-{{ $rowId }}" onclick="openAccessModal(this)"
+                                            data-row-id="{{ $rowId }}"
                                             data-role="{{ htmlspecialchars($roleData->role ?? '—') }}"
                                             data-tcode="{{ htmlspecialchars($firstRec->tcode ?? '') }}"
                                             data-request-id="{{ $requestId ?? '' }}"
@@ -611,111 +612,6 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging out…';
     });
 
-    // ── Import Panel Toggle ────────────────────────────────────────────
-    const toggleUploadBtn    = document.getElementById('toggleUploadBtn');
-    const uploadCardCollapse = document.getElementById('uploadCardCollapse');
-
-    function openUploadPanel() {
-        uploadCardCollapse.style.display = 'block';
-        uploadCardCollapse.dataset.open  = '1';
-        toggleUploadBtn.style.background    = 'var(--secondary-light)';
-        toggleUploadBtn.style.borderColor   = 'var(--secondary)';
-        toggleUploadBtn.style.color         = 'var(--secondary)';
-    }
-
-    function closeUploadPanel() {
-        uploadCardCollapse.style.display = 'none';
-        delete uploadCardCollapse.dataset.open;
-        toggleUploadBtn.style.background  = 'none';
-        toggleUploadBtn.style.borderColor = 'var(--border)';
-        toggleUploadBtn.style.color       = 'var(--text-muted)';
-    }
-
-    @if ($errors->any())
-        openUploadPanel();
-    @endif
-
-    toggleUploadBtn.addEventListener('click', function () {
-        if (uploadCardCollapse.dataset.open) {
-            closeUploadPanel();
-        } else {
-            openUploadPanel();
-        }
-    });
-
-    // ── File Input & Drag-Drop ─────────────────────────────────────────
-    const fileInput     = document.getElementById('fileInput');
-    const filePreview   = document.getElementById('filePreview');
-    const fileNameEl    = document.getElementById('fileName');
-    const fileSizeEl    = document.getElementById('fileSize');
-    const submitWrapper = document.getElementById('submitWrapper');
-    const removeBtn     = document.getElementById('removeFile');
-    const uploadCard    = document.getElementById('uploadCard');
-    const dropZone      = document.getElementById('dropZone');
-
-    function formatSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-    }
-
-    function showFile(file) {
-        fileNameEl.textContent      = file.name;
-        fileSizeEl.textContent      = formatSize(file.size);
-        filePreview.style.display   = 'flex';
-        submitWrapper.style.display = 'block';
-        dropZone.style.opacity      = '0.5';
-    }
-
-    function clearFile() {
-        fileInput.value             = '';
-        filePreview.style.display   = 'none';
-        submitWrapper.style.display = 'none';
-        dropZone.style.opacity      = '1';
-    }
-
-    fileInput.addEventListener('change', function () {
-        if (this.files[0]) showFile(this.files[0]);
-    });
-
-    removeBtn.addEventListener('click', clearFile);
-
-    ['dragenter', 'dragover'].forEach(evt => {
-        uploadCard.addEventListener(evt, e => {
-            e.preventDefault();
-            uploadCard.classList.add('dragover');
-        });
-    });
-
-    ['dragleave', 'drop'].forEach(evt => {
-        uploadCard.addEventListener(evt, e => {
-            e.preventDefault();
-            uploadCard.classList.remove('dragover');
-        });
-    });
-
-    uploadCard.addEventListener('drop', function (e) {
-        const file    = e.dataTransfer.files[0];
-        if (!file) return;
-        const allowed = ['xlsx', 'xls', 'csv'];
-        const ext     = file.name.split('.').pop().toLowerCase();
-        if (!allowed.includes(ext)) {
-            alert('Only .xlsx, .xls, and .csv files are accepted.');
-            return;
-        }
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInput.files = dt.files;
-        showFile(file);
-        openUploadPanel();
-    });
-
-    document.getElementById('importForm').addEventListener('submit', function () {
-        const btn = document.getElementById('submitBtn');
-        btn.disabled  = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Importing…';
-    });
-
     // Auto-focus search input
     const si = document.getElementById('searchInput');
     if (si && !si.value) si.focus();
@@ -792,11 +688,16 @@
     // ── Open modal ─────────────────────────────────────────────────
     async function openAccessModal(btn) {
         const role  = btn.dataset.role;
-        const tcode = btn.dataset.tcode || '';
+        const rowId = btn.dataset.rowId;
+        const selectEl = document.querySelector(`.tcode-selector[data-row-id="${rowId}"]`);
+        const tcode = selectEl ? selectEl.value : (btn.dataset.tcode || '');
         const requestId = btn.dataset.requestId || '';
 
         document.getElementById('modalRole').textContent        = role;
         document.getElementById('modalTcodeHeader').textContent = tcode || '—';
+        if (document.getElementById('modalTcodeBadge')) {
+            document.getElementById('modalTcodeBadge').textContent = tcode || '—';
+        }
 
         accessModal.style.display = 'flex';
         document.getElementById('modalLoading').style.display        = 'block';
@@ -809,7 +710,7 @@
         renderOwners([]);
 
         try {
-            let url = `/access-matrix/sap/role-details?role=${encodeURIComponent(role)}&tcode=${encodeURIComponent(tcode)}`;
+            let url = `/access-matrix/sap/role-details?role=${encodeURIComponent(role)}&tcode=${encodeURIComponent(tcode)}&_=${Date.now()}`;
             if (requestId) {
                 url += `&request_id=${encodeURIComponent(requestId)}`;
             }
@@ -821,15 +722,28 @@
 
                 // ── Populate UNIT dropdown ──────────────────────────
                 const units = _hierarchy.map(u => u.unit);
-                setSelectOptions(unitSelect, units, units.length > 1 ? '— Select Unit —' : null);
+                const hasMultipleUnits = units.length > 1;
+                setSelectOptions(unitSelect, units, hasMultipleUnits ? '— Select Unit —' : null);
 
-                // ── Populate BPO dropdown for selected unit ─────────
-                const firstUnit = _hierarchy[0];
-                const bpos = firstUnit ? firstUnit.bpos.map(b => b.bpo) : [];
-                setSelectOptions(bpoSelect, bpos, bpos.length > 1 ? '— Select BPO —' : null);
-
-                // ── Auto-render owners if both are auto-selected ────
-                getOwnersForSelection();
+                // ── Populate BPO dropdown based on units length ─────
+                if (hasMultipleUnits) {
+                    setSelectOptions(bpoSelect, [], '— Select BPO —');
+                    renderOwners([]);
+                } else if (_hierarchy.length > 0) {
+                    const firstUnit = _hierarchy[0];
+                    const bpos = firstUnit.bpos.map(b => b.bpo);
+                    const hasMultipleBpos = bpos.length > 1;
+                    setSelectOptions(bpoSelect, bpos, hasMultipleBpos ? '— Select BPO —' : null);
+                    
+                    if (hasMultipleBpos) {
+                        renderOwners([]);
+                    } else {
+                        getOwnersForSelection();
+                    }
+                } else {
+                    setSelectOptions(bpoSelect, [], '— Select BPO —');
+                    renderOwners([]);
+                }
 
                 document.getElementById('modalLoading').style.display        = 'none';
                 document.getElementById('modalContentWrapper').style.display = 'block';
@@ -869,11 +783,13 @@
         select.addEventListener('change', function() {
             const rowId = this.dataset.rowId;
             const selectedOption = this.options[this.selectedIndex];
+            if (!selectedOption) return;
             
             // Update View Access button
             const viewBtn = document.querySelector(`.view-access-btn-${rowId}`);
             if (viewBtn) {
                 viewBtn.dataset.tcode = selectedOption.value;
+                viewBtn.setAttribute('data-tcode', selectedOption.value);
             }
             
             // Update Edit button

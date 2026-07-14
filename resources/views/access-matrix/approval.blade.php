@@ -359,7 +359,6 @@
                                 <option value="Q1">Q1 (First Period)</option>
                                 <option value="Q2">Q2 (Second Period)</option>
                                 <option value="Q3">Q3 (Third Period)</option>
-                                <option value="Q4">Q4 (Fourth Period)</option>
                             </select>
                         </div>
                     </div>
