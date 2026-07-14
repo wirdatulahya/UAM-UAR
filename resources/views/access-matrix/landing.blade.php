@@ -208,13 +208,7 @@
                     </div>
 
 
-                    {{-- Dynamic stats --}}
-                    <div class="mb-3">
-                        <div style="background:var(--bg); border: 1px solid var(--border); padding:.6rem 1rem; border-radius:10px; text-align:center;">
-                            <div style="font-size:1.3rem; font-weight:800; color:var(--secondary);">{{ number_format($totalRecords) }}</div>
-                            <div style="font-size:.65rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing: 0.5px;">Total Records</div>
-                        </div>
-                    </div>
+
 
                     <div class="d-flex align-items-center justify-content-between pt-3" style="border-top:1px solid var(--border); margin-top:auto;">
                         <span style="font-size:.7rem;color:var(--text-muted);">
