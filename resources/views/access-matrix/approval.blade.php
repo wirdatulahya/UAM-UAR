@@ -295,7 +295,7 @@
                                         };
                                     @endphp
                                     <span style="display:inline-flex;align-items:center;gap:.45rem;">
-                                        <i class="bi {{ $si['icon'] }}" style="font-size:1rem;color:{{ $si['dot'] }};"></i>
+                                        <span style="width:8px;height:8px;border-radius:50%;background:{{ $si['dot'] }};flex-shrink:0;box-shadow:0 0 0 2px {{ $si['dot'] }}22;"></span>
                                         <span style="font-size:.8rem;font-weight:600;color:{{ $si['color'] }};">{{ $si['label'] }}</span>
                                     </span>
                                 </td>
