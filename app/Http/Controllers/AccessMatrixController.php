@@ -160,7 +160,7 @@ class AccessMatrixController extends Controller
         $request->validate([
             'application' => ['required', 'string', 'max:255'],
             'year'        => ['required', 'integer', 'min:2026', 'max:9999'],
-            'period'      => ['required', 'string', 'max:255'],
+            'period'      => ['required', 'string', 'in:Q1,Q2,Q3,Q4'],
             'file'        => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ], [
             'file.required' => 'Please select a file to upload.',
@@ -571,7 +571,7 @@ class AccessMatrixController extends Controller
                 'access_owner'     => null,
                 'matrix_data'      => empty($matrixData) ? null : json_encode($matrixData),
                 'module'           => $module,
-                'period'           => $period . ' ' . $year,
+                'period'           => $period,
                 'imported_by'      => $userId,
                 'created_at'       => $now,
                 'updated_at'       => $now,
@@ -664,7 +664,7 @@ class AccessMatrixController extends Controller
             'bpo'              => ['nullable', 'string', 'max:255'],
             'access_owner'     => ['nullable', 'string', 'max:255'],
             'module'           => ['required', 'string', 'max:255'],
-            'period'           => ['required', 'string', 'max:255'],
+            'period'           => ['required', 'string', 'in:Q1,Q2,Q3,Q4'],
             'request_id'       => ['nullable', 'integer', 'exists:uam_requests,id'],
         ]);
 
@@ -702,7 +702,7 @@ class AccessMatrixController extends Controller
             'bpo'              => ['nullable', 'string', 'max:255'],
             'access_owner'     => ['nullable', 'string', 'max:255'],
             'module'           => ['required', 'string', 'max:255'],
-            'period'           => ['required', 'string', 'max:255'],
+            'period'           => ['required', 'string', 'in:Q1,Q2,Q3,Q4'],
         ]);
 
         $uamRecord->update($validated);

@@ -207,30 +207,33 @@
                 @if($requestId)
                     <input type="hidden" name="request_id" value="{{ $requestId }}">
                 @endif
-                <div class="row g-3 mb-3">
-                    <div class="col-12 col-md-6">
-                        <label for="moduleSelect" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Module</label>
-                        <select name="module" id="moduleSelect" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
-                            <option value="">-- Select Module --</option>
-                            @if(isset($availableModules))
-                                @foreach($availableModules as $mod)
-                                    <option value="{{ $mod }}" {{ (isset($module) && $module === $mod) ? 'selected' : '' }}>{{ $mod }}</option>
-                                @endforeach
-                            @endif
-                        </select>
+
+                @if(isset($uamRequest) && $uamRequest)
+                <div style="display:flex;align-items:stretch;gap:.6rem;margin-bottom:1rem;">
+                    {{-- Module card — LEFT --}}
+                    <div style="flex:1;display:flex;align-items:center;gap:.6rem;padding:.4rem .9rem;background:var(--secondary-light);border:1.5px solid rgba(11,46,109,.13);border-radius:10px;">
+                        <div style="width:28px;height:28px;background:var(--secondary);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 8px rgba(11,46,109,.18);">
+                            <i class="bi bi-grid-3x3-gap-fill" style="color:#fff;font-size:.65rem;"></i>
+                        </div>
+                        <div style="line-height:1.2;">
+                            <div style="font-size:.62rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.06em;opacity:.7;">Module</div>
+                            <div style="font-size:.88rem;font-weight:800;color:var(--secondary);font-family:monospace;">{{ $uamRequest->module ?: 'N/A' }}</div>
+                        </div>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <label for="periodSelect" class="form-label" style="font-size:.82rem;font-weight:700;color:var(--secondary);">Period</label>
-                        <select name="period" id="periodSelect" class="form-select" style="font-size:.9rem;border-radius:10px;border-color:var(--border);" required>
-                            <option value="">-- Select Period --</option>
-                            @if(isset($availablePeriods))
-                                @foreach($availablePeriods as $per)
-                                    <option value="{{ $per }}" {{ (isset($period) && $period === $per) ? 'selected' : '' }}>{{ $per }}</option>
-                                @endforeach
-                            @endif
-                        </select>
+                    {{-- Period card — RIGHT --}}
+                    <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:.6rem;padding:.4rem .9rem;background:#fff5f5;border:1.5px solid rgba(192,57,43,.2);border-radius:10px;">
+                        <div style="line-height:1.2;text-align:right;">
+                            <div style="font-size:.62rem;font-weight:700;color:#c0392b;text-transform:uppercase;letter-spacing:.06em;">Period</div>
+                            <div style="font-size:.88rem;font-weight:800;color:#c0392b;font-family:monospace;">{{ $uamRequest->period ?: 'N/A' }} {{ $uamRequest->year }}</div>
+                        </div>
+                        <div style="width:28px;height:28px;background:#c0392b;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 8px rgba(192,57,43,.25);">
+                            <i class="bi bi-calendar3" style="color:#fff;font-size:.65rem;"></i>
+                        </div>
                     </div>
                 </div>
+                @endif
+
+
 
                 <div class="row g-3 align-items-center">
                     <div class="col-12 col-md-8 col-lg-9">
@@ -240,12 +243,12 @@
                                    class="form-control"
                                    style="padding-left:2.6rem;font-size:.9rem;border-radius:10px;border-color:var(--border);"
                                    placeholder="Search by Role (e.g. ZPS-MD-1014-000000-PROJ-CHG)…"
-                                   autocomplete="off" disabled>
+                                   autocomplete="off">
                         </div>
                     </div>
                     <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
                         <button type="submit" id="searchSubmitBtn" class="btn-primary-custom flex-grow-1"
-                                style="padding:.65rem 1rem;font-size:.9rem;background:var(--secondary);border-radius:10px;box-shadow:none;" disabled>
+                                style="padding:.65rem 1rem;font-size:.9rem;background:var(--secondary);border-radius:10px;box-shadow:none;">
                             <i class="bi bi-search me-1"></i> Search
                         </button>
                         @if($search)
@@ -855,30 +858,11 @@
         }
     });
 
-    // ── Module & Period Selection Logic ─────────────────────────────────
-    const moduleSelect = document.getElementById('moduleSelect');
-    const periodSelect = document.getElementById('periodSelect');
+    // ── Search always enabled ─────────────────────────────────────────
     const searchInput = document.getElementById('searchInput');
     const searchSubmitBtn = document.getElementById('searchSubmitBtn');
-
-    function checkSearchAvailability() {
-        const hasModule = moduleSelect.value !== '';
-        const hasPeriod = periodSelect.value !== '';
-        
-        if (hasModule && hasPeriod) {
-            searchInput.disabled = false;
-            searchSubmitBtn.disabled = false;
-        } else {
-            searchInput.disabled = true;
-            searchSubmitBtn.disabled = true;
-        }
-    }
-
-    moduleSelect.addEventListener('change', checkSearchAvailability);
-    periodSelect.addEventListener('change', checkSearchAvailability);
-
-    // Initial check on load
-    checkSearchAvailability();
+    if (searchInput) searchInput.disabled = false;
+    if (searchSubmitBtn) searchSubmitBtn.disabled = false;
 
     // ── TCode Dropdown Change Handler ───────────────────────────────────
     document.querySelectorAll('.tcode-selector').forEach(select => {

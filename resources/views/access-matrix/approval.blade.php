@@ -354,7 +354,13 @@
                         </div>
                         <div style="flex:1;">
                             <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Period <span class="text-danger">*</span></label>
-                            <input type="text" name="period" class="form-control" required placeholder="e.g. Q1" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                            <select name="period" class="form-select" required style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                                <option value="" disabled selected>-- Select --</option>
+                                <option value="Q1">Q1 (First Period)</option>
+                                <option value="Q2">Q2 (Second Period)</option>
+                                <option value="Q3">Q3 (Third Period)</option>
+                                <option value="Q4">Q4 (Fourth Period)</option>
+                            </select>
                         </div>
                     </div>
 
