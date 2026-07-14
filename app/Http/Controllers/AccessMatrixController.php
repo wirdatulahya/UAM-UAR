@@ -889,4 +889,10 @@ class AccessMatrixController extends Controller
 
         return response()->json(['success' => true, 'updated' => $records->count()]);
     }
+
+    public function submitRequest(UamRequest $uamRequest)
+    {
+        $uamRequest->update(['status' => 'Review']);
+        return redirect()->back()->with('success', 'UAM request submitted successfully for review.');
+    }
 }

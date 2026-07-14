@@ -50,6 +50,8 @@ Route::middleware('auth')->group(function () {
     // ── Request Access Matrix ──────────────────────────────────────────────
     Route::get('/access-matrix/request', [AccessMatrixController::class, 'approval'])
         ->name('access-matrix.approval');
+    Route::post('/access-matrix/request/{uamRequest}/submit', [AccessMatrixController::class, 'submitRequest'])
+        ->name('access-matrix.submit');
 
     // ── Import Excel (from Request UAM page) ──────────────────────────────
     Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])

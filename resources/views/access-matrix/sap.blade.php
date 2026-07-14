@@ -189,13 +189,14 @@
 
             <div class="d-flex align-items-center flex-wrap gap-2">
                 {{-- Add New Record --}}
+                @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision']))
                 <a href="{{ route('access-matrix.create', $requestId ? ['request_id' => $requestId] : []) }}"
                     class="btn-primary-custom"
                     style="width:auto;padding:.55rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.45rem;border-radius:10px;text-decoration:none;">
                     <i class="bi bi-plus-lg"></i>
                     Add Record
                 </a>
-
+                @endif
             </div>
         </div>
 
@@ -209,34 +210,109 @@
                 @endif
 
                 @if(isset($uamRequest) && $uamRequest)
-                {{-- Progress Tracker --}}
-                <div style="display:flex; align-items:center; justify-content:center; gap:2.5rem; margin-bottom:1.75rem; padding:0.5rem 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1.25rem;">
+                @php
+                    $status = $uamRequest->status;
                     
-                    {{-- Step 1: Update UAM --}}
+                    // Determine Step 1: Processed
+                    $step1Active = ($status === 'Draft' || $status === 'Need Revision');
+                    $step1Completed = !$step1Active;
+
+                    // Determine Step 2: Review
+                    $step2Active = ($status === 'Review' || $status === 'Pending' || $status === 'Submitted' || $status === 'Pending Approval');
+                    $step2Completed = in_array($status, ['Done', 'Approved', 'Need Revision', 'Revision', 'Rejected']);
+
+                    // Determine Step 3: Approved / Need Revision
+                    $step3Approved = ($status === 'Done' || $status === 'Approved');
+                    $step3Revision = in_array($status, ['Need Revision', 'Revision', 'Rejected']);
+                    $step3Pending = !$step3Approved && !$step3Revision;
+                @endphp
+
+                {{-- Progress Tracker --}}
+                <div style="display:flex; align-items:center; justify-content:center; gap:2.5rem; margin-bottom:1.75rem; padding:0.5rem 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1.25rem; flex-wrap: wrap;">
+                    
+                    {{-- Step 1: Processed --}}
                     <div style="display:flex; align-items:center; gap:0.65rem;">
-                        <div style="width:32px; height:32px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(0, 102, 204, 0.15); transition: all var(--transition);">
-                            <i class="bi bi-pencil-fill" style="font-size:0.8rem;"></i>
-                        </div>
-                        <div style="display:flex; flex-direction:column; line-height:1.2;">
-                            <span style="font-size:0.82rem; font-weight:800; color:var(--primary); letter-spacing:0.2px;">1. Update UAM</span>
-                            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Active Editing</span>
-                        </div>
+                        @if($step1Completed)
+                            <div style="width:32px; height:32px; background:#22c55e; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(34, 197, 94, 0.15);">
+                                <i class="bi bi-check-lg" style="font-size:0.95rem; -webkit-text-stroke: 1px;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:800; color:#22c55e; letter-spacing:0.2px;">1. Processed</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">UAM Prepared</span>
+                            </div>
+                        @else
+                            <div style="width:32px; height:32px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(0, 102, 204, 0.15);">
+                                <i class="bi bi-pencil-fill" style="font-size:0.8rem;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:800; color:var(--primary); letter-spacing:0.2px;">1. Processed</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Active Editing</span>
+                            </div>
+                        @endif
                     </div>
 
-                    {{-- Connecting line --}}
-                    <div style="flex:1; max-width:140px; height:3px; background:var(--border); border-radius:2px; position:relative;">
-                        <div style="position:absolute; left:0; top:0; height:100%; width:0%; background:var(--primary); border-radius:2px;"></div>
+                    {{-- Connecting line 1 --}}
+                    <div style="flex:1; max-width:100px; height:3px; background:{{ $step1Completed ? '#22c55e' : 'var(--border)' }}; border-radius:2px;"></div>
+
+                    {{-- Step 2: Review --}}
+                    <div style="display:flex; align-items:center; gap:0.65rem; @if(!$step2Active && !$step2Completed) opacity:0.55; @endif">
+                        @if($step2Completed)
+                            <div style="width:32px; height:32px; background:#22c55e; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(34, 197, 94, 0.15);">
+                                <i class="bi bi-check-lg" style="font-size:0.95rem; -webkit-text-stroke: 1px;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:800; color:#22c55e; letter-spacing:0.2px;">2. Review</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Reviewed</span>
+                            </div>
+                        @elseif($step2Active)
+                            <div style="width:32px; height:32px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(0, 102, 204, 0.15);">
+                                <i class="bi bi-hourglass-split" style="font-size:0.85rem;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:800; color:var(--primary); letter-spacing:0.2px;">2. Review</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Under Review</span>
+                            </div>
+                        @else
+                            <div style="width:32px; height:32px; background:#fff; border:2px solid var(--text-muted); color:var(--text-muted); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700;">
+                                <i class="bi bi-clipboard2-check" style="font-size:0.85rem;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:700; color:var(--text-muted); letter-spacing:0.2px;">2. Review</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Upcoming</span>
+                            </div>
+                        @endif
                     </div>
 
-                    {{-- Step 2: Review UAM --}}
-                    <div style="display:flex; align-items:center; gap:0.65rem; opacity:0.55;">
-                        <div style="width:32px; height:32px; background:#fff; border:2px solid var(--text-muted); color:var(--text-muted); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700;">
-                            <i class="bi bi-clipboard2-check-fill" style="font-size:0.85rem;"></i>
-                        </div>
-                        <div style="display:flex; flex-direction:column; line-height:1.2;">
-                            <span style="font-size:0.82rem; font-weight:700; color:var(--text-muted); letter-spacing:0.2px;">2. Review UAM</span>
-                            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Upcoming</span>
-                        </div>
+                    {{-- Connecting line 2 --}}
+                    <div style="flex:1; max-width:100px; height:3px; background:{{ $step2Completed ? '#22c55e' : 'var(--border)' }}; border-radius:2px;"></div>
+
+                    {{-- Step 3: Approved / Need Revision --}}
+                    <div style="display:flex; align-items:center; gap:0.65rem; @if($step3Pending) opacity:0.55; @endif">
+                        @if($step3Approved)
+                            <div style="width:32px; height:32px; background:#22c55e; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(34, 197, 94, 0.15);">
+                                <i class="bi bi-check-circle-fill" style="font-size:0.95rem;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:800; color:#22c55e; letter-spacing:0.2px;">3. Approved</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Authorized</span>
+                            </div>
+                        @elseif($step3Revision)
+                            <div style="width:32px; height:32px; background:#ef4444; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; box-shadow:0 0 0 4px rgba(239, 68, 68, 0.15);">
+                                <i class="bi bi-exclamation-circle-fill" style="font-size:0.95rem;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:800; color:#ef4444; letter-spacing:0.2px;">3. Need Revision</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Revision Req.</span>
+                            </div>
+                        @else
+                            <div style="width:32px; height:32px; background:#fff; border:2px solid var(--text-muted); color:var(--text-muted); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700;">
+                                <i class="bi bi-shield-check" style="font-size:0.85rem;"></i>
+                            </div>
+                            <div style="display:flex; flex-direction:column; line-height:1.2;">
+                                <span style="font-size:0.82rem; font-weight:700; color:var(--text-muted); letter-spacing:0.2px;">3. Approved / Revision</span>
+                                <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Upcoming</span>
+                            </div>
+                        @endif
                     </div>
 
                 </div>
@@ -401,6 +477,7 @@
                                         </button>
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
+                                        @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision']))
                                         <div class="d-flex align-items-center gap-1">
                                             {{-- Edit --}}
                                             <a href="{{ $firstRec ? route('access-matrix.edit', $firstRec->id) : '#' }}"
@@ -425,6 +502,11 @@
                                                 </button>
                                             </form>
                                         </div>
+                                        @else
+                                        <span style="font-size:.72rem;color:var(--text-muted);font-weight:600;font-style:italic;">
+                                            <i class="bi bi-lock-fill me-1"></i>View Only
+                                        </span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -499,16 +581,18 @@
         </div>
 
         {{-- Submit Action at the very bottom --}}
-        @if(isset($uamRequest) && $uamRequest && $uamRequest->status === 'Draft')
+        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision']))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
-                <button type="button" class="btn btn-primary" id="submitApprovalBtn"
-                        onclick="alert('Submit request workflow is not yet implemented.')"
-                        style="background:#0066cc;border:none;border-radius:10px;padding:.75rem 2.25rem;font-weight:700;font-size:.88rem;box-shadow:0 4px 14px rgba(0,102,204,.25);letter-spacing:.3px;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:all var(--transition);"
-                        onmouseenter="this.style.background='#0052a3';this.style.transform='translateY(-1px)';"
-                        onmouseleave="this.style.background='#0066cc';this.style.transform='none';">
-                    <i class="bi bi-send-fill" style="font-size:.85rem;"></i>
-                    Submit Request
-                </button>
+                <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
+                    @csrf
+                    <button type="submit" class="btn btn-primary" id="submitApprovalBtn"
+                            style="background:#0066cc;border:none;border-radius:10px;padding:.75rem 2.25rem;font-weight:700;font-size:.88rem;box-shadow:0 4px 14px rgba(0,102,204,.25);letter-spacing:.3px;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:all var(--transition);"
+                            onmouseenter="this.style.background='#0052a3';this.style.transform='translateY(-1px)';"
+                            onmouseleave="this.style.background='#0066cc';this.style.transform='none';">
+                        <i class="bi bi-send-fill" style="font-size:.85rem;"></i>
+                        Submit Request
+                    </button>
+                </form>
             </div>
         @endif
 
@@ -593,10 +677,12 @@
                             <div style="display:flex;align-items:center;gap:.5rem;">
                                 <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                                 {{-- Edit toggle --}}
+                                @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision']))
                                 <button id="editOwnersBtn" type="button" onclick="toggleEditOwners()"
                                     style="font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;border:1.5px solid #166534;background:#fff;color:#166534;cursor:pointer;transition:all .15s;">
                                     <i class="bi bi-pencil-fill me-1"></i>Edit
                                 </button>
+                                @endif
                             </div>
                         </div>
                         <div id="modalOwnerScroll" style="max-height:260px;overflow-y:auto;padding:1rem;">
