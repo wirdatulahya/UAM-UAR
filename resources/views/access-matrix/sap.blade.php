@@ -521,17 +521,8 @@
                                             </form>
                                         </div>
                                         @else
-                                        @php
-                                            $si = match($uamRequest->status ?? '') {
-                                                'Review'        => ['dot' => '#f59e0b', 'color' => '#92400e', 'icon' => 'bi-circle-fill',            'label' => 'Under Review'],
-                                                'Approved','Done'=> ['dot' => '#22c55e', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',     'label' => 'Approved'],
-                                                'Need Revision' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill', 'label' => 'Need Revision'],
-                                                default         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle',                 'label' => $uamRequest->status ?? '—'],
-                                            };
-                                        @endphp
-                                        <span style="display:inline-flex;align-items:center;gap:.35rem;" title="Approval status: {{ $si['label'] }}">
-                                            <i class="bi {{ $si['icon'] }}" style="font-size:.95rem;color:{{ $si['dot'] }};"></i>
-                                            <span style="font-size:.72rem;font-weight:600;color:{{ $si['color'] }};">{{ $si['label'] }}</span>
+                                        <span style="font-size:.72rem;color:var(--text-muted);font-weight:600;font-style:italic;">
+                                            <i class="bi bi-lock-fill me-1"></i>View Only
                                         </span>
                                         @endif
                                     </td>
