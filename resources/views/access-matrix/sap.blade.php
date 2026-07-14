@@ -655,6 +655,17 @@
                     <div style="font-size:.85rem;color:var(--text-muted);margin-top:.75rem;font-weight:500;">Fetching access data…</div>
                 </div>
 
+                {{-- Empty / Error state --}}
+                <div id="modalError" style="display:none;text-align:center;padding:3rem 1.5rem;">
+                    <div style="width:48px;height:48px;background:#fef2f2;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;color:#ef4444;border:1.5px solid #fee2e2;">
+                        <i class="bi bi-exclamation-triangle" style="font-size:1.3rem;"></i>
+                    </div>
+                    <h4 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;" id="modalErrorTitle">No access data found</h4>
+                    <p style="font-size:.82rem;color:var(--text-muted);margin:0;max-width:320px;margin-inline:auto;" id="modalErrorMsg">
+                        No access owners or matrix data is registered for this role and TCode.
+                    </p>
+                </div>
+
                 {{-- Content --}}
                 <div id="modalContentWrapper" style="display:none;">
 
@@ -971,13 +982,16 @@
         accessModal.style.display = 'flex';
         document.getElementById('modalLoading').style.display        = 'block';
         document.getElementById('modalContentWrapper').style.display = 'none';
+        document.getElementById('modalError').style.display          = 'none';
 
         // Reset edit mode & state
         _editMode = false;
         _currentRole  = role;
         _currentTcode = tcode;
         _currentRecordIds = [];
-        document.getElementById('editOwnersBtn').style.display = '';
+        if (document.getElementById('editOwnersBtn')) {
+            document.getElementById('editOwnersBtn').style.display = '';
+        }
         document.getElementById('addOwnerRow').style.display   = 'none';
         document.getElementById('saveOwnerRow').style.display  = 'none';
 
@@ -987,17 +1001,40 @@
         setUnitDisplay('');
         renderOwners([]);
 
+        function showModalError(title, message) {
+            document.getElementById('modalLoading').style.display        = 'none';
+            document.getElementById('modalContentWrapper').style.display = 'none';
+            document.getElementById('modalError').style.display          = 'block';
+            document.getElementById('modalErrorTitle').textContent      = title;
+            document.getElementById('modalErrorMsg').textContent        = message;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
         try {
             let url = `/access-matrix/sap/role-details?role=${encodeURIComponent(role)}&tcode=${encodeURIComponent(tcode)}&_=${Date.now()}`;
             if (requestId) {
                 url += `&request_id=${encodeURIComponent(requestId)}`;
             }
-            const res  = await fetch(url);
+            const res  = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            const contentType = res.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server returned an invalid format response.');
+            }
+
             const data = await res.json();
 
             if (res.ok) {
                 _hierarchy        = data.hierarchy || [];
                 _currentRecordIds = data.record_ids || [];
+
+                if (_hierarchy.length === 0) {
+                    showModalError("No access data found", "No access owners or matrix data is registered for this role and TCode.");
+                    return;
+                }
 
                 // ── Collect ALL unique BPOs across all units ─────────
                 const allBpos = [];
@@ -1020,17 +1057,21 @@
 
                 document.getElementById('modalLoading').style.display        = 'none';
                 document.getElementById('modalContentWrapper').style.display = 'block';
+                document.getElementById('modalError').style.display          = 'none';
 
                 // Scroll owners panel to top each open
                 document.getElementById('modalOwnerScroll').scrollTop = 0;
 
             } else {
-                alert('Error fetching details: ' + (data.error || 'Unknown error'));
-                closeAccessModal();
+                showModalError("No access data found", data.error || "No access owners or matrix data is registered for this role and TCode.");
             }
         } catch (e) {
-            alert('Failed to connect to server.');
-            closeAccessModal();
+            clearTimeout(timeoutId);
+            if (e.name === 'AbortError') {
+                showModalError("Request Timeout", "The request took too long to complete. Please try again.");
+            } else {
+                showModalError("Connection Failed", e.message || "Failed to retrieve access details from server.");
+            }
         }
     }
 
