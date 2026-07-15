@@ -121,7 +121,7 @@
 
                 <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--secondary-light);">
                     <div style="font-size:.88rem;font-weight:700;color:var(--secondary);">
-                        <i class="bi bi-shield-lock-fill me-2"></i>Record Details
+                        <i class="bi bi-shield-lock-fill me-2"></i>Role Details
                     </div>
                 </div>
 
@@ -170,53 +170,69 @@
                             @enderror
                         </div>
 
-                        <div class="row g-3 mb-3">
-                            {{-- Module --}}
-                            <div class="col-12 col-sm-6">
-                                <label for="module" class="form-label">
-                                    Module <span style="color:var(--primary);">*</span>
-                                </label>
-                                <input type="text" id="module" name="module"
-                                       class="form-control @error('module') is-invalid @enderror"
-                                       value="{{ old('module') }}"
-                                       placeholder="e.g. PS" required>
-                                @error('module')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                        {{-- Module & Period: inherited from the parent UAM request --}}
+                        @if($uamRequest)
+                            <input type="hidden" name="module" value="{{ $uamRequest->module }}">
+                            <input type="hidden" name="period" value="{{ $uamRequest->period }}">
+                            {{-- Read-only context badge --}}
+                            <div class="mb-3" style="display:flex;align-items:center;gap:.5rem;padding:.5rem .85rem;background:var(--secondary-light);border:1.5px solid rgba(11,46,109,.12);border-radius:10px;">
+                                <i class="bi bi-info-circle-fill" style="color:var(--secondary);font-size:.82rem;flex-shrink:0;"></i>
+                                <span style="font-size:.78rem;color:var(--secondary);">
+                                    This role will be added to
+                                    <strong>{{ $uamRequest->module }}</strong>
+                                    &nbsp;·&nbsp;
+                                    <strong>{{ $uamRequest->period }} {{ $uamRequest->year }}</strong>
+                                </span>
                             </div>
+                        @else
+                            {{-- Fallback: show fields when no parent request exists --}}
+                            <div class="row g-3 mb-3">
+                                <div class="col-12 col-sm-6">
+                                    <label for="module" class="form-label">Module <span style="color:var(--primary);">*</span></label>
+                                    <input type="text" id="module" name="module"
+                                           class="form-control @error('module') is-invalid @enderror"
+                                           value="{{ old('module') }}"
+                                           placeholder="e.g. PS" required>
+                                    @error('module')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label for="period" class="form-label">Period <span style="color:var(--primary);">*</span></label>
+                                    <select id="period" name="period"
+                                            class="form-select @error('period') is-invalid @enderror" required>
+                                        <option value="" disabled {{ old('period') ? '' : 'selected' }}>-- Select Period --</option>
+                                        <option value="Q1" {{ old('period') == 'Q1' ? 'selected' : '' }}>Q1 (First Period)</option>
+                                        <option value="Q2" {{ old('period') == 'Q2' ? 'selected' : '' }}>Q2 (Second Period)</option>
+                                        <option value="Q3" {{ old('period') == 'Q3' ? 'selected' : '' }}>Q3 (Third Period)</option>
+                                    </select>
+                                    @error('period')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                        @endif
 
-                            {{-- Period --}}
-                            <div class="col-12 col-sm-6">
-                                <label for="period" class="form-label">
-                                    Period <span style="color:var(--primary);">*</span>
-                                </label>
-                                <select id="period" name="period"
-                                        class="form-select @error('period') is-invalid @enderror"
-                                        required>
-                                    <option value="" disabled {{ old('period') ? '' : 'selected' }}>-- Select Period --</option>
-                                    <option value="Q1" {{ old('period') == 'Q1' ? 'selected' : '' }}>Q1 (First Period)</option>
-                                    <option value="Q2" {{ old('period') == 'Q2' ? 'selected' : '' }}>Q2 (Second Period)</option>
-                                    <option value="Q3" {{ old('period') == 'Q3' ? 'selected' : '' }}>Q3 (Third Period)</option>
-                                </select>
-                                @error('period')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                        {{-- TCODE (multi-entry) --}}
+                        <div class="mb-3">
+                            <label class="form-label">TCODE</label>
+                            <div id="tcodeList" style="display:flex;flex-direction:column;gap:.45rem;">
+                                {{-- First TCODE row (always present; + button managed by syncTcodeButtons()) --}}
+                                <div class="tcode-row" style="display:flex;align-items:center;gap:.4rem;">
+                                    <input type="text" name="tcode[]"
+                                           class="form-control @error('tcode.0') is-invalid @enderror"
+                                           value="{{ is_array(old('tcode')) ? old('tcode.0', '') : old('tcode', '') }}"
+                                           placeholder="e.g. SU01"
+                                           style="font-family:monospace;flex:1;">
+                                    <button type="button" class="remove-tcode-btn"
+                                        onclick="removeTcodeRow(this)"
+                                        disabled
+                                        title="Remove this TCODE"
+                                        style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fde8e9;color:#c0392b;border:1px solid #fca5a5;cursor:not-allowed;opacity:.35;flex-shrink:0;transition:all .15s;">
+                                        <i class="bi bi-x-lg" style="font-size:.68rem;"></i>
+                                    </button>
+                                </div>
                             </div>
+                            @error('tcode.*')
+                                <div style="color:#dc2626;font-size:.8rem;margin-top:.25rem;">{{ $message }}</div>
+                            @enderror
                         </div>
-
-                        <div class="row g-3 mb-3">
-                            {{-- TCODE --}}
-                            <div class="col-12 col-sm-6">
-                                <label for="tcode" class="form-label">TCODE</label>
-                                <input type="text" id="tcode" name="tcode"
-                                       class="form-control @error('tcode') is-invalid @enderror"
-                                       value="{{ old('tcode') }}"
-                                       placeholder="e.g. SU01"
-                                       style="font-family:monospace;">
-                                @error('tcode')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
 
                         <div class="row g-3 mb-3">
                             {{-- BPO — LEFT --}}
@@ -293,12 +309,91 @@
     });
     document.addEventListener('click', () => { profileMenu.style.display = 'none'; chevron.style.transform = ''; });
 
-    // Save button spinner
+    // Save button spinner + TCODE dynamic rows
     document.getElementById('createForm').addEventListener('submit', function () {
         const btn = document.getElementById('saveBtn');
         btn.disabled  = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving…';
     });
+
+    function addTcodeRow() {
+        const list = document.getElementById('tcodeList');
+        const row  = document.createElement('div');
+        row.className = 'tcode-row';
+        row.style.cssText = 'display:flex;align-items:center;gap:.4rem;';
+        // New row starts with only the × button; syncTcodeButtons will add + to it
+        row.innerHTML = `
+            <input type="text" name="tcode[]"
+                   class="form-control"
+                   placeholder="e.g. SU01"
+                   style="font-family:monospace;flex:1;">
+            <button type="button" class="remove-tcode-btn"
+                onclick="removeTcodeRow(this)"
+                title="Remove this TCODE"
+                style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fde8e9;color:#c0392b;border:1px solid #fca5a5;cursor:pointer;flex-shrink:0;transition:all .15s;"
+                onmouseenter="this.style.filter='brightness(0.93)'"
+                onmouseleave="this.style.filter=''">
+                <i class="bi bi-x-lg" style="font-size:.68rem;"></i>
+            </button>`;
+        list.appendChild(row);
+        syncTcodeButtons();
+        row.querySelector('input').focus();
+    }
+
+    function removeTcodeRow(btn) {
+        btn.closest('.tcode-row').remove();
+        syncTcodeButtons();
+    }
+
+    // Single source of truth: ensures "+" lives only on the last row,
+    // and "×" is disabled when there is only one row.
+    function syncTcodeButtons() {
+        const rows = document.querySelectorAll('#tcodeList .tcode-row');
+        const ADD_STYLE = 'display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;border:none;cursor:pointer;flex-shrink:0;box-shadow:0 2px 6px rgba(0,102,204,.25);transition:transform .15s,box-shadow .15s;';
+
+        rows.forEach(function(row, i) {
+            const isLast = i === rows.length - 1;
+
+            // ── Add (+) button ───────────────────────────────────────────────
+            let addBtn = row.querySelector('.add-tcode-btn');
+            if (isLast) {
+                if (!addBtn) {
+                    // Create and insert before the × button
+                    addBtn = document.createElement('button');
+                    addBtn.type = 'button';
+                    addBtn.className = 'add-tcode-btn';
+                    addBtn.title = 'Add another TCODE';
+                    addBtn.setAttribute('style', ADD_STYLE);
+                    addBtn.innerHTML = '<i class="bi bi-plus-lg" style="font-size:.72rem;line-height:1;"></i>';
+                    addBtn.onclick = addTcodeRow;
+                    addBtn.addEventListener('mouseenter', function() {
+                        this.style.transform = 'scale(1.12)';
+                        this.style.boxShadow = '0 4px 10px rgba(0,102,204,.38)';
+                    });
+                    addBtn.addEventListener('mouseleave', function() {
+                        this.style.transform = '';
+                        this.style.boxShadow = '0 2px 6px rgba(0,102,204,.25)';
+                    });
+                    const removeBtn = row.querySelector('.remove-tcode-btn');
+                    row.insertBefore(addBtn, removeBtn);
+                }
+            } else {
+                if (addBtn) addBtn.remove();
+            }
+
+            // ── Remove (×) button ────────────────────────────────────────────
+            const removeBtn = row.querySelector('.remove-tcode-btn');
+            if (removeBtn) {
+                const only = rows.length === 1;
+                removeBtn.disabled     = only;
+                removeBtn.style.opacity = only ? '.35' : '1';
+                removeBtn.style.cursor  = only ? 'not-allowed' : 'pointer';
+            }
+        });
+    }
+
+    // Run once on load to set initial state
+    syncTcodeButtons();
 </script>
 @endpush
 

@@ -124,7 +124,7 @@
 
                 <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--secondary-light);">
                     <div style="font-size:.88rem;font-weight:700;color:var(--secondary);">
-                        <i class="bi bi-shield-lock-fill me-2"></i>Record Details
+                        <i class="bi bi-shield-lock-fill me-2"></i>Role Details
                     </div>
                 </div>
 

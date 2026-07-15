@@ -203,19 +203,7 @@
                 </p>
             </div>
 
-            <div class="d-flex align-items-center flex-wrap gap-2">
-                {{-- Add New Record --}}
-                @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision']))
-                <a href="{{ route('access-matrix.create', $requestId ? ['request_id' => $requestId] : []) }}"
-                    class="btn-primary-custom"
-                    style="background:var(--primary);width:auto;padding:.55rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.45rem;border-radius:10px;text-decoration:none;">
-                    <i class="bi bi-plus-lg"></i>
-                    Add Record
-                </a>
-                @endif
-                
 
-            </div>
         </div>
 
         {{-- ── Search Bar ── --}}
@@ -232,16 +220,16 @@
                     $status = $uamRequest->status;
                     
                     // Determine Step 1: Processed
-                    $step1Active = ($status === 'Draft' || $status === 'Need Revision');
+                    $step1Active = ($status === 'Draft' || $status === 'Need Revision' || $status === 'Return');
                     $step1Completed = !$step1Active;
 
                     // Determine Step 2: Review
                     $step2Active = ($status === 'Review' || $status === 'Pending' || $status === 'Submitted' || $status === 'Pending Approval');
-                    $step2Completed = in_array($status, ['Done', 'Approved', 'Need Revision', 'Revision', 'Rejected']);
+                    $step2Completed = in_array($status, ['Done', 'Approved', 'Need Revision', 'Return', 'Revision', 'Rejected']);
 
-                    // Determine Step 3: Approved / Need Revision
+                    // Determine Step 3: Approved / Return
                     $step3Approved = ($status === 'Done' || $status === 'Approved');
-                    $step3Revision = in_array($status, ['Need Revision', 'Revision', 'Rejected']);
+                    $step3Revision = in_array($status, ['Need Revision', 'Return', 'Revision', 'Rejected']);
                     $step3Pending = !$step3Approved && !$step3Revision;
                 @endphp
 
@@ -319,7 +307,7 @@
                                 <i class="bi bi-exclamation-circle-fill" style="font-size:0.95rem;"></i>
                             </div>
                             <div style="display:flex; flex-direction:column; line-height:1.2;">
-                                <span style="font-size:0.82rem; font-weight:800; color:#ef4444; letter-spacing:0.2px;">3. Need Revision</span>
+                                <span style="font-size:0.82rem; font-weight:800; color:#ef4444; letter-spacing:0.2px;">3. Return</span>
                                 <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Revision Req.</span>
                             </div>
                         @else
@@ -327,7 +315,7 @@
                                 <i class="bi bi-shield-check" style="font-size:0.85rem;"></i>
                             </div>
                             <div style="display:flex; flex-direction:column; line-height:1.2;">
-                                <span style="font-size:0.82rem; font-weight:700; color:var(--text-muted); letter-spacing:0.2px;">3. Approved / Revision</span>
+                                <span style="font-size:0.82rem; font-weight:700; color:var(--text-muted); letter-spacing:0.2px;">3. Approved / Return</span>
                                 <span style="font-size:0.68rem; color:var(--text-muted); font-weight:500;">Upcoming</span>
                             </div>
                         @endif
@@ -401,7 +389,12 @@
                             <i class="bi bi-shield-lock-fill" style="color:var(--secondary);font-size:.95rem;"></i>
                         </div>
                         <div>
-                            <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">UAM Records</div>
+                            <div style="font-size:.9rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.5rem;">
+                                UAM Records
+                                @if($roles->total() > 0)
+                                <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.1rem .55rem;font-size:.67rem;font-weight:700;letter-spacing:.02em;">{{ $roles->total() }}</span>
+                                @endif
+                            </div>
                             <div style="font-size:.72rem;color:var(--text-muted);">
                                 @if ($roles->total() > 0)
                                     Showing {{ $roles->firstItem() }}–{{ $roles->lastItem() }} of {{ $roles->total() }} roles
@@ -419,10 +412,13 @@
                         </div>
                     </div>
 
-                    @if($roles->total() > 0)
-                        <span style="background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:700;">
-                            {{ $roles->total() }} Role(s)
-                        </span>
+                    @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
+                    <a href="{{ route('access-matrix.create', $requestId ? ['request_id' => $requestId] : []) }}"
+                       style="display:inline-flex;align-items:center;gap:.45rem;background:var(--primary);color:#fff;border-radius:8px;padding:.42rem 1rem;font-size:.8rem;font-weight:700;text-decoration:none;box-shadow:0 2px 8px rgba(0,102,204,.22);transition:filter .18s;"
+                       onmouseenter="this.style.filter='brightness(1.12)'"
+                       onmouseleave="this.style.filter=''">
+                        <i class="bi bi-plus-lg" style="font-size:.85rem;"></i> Add Role
+                    </a>
                     @endif
                 </div>
 
@@ -466,18 +462,12 @@
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
                                         @if($roleRecords->count() > 0)
-                                            <select class="form-select tcode-selector" 
-                                                    data-row-id="{{ $rowId }}"
-                                                    style="padding:.2rem 1.6rem .2rem .5rem;font-size:.75rem;font-weight:600;font-family:monospace;border:1px solid #bfdbfe;border-radius:6px;background-color:#eff6ff;color:#1d4ed8;cursor:pointer;min-width:100px;">
-                                                @foreach($roleRecords as $rec)
-                                                    <option value="{{ $rec->tcode }}" 
-                                                            data-id="{{ $rec->id }}"
-                                                            data-edit-url="{{ route('access-matrix.edit', $rec->id) }}"
-                                                            data-delete-url="{{ route('access-matrix.destroy', $rec->id) }}">
-                                                        {{ $rec->tcode ?: '—' }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
+                                            <button type="button" onclick="toggleSubRows('{{ $rowId }}')" id="btn-toggle-{{ $rowId }}"
+                                                style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
+                                                onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
+                                                onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
+                                                <span id="text-toggle-{{ $rowId }}">View TCODE</span> <i class="bi bi-chevron-down" id="icon-sub-{{ $rowId }}" style="transition:transform .2s;font-size:.6rem;"></i>
+                                            </button>
                                         @else
                                             <span style="color:var(--text-muted);">—</span>
                                         @endif
@@ -495,7 +485,7 @@
                                         </button>
                                     </td>
                                     <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                        @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision']))
+                                        @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
                                         <div class="d-flex align-items-center gap-1">
                                             {{-- Edit --}}
                                             <a href="{{ $firstRec ? route('access-matrix.edit', $firstRec->id) : '#' }}"
@@ -508,7 +498,7 @@
                                             {{-- Delete --}}
                                             <form method="POST" action="{{ $firstRec ? route('access-matrix.destroy', $firstRec->id) : '#' }}"
                                                   class="delete-form-{{ $rowId }}"
-                                                  onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($roleData->role) }}\nTCODE: ' + document.querySelector('.tcode-selector[data-row-id=\'{{ $rowId }}\']').value)"
+                                                  onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($roleData->role) }}\nTCODE: {{ addslashes($firstRec->tcode ?? '') }}')"
                                                   style="margin:0;">
                                                 @csrf
                                                 @method('DELETE')
@@ -527,6 +517,81 @@
                                         @endif
                                     </td>
                                 </tr>
+
+                                {{-- EXPANDED TCODE ROWS --}}
+                                @if($roleRecords->count() > 0)
+                                    @foreach($roleRecords as $rec)
+                                        <tr class="subrow-{{ $rowId }}" style="display:none; border-bottom:1px solid var(--border); background:#f8fafc; transition:background var(--transition);"
+                                            onmouseenter="this.style.background='var(--secondary-light)'"
+                                            onmouseleave="this.style.background='#f8fafc'">
+                                            
+                                            <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;">
+                                                <div style="width:12px;height:12px;border-left:1.5px solid var(--border);border-bottom:1.5px solid var(--border);margin-left:auto;"></div>
+                                            </td>
+                                            
+                                            <td style="padding:.7rem 1rem;white-space:nowrap;max-width:260px;opacity:0.6;">
+                                                <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:700;color:var(--secondary);">
+                                                    {{ $roleData->role ?? '—' }}
+                                                </span>
+                                            </td>
+                                            
+                                            <td style="padding:.7rem 1rem;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.6;"
+                                                title="{{ $roleData->description_role }}">
+                                                {{ $roleData->description_role ?? '—' }}
+                                            </td>
+                                            
+                                            <td style="padding:.7rem 1rem;white-space:nowrap;">
+                                                <span style="font-family:monospace;background:#eff6ff;padding:.2rem .5rem;border-radius:4px;font-size:.78rem;border:1px solid #bfdbfe;font-weight:700;color:#1d4ed8;">
+                                                    {{ $rec->tcode ?: '—' }}
+                                                </span>
+                                            </td>
+                                            
+                                            <td style="padding:.7rem 1rem;white-space:nowrap;">
+                                                <button type="button" class="view-access-btn-{{ $rowId }}-{{ $rec->id }}" onclick="openAccessModal(this)"
+                                                    data-row-id="{{ $rowId }}-{{ $rec->id }}"
+                                                    data-role="{{ htmlspecialchars($roleData->role ?? '—') }}"
+                                                    data-tcode="{{ htmlspecialchars($rec->tcode ?? '') }}"
+                                                    data-request-id="{{ $requestId ?? '' }}"
+                                                    style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
+                                                    onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
+                                                    onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
+                                                    <i class="bi bi-shield-lock"></i> View Access
+                                                </button>
+                                            </td>
+                                            
+                                            <td style="padding:.7rem 1rem;white-space:nowrap;">
+                                                @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
+                                                <div class="d-flex align-items-center gap-1">
+                                                    {{-- Edit --}}
+                                                    <a href="{{ route('access-matrix.edit', $rec->id) }}"
+                                                       style="display:inline-flex;align-items:center;gap:.3rem;background:#fef3c7;color:#d97706;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);text-decoration:none;"
+                                                       onmouseenter="this.style.filter='brightness(0.95)'"
+                                                       onmouseleave="this.style.filter=''">
+                                                        <i class="bi bi-pencil-fill"></i> Edit
+                                                    </a>
+                                                    {{-- Delete --}}
+                                                    <form method="POST" action="{{ route('access-matrix.destroy', $rec->id) }}"
+                                                          onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($roleData->role) }}\nTCODE: {{ addslashes($rec->tcode ?? '') }}')"
+                                                          style="margin:0;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit"
+                                                            style="display:inline-flex;align-items:center;gap:.3rem;background:var(--primary-light);color:var(--primary);border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
+                                                            onmouseenter="this.style.filter='brightness(0.95)'"
+                                                            onmouseleave="this.style.filter=''">
+                                                            <i class="bi bi-trash-fill"></i> Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                @else
+                                                <span style="font-size:.72rem;color:var(--text-muted);font-weight:600;font-style:italic;">
+                                                    <i class="bi bi-lock-fill me-1"></i>View Only
+                                                </span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endif
                             @empty
                                 <tr>
                                     <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
@@ -599,7 +664,7 @@
         </div>
 
         {{-- Submit Action (for Requester) --}}
-        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision']))
+        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
                 <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
                     @csrf
@@ -662,15 +727,15 @@
                                     </div>
                                 </label>
 
-                                {{-- Need Revision --}}
+                                {{-- Return --}}
                                 <label for="decisionRevision" id="labelRevision"
                                        style="display:flex;align-items:center;gap:.55rem;padding:.5rem .8rem;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .18s;flex:1;">
-                                    <input type="radio" name="decision" id="decisionRevision" value="Need Revision"
+                                    <input type="radio" name="decision" id="decisionRevision" value="Return"
                                            style="width:14px;height:14px;accent-color:#ef4444;cursor:pointer;flex-shrink:0;"
                                            onchange="handleDecisionChange(this)">
                                     <div>
                                         <div style="font-size:.78rem;font-weight:700;color:#c0392b;display:flex;align-items:center;gap:.25rem;">
-                                            <i class="bi bi-arrow-counterclockwise" style="font-size:.8rem;"></i> Need Revision
+                                            <i class="bi bi-arrow-counterclockwise" style="font-size:.8rem;"></i> Return
                                         </div>
                                         <div style="font-size:.66rem;color:var(--text-muted);margin-top:.08rem;line-height:1.25;">Return to requester</div>
                                     </div>
@@ -681,20 +746,22 @@
                             <div style="flex:2;min-width:200px;display:flex;flex-direction:column;gap:.2rem;">
                                 <label for="approverComment" style="font-size:.72rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.3rem;">
                                     Comment
-                                    <span id="commentRequired" style="color:#ef4444;display:none;font-weight:500;font-size:.68rem;">— required for Need Revision</span>
+                                    <span id="commentHint" style="color:#ef4444;font-weight:500;font-size:.68rem;">— required, minimum 3 words</span>
                                 </label>
                                 <textarea name="approver_comment" id="approverComment" rows="2"
-                                          placeholder="Add notes or revision instructions…"
+                                          placeholder="Add notes or approval/revision instructions…"
                                           style="flex:1;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.8rem;color:var(--text);resize:none;transition:border-color .2s;outline:none;font-family:inherit;min-height:58px;max-height:90px;"
                                           onfocus="this.style.borderColor='var(--secondary)'"
-                                          onblur="this.style.borderColor='var(--border)'">{{ old('approver_comment') }}</textarea>
+                                          onblur="this.style.borderColor='var(--border)'"
+                                          oninput="validateDecisionForm()">{{ old('approver_comment') }}</textarea>
                             </div>
 
                             {{-- Action Buttons --}}
                             <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
                                 <button type="submit" id="submitDecisionBtn"
-                                        style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(11,46,109,.2);transition:all .18s;letter-spacing:.1px;"
-                                        onmouseenter="this.style.background='#0a2355';this.style.transform='translateY(-1px)';"
+                                        disabled
+                                        style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(11,46,109,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
+                                        onmouseenter="if(!this.disabled){this.style.background='#0a2355';this.style.transform='translateY(-1px)';}"
                                         onmouseleave="this.style.background='var(--secondary)';this.style.transform='none';">
                                     <i class="bi bi-send-fill" style="font-size:.68rem;"></i> Submit Decision
                                 </button>
@@ -712,28 +779,51 @@
             </div>
 
             <script>
+            function countWords(str) {
+                return str.trim().split(/\s+/).filter(function(w){ return w.length > 0; }).length;
+            }
+
+            function validateDecisionForm() {
+                const decisionSelected = document.querySelector('input[name="decision"]:checked');
+                const comment          = document.getElementById('approverComment').value;
+                const submitBtn        = document.getElementById('submitDecisionBtn');
+                const commentHint      = document.getElementById('commentHint');
+                const words            = countWords(comment);
+                const valid            = decisionSelected !== null && words >= 3;
+
+                submitBtn.disabled = !valid;
+                submitBtn.style.opacity = valid ? '1' : '.45';
+                submitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
+
+                // Hint colour: green when satisfied, red otherwise
+                commentHint.style.color = words >= 3 ? '#15803d' : '#ef4444';
+                if (words >= 3) {
+                    commentHint.textContent = '— ✓ ' + words + ' words';
+                } else {
+                    commentHint.textContent = '— required, minimum 3 words (' + words + '/' + 3 + ')';
+                }
+            }
+
             function handleDecisionChange(radio) {
-                const labelApproved   = document.getElementById('labelApproved');
-                const labelRevision   = document.getElementById('labelRevision');
-                const commentRequired = document.getElementById('commentRequired');
-                const commentArea     = document.getElementById('approverComment');
+                const labelApproved = document.getElementById('labelApproved');
+                const labelRevision = document.getElementById('labelRevision');
 
                 if (radio.value === 'Approved') {
                     labelApproved.style.borderColor = '#22c55e';
                     labelApproved.style.background  = '#f0fdf4';
                     labelRevision.style.borderColor = 'var(--border)';
                     labelRevision.style.background  = '';
-                    commentRequired.style.display   = 'none';
-                    commentArea.required = false;
                 } else {
                     labelRevision.style.borderColor = '#ef4444';
                     labelRevision.style.background  = '#fff5f5';
                     labelApproved.style.borderColor = 'var(--border)';
                     labelApproved.style.background  = '';
-                    commentRequired.style.display   = 'inline';
-                    commentArea.required = true;
                 }
+                validateDecisionForm();
             }
+
+            // Run once on load so button state matches any pre-filled values
+            document.addEventListener('DOMContentLoaded', validateDecisionForm);
             </script>
         @endif
 
@@ -829,7 +919,7 @@
                             <div style="display:flex;align-items:center;gap:.5rem;">
                                 <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                                 {{-- Edit toggle --}}
-                                @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision']))
+                                @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
                                 <button id="editOwnersBtn" type="button" onclick="toggleEditOwners()"
                                     style="font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;border:1.5px solid #166534;background:#fff;color:#166534;cursor:pointer;transition:all .15s;">
                                     <i class="bi bi-pencil-fill me-1"></i>Edit
@@ -1213,34 +1303,28 @@
     if (searchInput) searchInput.disabled = false;
     if (searchSubmitBtn) searchSubmitBtn.disabled = false;
 
-    // ── TCode Dropdown Change Handler ───────────────────────────────────
-    document.querySelectorAll('.tcode-selector').forEach(select => {
-        select.addEventListener('change', function() {
-            const rowId = this.dataset.rowId;
-            const selectedOption = this.options[this.selectedIndex];
-            if (!selectedOption) return;
-            
-            // Update View Access button
-            const viewBtn = document.querySelector(`.view-access-btn-${rowId}`);
-            if (viewBtn) {
-                viewBtn.dataset.tcode = selectedOption.value;
-                viewBtn.setAttribute('data-tcode', selectedOption.value);
-            }
-            
-            // Update Edit button
-            const editBtn = document.querySelector(`.edit-btn-${rowId}`);
-            if (editBtn) {
-                editBtn.href = selectedOption.dataset.editUrl;
-            }
-            
-            // Update Delete form action
-            const deleteForm = document.querySelector(`.delete-form-${rowId}`);
-            if (deleteForm) {
-                deleteForm.action = selectedOption.dataset.deleteUrl;
-            }
+    // Sub-row TCODE toggle
+    window.toggleSubRows = function(rowId) {
+        const subrows = document.querySelectorAll('.subrow-' + rowId);
+        const icon = document.getElementById('icon-sub-' + rowId);
+        const textToggle = document.getElementById('text-toggle-' + rowId);
+        
+        if (subrows.length === 0) return;
+        
+        const isHidden = subrows[0].style.display === 'none';
+        
+        subrows.forEach(row => {
+            row.style.display = isHidden ? 'table-row' : 'none';
         });
-    });
-
+        
+        if (icon) {
+            icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+        
+        if (textToggle) {
+            textToggle.textContent = isHidden ? 'Hide TCODE' : 'View TCODE';
+        }
+    };
 </script>
 @endpush
 

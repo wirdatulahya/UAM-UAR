@@ -128,7 +128,7 @@ class AccessMatrixController extends Controller
     public function updateRequestStatus(Request $request, UamRequest $uamRequest)
     {
         $request->validate([
-            'status' => ['required', 'string', 'in:Approved,Draft,Need Revision,Review,Pending,Done,Rejected'],
+            'status' => ['required', 'string', 'in:Approved,Draft,Need Revision,Return,Review,Pending,Done,Rejected'],
         ]);
 
         $uamRequest->update(['status' => $request->input('status')]);
@@ -141,25 +141,26 @@ class AccessMatrixController extends Controller
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // APPROVE DECISION — AO submits Approved / Need Revision from SAP page
+    // APPROVE DECISION — AO submits Approved / Return from SAP page
     // ────────────────────────────────────────────────────────────────────────
     public function approveDecision(Request $request, UamRequest $uamRequest)
     {
         $validated = $request->validate([
-            'decision'         => ['required', 'in:Approved,Need Revision'],
-            'approver_comment' => ['nullable', 'string', 'max:2000'],
+            'decision'         => ['required', 'in:Approved,Return'],
+            'approver_comment' => ['required', 'string', 'max:2000'],
         ]);
 
-        // Comment is required when decision is Need Revision
-        if ($validated['decision'] === 'Need Revision' && empty(trim($validated['approver_comment'] ?? ''))) {
+        // Comment must contain at least 3 words for both decisions
+        $wordCount = str_word_count(trim($validated['approver_comment']));
+        if ($wordCount < 3) {
             return redirect()->back()
-                ->withErrors(['approver_comment' => 'A comment is required when requesting revision.'])
+                ->withErrors(['approver_comment' => 'Comment must contain at least 3 words.'])
                 ->withInput();
         }
 
         $uamRequest->update([
             'status'           => $validated['decision'],
-            'approver_comment' => trim($validated['approver_comment'] ?? ''),
+            'approver_comment' => trim($validated['approver_comment']),
         ]);
 
         $label = $validated['decision'] === 'Approved' ? 'approved' : 'returned for revision';
@@ -767,26 +768,62 @@ class AccessMatrixController extends Controller
         $validated = $request->validate([
             'role'             => ['required', 'string', 'max:255'],
             'description_role' => ['nullable', 'string'],
-            'tcode'            => ['nullable', 'string', 'max:50'],
+            'tcode'            => ['nullable', 'array'],
+            'tcode.*'          => ['nullable', 'string', 'max:50'],
             'unit'             => ['nullable', 'string', 'max:255'],
             'bpo'              => ['nullable', 'string', 'max:255'],
             'access_owner'     => ['nullable', 'string', 'max:255'],
-            'module'           => ['required', 'string', 'max:255'],
-            'period'           => ['required', 'string', 'in:Q1,Q2,Q3'],
+            'module'           => ['sometimes', 'nullable', 'string', 'max:255'],
+            'period'           => ['sometimes', 'nullable', 'string', 'in:Q1,Q2,Q3'],
             'request_id'       => ['nullable', 'integer', 'exists:uam_requests,id'],
         ]);
 
-        $validated['imported_by'] = Auth::id();
-        UamRecord::create($validated);
+        // When linked to a UAM request, inherit module & period from it authoritatively
+        $requestId  = $validated['request_id'] ?? null;
+        $uamRequest = $requestId ? UamRequest::find($requestId) : null;
+
+        $module = $uamRequest ? $uamRequest->module : ($validated['module'] ?? null);
+        $period = $uamRequest ? $uamRequest->period : ($validated['period'] ?? null);
+
+        // Build the base record fields (everything except tcode)
+        $base = [
+            'role'             => $validated['role'],
+            'description_role' => $validated['description_role'] ?? null,
+            'unit'             => $validated['unit'] ?? null,
+            'bpo'              => $validated['bpo'] ?? null,
+            'access_owner'     => $validated['access_owner'] ?? null,
+            'module'           => $module,
+            'period'           => $period,
+            'request_id'       => $requestId,
+            'imported_by'      => Auth::id(),
+        ];
+
+        // Collect non-empty TCODEs; fall back to [null] so at least one row is created
+        $tcodes = array_filter(
+            array_map('trim', (array)($validated['tcode'] ?? [])),
+            fn($v) => $v !== ''
+        );
+        if (empty($tcodes)) {
+            $tcodes = [null];
+        }
+
+        foreach ($tcodes as $tcode) {
+            UamRecord::create(array_merge($base, ['tcode' => $tcode]));
+        }
 
         $redirectParams = ['search' => $validated['role']];
-        if (!empty($validated['request_id'])) {
-            $redirectParams['request_id'] = $validated['request_id'];
+        if ($requestId) {
+            $redirectParams['request_id'] = $requestId;
         }
+
+        $count = count($tcodes);
+        $msg   = $count === 1
+            ? 'Role created successfully.'
+            : "Role created with {$count} TCODE entries.";
 
         return redirect()
             ->route('access-matrix.sap', $redirectParams)
-            ->with('success', 'Record created successfully.');
+            ->with('success', $msg);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

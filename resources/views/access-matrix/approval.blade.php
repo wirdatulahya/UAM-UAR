@@ -177,9 +177,7 @@
                 </form>
                 @endif
 
-                <button type="button" class="btn btn-primary d-flex align-items-center gap-2" style="background:#0066cc;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;" data-bs-toggle="modal" data-bs-target="#createUamModal">
-                    <i class="bi bi-plus-lg" style="stroke-width: 2px;"></i> CREATE UAM
-                </button>
+
             </div>
         </div>
 
@@ -289,7 +287,7 @@
                                             'Draft'         => ['dot' => '#9ca3af', 'bg' => '#f3f4f6', 'color' => '#6b7280', 'icon' => 'bi-circle-half',          'label' => 'Draft'],
                                             'Review'        => ['dot' => '#f59e0b', 'bg' => '#fffbeb', 'color' => '#92400e', 'icon' => 'bi-circle-fill',          'label' => 'Under Review'],
                                             'Approved','Done'=> ['dot' => '#22c55e', 'bg' => '#f0fdf4', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',   'label' => 'Approved'],
-                                            'Need Revision' => ['dot' => '#ef4444', 'bg' => '#fff5f5', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Need Revision'],
+                                            'Need Revision','Return' => ['dot' => '#ef4444', 'bg' => '#fff5f5', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Return'],
                                             default         => ['dot' => '#9ca3af', 'bg' => '#f9fafb', 'color' => '#6b7280', 'icon' => 'bi-circle',              'label' => $req->status],
                                         };
                                     @endphp
@@ -326,16 +324,47 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
-                                    <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                                        <i class="bi bi-inbox" style="font-size:1.6rem;color:var(--secondary);"></i>
+                                <td colspan="8" style="padding:4rem 1rem;text-align:center;">
+                                    <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
+                                        <button type="button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#createUamModal"
+                                            id="emptyStateCreateBtn"
+                                            title="Create new UAM request"
+                                            style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--secondary) 0%,#1a4d9e 100%);border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(11,46,109,.28);transition:transform .2s,box-shadow .2s;"
+                                            onmouseenter="this.style.transform='scale(1.1)';this.style.boxShadow='0 8px 28px rgba(11,46,109,.40)';"
+                                            onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(11,46,109,.28)';"
+                                        >
+                                            <i class="bi bi-plus-lg" style="font-size:1.75rem;color:#fff;line-height:1;"></i>
+                                        </button>
+                                        <div>
+                                            <p style="font-size:.92rem;font-weight:700;color:var(--secondary);margin:0 0 .2rem;">No requests yet</p>
+                                            <p style="font-size:.8rem;color:var(--text-muted);margin:0;">Click the button above to create your first UAM request.</p>
+                                        </div>
                                     </div>
-                                    <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">No requests yet</h3>
-                                    <p style="font-size:.82rem;color:var(--text-muted);margin:0;">Upload an Excel file above to create your first UAM request.</p>
                                 </td>
                             </tr>
                             @endforelse
                         </tbody>
+                        @if($requests->count() > 0)
+                        <tfoot>
+                            <tr>
+                                <td colspan="8" style="padding:1.1rem 1rem;text-align:center;border-top:1px solid var(--border);background:#fcfcff;">
+                                    <button type="button"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#createUamModal"
+                                        id="addRowCreateBtn"
+                                        title="Add a new UAM request"
+                                        style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--secondary) 0%,#1a4d9e 100%);border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(11,46,109,.25);transition:transform .2s,box-shadow .2s;"
+                                        onmouseenter="this.style.transform='scale(1.12)';this.style.boxShadow='0 6px 18px rgba(11,46,109,.38)';"
+                                        onmouseleave="this.style.transform='';this.style.boxShadow='0 3px 10px rgba(11,46,109,.25)';"
+                                    >
+                                        <i class="bi bi-plus-lg" style="font-size:1.1rem;color:#fff;line-height:1;"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tfoot>
+                        @endif
                     </table>
                 </div>
 
