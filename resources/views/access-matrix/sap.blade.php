@@ -849,12 +849,12 @@
 
                             {{-- Action Buttons --}}
                             <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
-                                <button type="submit" id="submitDecisionBtn"
-                                        disabled
+                                <button type="button" id="submitDecisionBtn"
+                                        disabled onclick="lockStage1()"
                                         style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(11,46,109,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
                                         onmouseenter="if(!this.disabled){this.style.background='#0a2355';this.style.transform='translateY(-1px)';}"
                                         onmouseleave="this.style.background='var(--secondary)';this.style.transform='none';">
-                                    <i class="bi bi-send-fill" style="font-size:.68rem;"></i> Submit Decision
+                                    <i class="bi bi-lock-fill" style="font-size:.68rem;"></i> Lock Decisions
                                 </button>
                                 <a href="{{ route('access-matrix.approval.sap') }}"
                                    style="display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.38rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.73rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all .18s;white-space:nowrap;"
@@ -864,6 +864,37 @@
                                 </a>
                             </div>
 
+                        </div>
+
+                        {{-- Stage 2 UI (Hidden Initially) --}}
+                        <div id="stage2Container" style="display:none;margin-top:1.5rem;padding-top:1.5rem;border-top:1px dashed var(--border);">
+                            <div style="display:flex;align-items:stretch;gap:.85rem;flex-wrap:wrap;">
+                                <div style="flex:1;min-width:280px;display:flex;flex-direction:column;justify-content:center;">
+                                    <div style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">Final Approval Decision</div>
+                                    <div style="font-size:.7rem;color:var(--text-muted);line-height:1.4;" id="stage2Summary">
+                                        0 Approved, 0 Returned TCODEs.
+                                    </div>
+                                </div>
+                                <div style="flex:2;min-width:200px;display:flex;align-items:center;gap:1.5rem;">
+                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
+                                        <input type="radio" name="overall_decision" value="Approved" style="accent-color:#22c55e;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
+                                        <span style="font-size:.85rem;color:#15803d;font-weight:700;">Overall Approve</span>
+                                    </label>
+                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
+                                        <input type="radio" name="overall_decision" value="Return" style="accent-color:#ef4444;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
+                                        <span style="font-size:.85rem;color:#c0392b;font-weight:700;">Overall Return</span>
+                                    </label>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
+                                    <button type="submit" id="finalSubmitBtn"
+                                            disabled
+                                            style="display:inline-flex;align-items:center;gap:.35rem;background:#15803d;color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
+                                            onmouseenter="if(!this.disabled){this.style.background='#166534';this.style.transform='translateY(-1px)';}"
+                                            onmouseleave="this.style.background='#15803d';this.style.transform='none';">
+                                        <i class="bi bi-send-fill" style="font-size:.68rem;"></i> Submit Final Decision
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -901,6 +932,55 @@
                 } else {
                     commentHint.textContent = '— required, minimum 3 words (' + words + '/' + 3 + ')';
                 }
+            }
+
+            function validateStage2Form() {
+                const finalSubmitBtn = document.getElementById('finalSubmitBtn');
+                const selected = document.querySelector('input[name="overall_decision"]:checked');
+                const valid = !!selected;
+                finalSubmitBtn.disabled = !valid;
+                finalSubmitBtn.style.opacity = valid ? '1' : '.45';
+                finalSubmitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
+            }
+
+            function lockStage1() {
+                // Check validity first, just in case
+                const comment = document.getElementById('approverComment').value;
+                if (countWords(comment) < 3) return;
+
+                // Count TCODE decisions and lock them visually
+                const allRadios = document.querySelectorAll('input[type="radio"][name^="decisions"]');
+                let approvedCount = 0;
+                let returnedCount = 0;
+                allRadios.forEach(r => {
+                    if (r.checked) {
+                        if (r.value === 'Approved') approvedCount++;
+                        if (r.value === 'Return') returnedCount++;
+                    }
+                    // lock radios visually but keep them submittable
+                    r.style.pointerEvents = 'none';
+                    if (r.parentElement) {
+                        r.parentElement.style.opacity = '0.6';
+                        r.parentElement.style.cursor = 'default';
+                        r.parentElement.style.pointerEvents = 'none';
+                    }
+                });
+                
+                // lock comment
+                const commentEl = document.getElementById('approverComment');
+                commentEl.readOnly = true;
+                commentEl.style.backgroundColor = '#f9fafb';
+                
+                // update summary
+                const summaryEl = document.getElementById('stage2Summary');
+                summaryEl.innerHTML = `<strong>${approvedCount} Approved</strong>, <strong>${returnedCount} Returned</strong> TCODEs.`;
+                
+                // hide stage 1 submit button, show stage 2
+                document.getElementById('submitDecisionBtn').style.display = 'none';
+                document.getElementById('stage2Container').style.display = 'block';
+                
+                // scroll to stage 2
+                document.getElementById('stage2Container').scrollIntoView({ behavior: 'smooth', block: 'end' });
             }
 
             // Run once on load so button state matches any pre-filled values

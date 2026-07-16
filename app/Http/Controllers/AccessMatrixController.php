@@ -150,6 +150,7 @@ class AccessMatrixController extends Controller
             'decisions'        => ['required', 'array'],
             'decisions.*'      => ['required', 'in:Approved,Return'],
             'approver_comment' => ['required', 'string', 'max:2000'],
+            'overall_decision' => ['required', 'in:Approved,Return'],
         ]);
 
         // Comment must contain at least 3 words
@@ -173,9 +174,8 @@ class AccessMatrixController extends Controller
             $uamRequest->records()->where('id', $recordId)->update(['status' => $decision]);
         }
 
-        // Determine overall request status
-        $hasReturn = in_array('Return', $validated['decisions']);
-        $overallStatus = $hasReturn ? 'Return' : 'Approved';
+        // Use the explicit overall decision from Stage 2
+        $overallStatus = $validated['overall_decision'];
 
         // Record approval history
         UamApprovalHistory::create([
@@ -194,7 +194,7 @@ class AccessMatrixController extends Controller
 
         return redirect()
             ->route('access-matrix.approval.sap')
-            ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully based on individual TCODE decisions.");
+            ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
