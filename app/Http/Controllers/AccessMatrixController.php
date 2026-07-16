@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UamApprovalHistory;
 use App\Models\UamRecord;
 use App\Models\UamRequest;
 use Illuminate\Http\Request;
@@ -176,6 +177,14 @@ class AccessMatrixController extends Controller
         $hasReturn = in_array('Return', $validated['decisions']);
         $overallStatus = $hasReturn ? 'Return' : 'Approved';
 
+        // Record approval history
+        UamApprovalHistory::create([
+            'uam_request_id' => $uamRequest->id,
+            'status'         => $overallStatus,
+            'approver_name'  => Auth::user()->name,
+            'comment'        => trim($validated['approver_comment']),
+        ]);
+
         $uamRequest->update([
             'status'           => $overallStatus,
             'approver_comment' => trim($validated['approver_comment']),
@@ -203,7 +212,7 @@ class AccessMatrixController extends Controller
         // Load the active UAM request batch (if scoped)
         $uamRequest = null;
         if ($requestId) {
-            $uamRequest = UamRequest::find($requestId);
+            $uamRequest = UamRequest::with('approvalHistories')->find($requestId);
         }
 
         // Get dynamically available modules and periods
@@ -1055,7 +1064,13 @@ class AccessMatrixController extends Controller
 
     public function submitRequest(UamRequest $uamRequest)
     {
-        $uamRequest->update(['status' => 'Review']);
+        $uamRequest->update([
+            'status' => 'Review',
+            'approver_comment' => null,
+        ]);
+        
+        $uamRequest->records()->update(['status' => 'Pending']);
+
         return redirect()->route('access-matrix.request.sap')->with('success', 'UAM request submitted successfully for review.');
     }
 }

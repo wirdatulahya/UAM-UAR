@@ -31,8 +31,12 @@
             <div class="position-relative" id="profileDropdownWrapper">
                 <button id="profileDropdownBtn" type="button"
                     style="background:none;border:1.5px solid var(--border);border-radius:40px;padding:.35rem .75rem .35rem .45rem;display:flex;align-items:center;gap:.6rem;cursor:pointer;transition:all var(--transition);">
-                    <div style="width:32px;height:32px;background:var(--secondary);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="bi bi-person-fill" style="color:#fff;font-size:.9rem;"></i>
+                    <div style="width:32px;height:32px;background:var(--secondary);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                        @if(Auth::user()->profile_photo_path)
+                            <img src="{{ asset('storage/' . Auth::user()->profile_photo_path) }}" alt="Profile" style="width:100%;height:100%;object-fit:cover;">
+                        @else
+                            <i class="bi bi-person-fill" style="color:#fff;font-size:.9rem;"></i>
+                        @endif
                     </div>
                     <div class="d-none d-sm-block" style="line-height:1.2;text-align:left;">
                         <div style="font-size:.82rem;font-weight:700;color:var(--text);">{{ Auth::user()->name }}</div>
@@ -52,6 +56,14 @@
                     </div>
 
                     {{-- Settings (active) --}}
+                    <a href="{{ route('profile.index') }}"
+                        style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text);text-decoration:none;transition:background var(--transition);"
+                        onmouseenter="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';"
+                        onmouseleave="this.style.background='';this.style.color='var(--text)';">
+                        <i class="bi bi-person-circle" style="font-size:.9rem;color:var(--text-muted);"></i>
+                        My Profile
+                    </a>
+
                     <a href="{{ route('password.change') }}"
                         style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--secondary);background:var(--secondary-light);text-decoration:none;">
                         <i class="bi bi-gear-fill" style="font-size:.9rem;color:var(--secondary);"></i>

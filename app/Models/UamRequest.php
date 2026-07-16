@@ -40,4 +40,12 @@ class UamRequest extends Model
     {
         return $this->hasMany(UamRecord::class, 'request_id');
     }
+
+    /**
+     * All approval history records for this batch.
+     */
+    public function approvalHistories(): HasMany
+    {
+        return $this->hasMany(UamApprovalHistory::class, 'uam_request_id')->orderBy('created_at', 'desc');
+    }
 }

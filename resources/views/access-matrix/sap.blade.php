@@ -27,8 +27,12 @@
             <div class="position-relative" id="profileDropdownWrapper">
                 <button id="profileDropdownBtn" type="button"
                     style="background:none;border:1.5px solid var(--border);border-radius:40px;padding:.35rem .75rem .35rem .45rem;display:flex;align-items:center;gap:.6rem;cursor:pointer;transition:all var(--transition);">
-                    <div style="width:32px;height:32px;background:var(--secondary);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="bi bi-person-fill" style="color:#fff;font-size:.9rem;"></i>
+                    <div style="width:32px;height:32px;background:var(--secondary);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                        @if(Auth::user()->profile_photo_path)
+                            <img src="{{ asset('storage/' . Auth::user()->profile_photo_path) }}" alt="Profile" style="width:100%;height:100%;object-fit:cover;">
+                        @else
+                            <i class="bi bi-person-fill" style="color:#fff;font-size:.9rem;"></i>
+                        @endif
                     </div>
                     <div class="d-none d-sm-block" style="line-height:1.2;text-align:left;">
                         <div style="font-size:.82rem;font-weight:700;color:var(--text);">{{ Auth::user()->name }}</div>
@@ -45,6 +49,14 @@
                         <div style="font-size:.8rem;font-weight:700;color:var(--secondary);">{{ Auth::user()->name }}</div>
                         <div style="font-size:.7rem;color:var(--text-muted);">{{ Auth::user()->email }}</div>
                     </div>
+
+                    <a href="{{ route('profile.index') }}"
+                        style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text);text-decoration:none;transition:background var(--transition);"
+                        onmouseenter="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';"
+                        onmouseleave="this.style.background='';this.style.color='var(--text)';">
+                        <i class="bi bi-person-circle" style="font-size:.9rem;color:var(--text-muted);"></i>
+                        My Profile
+                    </a>
 
                     <a href="{{ route('password.change') }}"
                         style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text);text-decoration:none;transition:background var(--transition);"
@@ -345,6 +357,7 @@
                         </div>
                     </div>
                 </div>
+
                 @endif
 
 
@@ -413,7 +426,7 @@
                         </div>
                     </div>
 
-                    @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
+                    @if((!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) && empty($isApproval))
                     <a href="{{ route('access-matrix.create', $requestId ? ['request_id' => $requestId] : []) }}"
                        style="display:inline-flex;align-items:center;gap:.45rem;background:var(--primary);color:#fff;border-radius:8px;padding:.42rem 1rem;font-size:.8rem;font-weight:700;text-decoration:none;box-shadow:0 2px 8px rgba(0,102,204,.22);transition:filter .18s;"
                        onmouseenter="this.style.filter='brightness(1.12)'"
@@ -425,11 +438,20 @@
 
                 {{-- Table --}}
                 <div style="overflow-x:auto;">
-                    <table class="uam-table" style="width:100%;border-collapse:collapse;font-size:.82rem;">
+                    <table class="uam-table" style="width:100%;border-collapse:collapse;font-size:.82rem;table-layout:fixed;">
+                        <colgroup>
+                            <col style="width:48px;">         {{-- # --}}
+                            <col style="width:240px;">        {{-- Role --}}
+                            <col style="min-width:0;">        {{-- Description Role (flex) --}}
+                            <col style="width:100px;">        {{-- TCODE --}}
+                            <col style="width:140px;">        {{-- Access --}}
+                            <col style="width:200px;">        {{-- Actions --}}
+                            <col style="width:56px;">         {{-- Expand arrow --}}
+                        </colgroup>
                         <thead>
                             <tr style="background:var(--secondary-light);">
                                 @php
-                                    $thStyle = "padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);";
+                                    $thStyle = "padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;";
                                 @endphp
                                 <th style="{{ $thStyle }}">#</th>
                                 <th style="{{ $thStyle }}">Role</th>
@@ -437,7 +459,7 @@
                                 <th style="{{ $thStyle }}">TCODE</th>
                                 <th style="{{ $thStyle }}">Access</th>
                                 <th style="{{ $thStyle }}">Actions</th>
-                                <th style="{{ $thStyle }} border-left:1px solid #e5e7eb; width:70px; padding-left:20px; padding-right:20px; text-align:center;"></th>
+                                <th style="{{ $thStyle }} border-left:1px solid #e5e7eb; text-align:center; padding-left:0; padding-right:0;"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -450,100 +472,25 @@
                                 <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
                                     onmouseenter="this.style.background='var(--secondary-light)'"
                                     onmouseleave="this.style.background=''">
-                                    <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;">
-                                        <div style="display:flex;align-items:center;gap:.5rem;">
-                                            <span>{{ $roles->firstItem() + $i }}</span>
-                                        </div>
+                                    <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;vertical-align:middle;overflow:hidden;">
+                                        <span>{{ $roles->firstItem() + $i }}</span>
                                     </td>
-                                    <td style="padding:.7rem 1rem;white-space:nowrap;max-width:260px;">
-                                        <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:700;color:var(--secondary);">
+                                    <td style="padding:.7rem 1rem;overflow:hidden;vertical-align:middle;">
+                                        <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:700;color:var(--secondary);display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                             {{ $roleData->role ?? '—' }}
                                         </span>
                                     </td>
-                                    <td style="padding:.7rem 1rem;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                    <td style="padding:.7rem 1rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;"
                                         title="{{ $roleData->description_role }}">
                                         {{ $roleData->description_role ?? '—' }}
                                     </td>
-                                    <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                        @if($roleRecords->count() > 1)
-                                            <span style="color:var(--text-muted);">—</span>
-                                        @else
-                                            <span style="font-family:monospace;background:#eff6ff;padding:.2rem .5rem;border-radius:4px;font-size:.78rem;border:1px solid #bfdbfe;font-weight:700;color:#1d4ed8;">
-                                                {{ $firstRec->tcode ?: '—' }}
-                                            </span>
-                                        @endif
+                                    <td style="padding:.7rem 1rem;overflow:hidden;vertical-align:middle;">
+                                        <span style="color:var(--text-muted);">—</span>
                                     </td>
-                                    <td style="padding:.7rem 1rem;white-space:nowrap;">
-                                        @if($roleRecords->count() == 1)
-                                        <button type="button" class="view-access-btn-{{ $rowId }}" onclick="openAccessModal(this)"
-                                            data-row-id="{{ $rowId }}"
-                                            data-role="{{ htmlspecialchars($roleData->role ?? '—') }}"
-                                            data-tcode="{{ htmlspecialchars($firstRec->tcode ?? '') }}"
-                                            data-request-id="{{ $requestId ?? '' }}"
-                                            style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
-                                            onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
-                                            onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
-                                            <i class="bi bi-shield-lock"></i> View Access
-                                        </button>
-                                        @endif
-                                    </td>
-                                    <td @if($roleRecords->count() == 1) colspan="2" @endif style="padding:.7rem 1rem;white-space:nowrap;">
-                                        @if($roleRecords->count() == 1)
-                                            @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
-                                            <div class="d-flex align-items-center gap-1">
-                                                {{-- Edit --}}
-                                                <a href="{{ $firstRec ? route('access-matrix.edit', $firstRec->id) : '#' }}"
-                                                   class="edit-btn-{{ $rowId }}"
-                                                   style="display:inline-flex;align-items:center;gap:.3rem;background:#fef3c7;color:#d97706;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);text-decoration:none;"
-                                                   onmouseenter="this.style.filter='brightness(0.95)'"
-                                                   onmouseleave="this.style.filter=''">
-                                                    <i class="bi bi-pencil-fill"></i> Edit
-                                                </a>
-                                                {{-- Delete --}}
-                                                <form method="POST" action="{{ $firstRec ? route('access-matrix.destroy', $firstRec->id) : '#' }}"
-                                                      class="delete-form-{{ $rowId }}"
-                                                      onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($roleData->role) }}\nTCODE: {{ addslashes($firstRec->tcode ?? '') }}')"
-                                                      style="margin:0;">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit"
-                                                        style="display:inline-flex;align-items:center;gap:.3rem;background:var(--primary-light);color:var(--primary);border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
-                                                        onmouseenter="this.style.filter='brightness(0.95)'"
-                                                        onmouseleave="this.style.filter=''">
-                                                        <i class="bi bi-trash-fill"></i> Delete
-                                                    </button>
-                                                </form>
-                                            </div>
-                                            @elseif($isApprovalView ?? false)
-                                                @if($firstRec)
-                                                <div class="d-flex align-items-center gap-3">
-                                                    <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;">
-                                                        <input type="radio" form="approvalDecisionForm" name="decisions[{{ $firstRec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
-                                                        <span style="font-size:.75rem;color:#15803d;font-weight:700;">Approve</span>
-                                                    </label>
-                                                    <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;">
-                                                        <input type="radio" form="approvalDecisionForm" name="decisions[{{ $firstRec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
-                                                        <span style="font-size:.75rem;color:#c0392b;font-weight:700;">Return</span>
-                                                    </label>
-                                                </div>
-                                                @endif
-                                            @else
-                                                @if($firstRec)
-                                                @php
-                                                    $status = $firstRec->status ?? 'Pending';
-                                                    $statusColor = match($status) { 'Approved' => '#15803d', 'Return' => '#c0392b', default => '#d97706' };
-                                                    $statusBg = match($status) { 'Approved' => '#f0fdf4', 'Return' => '#fff5f5', default => '#fffbeb' };
-                                                    $statusIcon = match($status) { 'Approved' => 'bi-check-circle-fill', 'Return' => 'bi-arrow-counterclockwise', default => 'bi-clock-fill' };
-                                                @endphp
-                                                <span style="display:inline-flex;align-items:center;gap:.3rem;background:{{ $statusBg }};color:{{ $statusColor }};border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;">
-                                                    <i class="bi {{ $statusIcon }}"></i> {{ $status }}
-                                                </span>
-                                                @endif
-                                            @endif
-                                        @endif
-                                    </td>
-                                    @if($roleRecords->count() > 1)
-                                    <td style="padding:.7rem 20px; white-space:nowrap; border-left:1px solid #e5e7eb; text-align:center; width:70px;">
+                                    <td style="padding:.7rem 1rem;overflow:hidden;vertical-align:middle;"></td>
+                                    <td style="padding:.7rem 1rem;overflow:hidden;vertical-align:middle;"></td>
+                                    {{-- Expand/collapse column — always visible for every row --}}
+                                    <td style="padding:.7rem 0;border-left:1px solid #e5e7eb;text-align:center;vertical-align:middle;">
                                         <button type="button" onclick="toggleSubRows('{{ $rowId }}')" id="btn-toggle-{{ $rowId }}"
                                             style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;color:var(--text-muted);border:none;cursor:pointer;transition:all var(--transition);"
                                             onmouseenter="this.style.color='var(--secondary)';"
@@ -551,61 +498,60 @@
                                             <i class="bi bi-chevron-down" id="icon-sub-{{ $rowId }}" style="transition:transform .2s;font-size:1rem;"></i>
                                         </button>
                                     </td>
-                                    @endif
                                 </tr>
 
-                                {{-- EXPANDED TCODE ROWS --}}
-                                @if($roleRecords->count() > 1)
-                                    @foreach($roleRecords as $rec)
+                                {{-- EXPANDED TCODE ROWS — rendered for all records (single or multiple) --}}
+                                @foreach($roleRecords as $rec)
                                         <tr class="subrow-{{ $rowId }}" style="display:none; border-bottom:1px solid transparent; background:#f1f5f9; transition:background var(--transition), border-color 300ms ease-in-out;"
                                             onmouseenter="this.style.background='var(--secondary-light)'"
                                             onmouseleave="this.style.background='#f1f5f9'">
                                             
-                                            <td style="padding:0;color:var(--text-muted);font-size:.78rem;white-space:nowrap;border:none;">
-                                                <div class="anim-wrapper" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 300ms ease-in-out, opacity 300ms ease-in-out;">
+                                            {{-- # column --}}
+                                            <td style="padding:0;border:none;vertical-align:middle;">
+                                                <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 1rem;display:flex;align-items:center;">
                                                         <div style="width:12px;height:12px;border-left:1.5px solid var(--border);border-bottom:1.5px solid var(--border);margin-left:auto;"></div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            
-                                            <td style="padding:0;white-space:nowrap;max-width:260px;border:none;">
-                                                <div class="anim-wrapper" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 300ms ease-in-out, opacity 300ms ease-in-out;">
+                                            {{-- Role column --}}
+                                            <td style="padding:0;overflow:hidden;border:none;vertical-align:middle;">
+                                                <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 1rem;opacity:0.6;">
-                                                        <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:700;color:var(--secondary);">
+                                                        <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:700;color:var(--secondary);display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                                             {{ $roleData->role ?? '—' }}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            
-                                            <td style="padding:0;color:var(--text);max-width:280px;white-space:nowrap;border:none;">
-                                                <div class="anim-wrapper" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 300ms ease-in-out, opacity 300ms ease-in-out;">
-                                                    <div style="padding:.7rem 1rem;overflow:hidden;text-overflow:ellipsis;opacity:0.6;" title="{{ $roleData->description_role }}">
+                                            {{-- Description Role column --}}
+                                            <td style="padding:0;overflow:hidden;border:none;vertical-align:middle;">
+                                                <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
+                                                    <div style="padding:.7rem 1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.6;" title="{{ $roleData->description_role }}">
                                                         {{ $roleData->description_role ?? '—' }}
                                                     </div>
                                                 </div>
                                             </td>
-                                            
-                                            <td style="padding:0;white-space:nowrap;border:none;">
-                                                <div class="anim-wrapper" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 300ms ease-in-out, opacity 300ms ease-in-out;">
+                                            {{-- TCODE column --}}
+                                            <td style="padding:0;overflow:hidden;border:none;vertical-align:middle;">
+                                                <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 1rem;">
-                                                        <span style="font-family:monospace;background:#eff6ff;padding:.2rem .5rem;border-radius:4px;font-size:.78rem;border:1px solid #bfdbfe;font-weight:700;color:#1d4ed8;">
+                                                        <span style="font-family:monospace;background:#eff6ff;padding:.2rem .5rem;border-radius:4px;font-size:.78rem;border:1px solid #bfdbfe;font-weight:700;color:#1d4ed8;display:inline-block;">
                                                             {{ $rec->tcode ?: '—' }}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            
-                                            <td style="padding:0;white-space:nowrap;border:none;">
-                                                <div class="anim-wrapper" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 300ms ease-in-out, opacity 300ms ease-in-out;">
+                                            {{-- Access column --}}
+                                            <td style="padding:0;overflow:hidden;border:none;vertical-align:middle;">
+                                                <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 1rem;">
                                                         <button type="button" class="view-access-btn-{{ $rowId }}-{{ $rec->id }}" onclick="openAccessModal(this)"
                                                             data-row-id="{{ $rowId }}-{{ $rec->id }}"
                                                             data-role="{{ htmlspecialchars($roleData->role ?? '—') }}"
                                                             data-tcode="{{ htmlspecialchars($rec->tcode ?? '') }}"
                                                             data-request-id="{{ $requestId ?? '' }}"
-                                                            style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
+                                                            style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary-light);color:var(--secondary);border:1px solid var(--border);border-radius:6px;padding:.3rem .75rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);white-space:nowrap;"
                                                             onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff';"
                                                             onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';">
                                                             <i class="bi bi-shield-lock"></i> View Access
@@ -613,66 +559,90 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            
-                                            <td style="padding:0;white-space:nowrap;border:none;">
-                                                <div class="anim-wrapper" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 300ms ease-in-out, opacity 300ms ease-in-out;">
+                                            {{-- Actions column --}}
+                                            <td style="padding:0;overflow:hidden;border:none;vertical-align:middle;">
+                                                <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 1rem;">
-                                                        @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
-                                                        <div class="d-flex align-items-center gap-1">
-                                                            {{-- Edit --}}
-                                                            <a href="{{ route('access-matrix.edit', $rec->id) }}"
-                                                               style="display:inline-flex;align-items:center;gap:.3rem;background:#fef3c7;color:#d97706;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);text-decoration:none;"
-                                                               onmouseenter="this.style.filter='brightness(0.95)'"
-                                                               onmouseleave="this.style.filter=''">
-                                                                <i class="bi bi-pencil-fill"></i> Edit
-                                                            </a>
-                                                            {{-- Delete --}}
-                                                            <form method="POST" action="{{ route('access-matrix.destroy', $rec->id) }}"
-                                                                  onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($roleData->role) }}\nTCODE: {{ addslashes($rec->tcode ?? '') }}')"
-                                                                  style="margin:0;">
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit"
-                                                                    style="display:inline-flex;align-items:center;gap:.3rem;background:var(--primary-light);color:var(--primary);border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);"
-                                                                    onmouseenter="this.style.filter='brightness(0.95)'"
-                                                                    onmouseleave="this.style.filter=''">
-                                                                    <i class="bi bi-trash-fill"></i> Delete
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                        @elseif($isApprovalView ?? false)
-                                                            <div class="d-flex align-items-center gap-3">
-                                                                <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;">
+                                                        @if($isApprovalView ?? false)
+                                                            {{-- ── Approval view: radio buttons ── --}}
+                                                            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.3rem;">
+                                                                <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
                                                                     <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
                                                                     <span style="font-size:.75rem;color:#15803d;font-weight:700;">Approve</span>
                                                                 </label>
-                                                                <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;">
+                                                                <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
                                                                     <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
                                                                     <span style="font-size:.75rem;color:#c0392b;font-weight:700;">Return</span>
                                                                 </label>
                                                             </div>
                                                         @else
                                                             @php
-                                                                $status = $rec->status ?? 'Pending';
-                                                                $statusColor = match($status) { 'Approved' => '#15803d', 'Return' => '#c0392b', default => '#d97706' };
-                                                                $statusBg = match($status) { 'Approved' => '#f0fdf4', 'Return' => '#fff5f5', default => '#fffbeb' };
-                                                                $statusIcon = match($status) { 'Approved' => 'bi-check-circle-fill', 'Return' => 'bi-arrow-counterclockwise', default => 'bi-clock-fill' };
+                                                                $recStatus     = $rec->status ?? 'Pending';
+                                                                $reqStatus     = $uamRequest->status ?? '';
+                                                                $hasDecision   = $uamRequest && !in_array($reqStatus, ['Draft', 'Need Revision']);
+                                                                $isEditable    = (!$uamRequest
+                                                                    || in_array($reqStatus, ['Draft', 'Need Revision'])
+                                                                    || ($reqStatus === 'Return' && $recStatus === 'Return'))
+                                                                    && empty($isApproval);
+                                                                $statusColor = match($recStatus) {
+                                                                    'Approved' => '#15803d',
+                                                                    'Return'   => '#b91c1c',
+                                                                    default    => '#92400e',
+                                                                };
+                                                                $statusIcon  = match($recStatus) {
+                                                                    'Approved' => 'bi-check-circle-fill',
+                                                                    'Return'   => 'bi-arrow-counterclockwise',
+                                                                    default    => 'bi-hourglass-split',
+                                                                };
+                                                                $statusLabel = match($recStatus) {
+                                                                    'Approved' => 'Approved',
+                                                                    'Return'   => 'Returned',
+                                                                    default    => 'Pending Review',
+                                                                };
                                                             @endphp
-                                                            <span style="display:inline-flex;align-items:center;gap:.3rem;background:{{ $statusBg }};color:{{ $statusColor }};border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;">
-                                                                <i class="bi {{ $statusIcon }}"></i> {{ $status }}
-                                                            </span>
+                                                            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;">
+                                                                {{-- Status indicator (shown whenever a decision has been made) --}}
+                                                                @if($hasDecision)
+                                                                <span style="display:inline-flex;align-items:center;gap:.3rem;color:{{ $statusColor }};font-size:.75rem;font-weight:600;white-space:nowrap;"
+                                                                      title="Approval decision for TCODE: {{ $rec->tcode }}">
+                                                                    <i class="bi {{ $statusIcon }}"></i>
+                                                                    {{ $statusLabel }}
+                                                                </span>
+                                                                @endif
+                                                                {{-- Edit / Delete (shown when record is editable) --}}
+                                                                @if($isEditable)
+                                                                <a href="{{ route('access-matrix.edit', $rec->id) }}"
+                                                                   style="display:inline-flex;align-items:center;gap:.3rem;background:#fef3c7;color:#d97706;border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);text-decoration:none;white-space:nowrap;"
+                                                                   onmouseenter="this.style.filter='brightness(0.95)'"
+                                                                   onmouseleave="this.style.filter=''">
+                                                                    <i class="bi bi-pencil-fill"></i> Edit
+                                                                </a>
+                                                                <form method="POST" action="{{ route('access-matrix.destroy', $rec->id) }}"
+                                                                      onsubmit="return confirm('Delete this record?\nRole: {{ addslashes($roleData->role) }}\nTCODE: {{ addslashes($rec->tcode ?? '') }}')"
+                                                                      style="margin:0;">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="submit"
+                                                                        style="display:inline-flex;align-items:center;gap:.3rem;background:var(--primary-light);color:var(--primary);border:none;border-radius:6px;padding:.3rem .6rem;font-size:.72rem;font-weight:600;cursor:pointer;transition:all var(--transition);white-space:nowrap;"
+                                                                        onmouseenter="this.style.filter='brightness(0.95)'"
+                                                                        onmouseleave="this.style.filter=''">
+                                                                        <i class="bi bi-trash-fill"></i> Delete
+                                                                    </button>
+                                                                </form>
+                                                                @endif
+                                                            </div>
                                                         @endif
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style="padding:0;white-space:nowrap;border:none;border-left:1px solid #e5e7eb;">
-                                                <div class="anim-wrapper" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 300ms ease-in-out, opacity 300ms ease-in-out;">
-                                                    <div style="padding:.7rem 20px;"></div>
+                                            {{-- Expand arrow column (empty for sub-rows) --}}
+                                            <td style="padding:0;border:none;border-left:1px solid #e5e7eb;vertical-align:middle;">
+                                                <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
+                                                    <div style="padding:.7rem 0;"></div>
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
-                                @endif
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
@@ -744,8 +714,74 @@
             </div>
         </div>
 
+        {{-- ── Approver Comment Banner ── --}}
+        @if(isset($uamRequest) && $uamRequest && !empty($uamRequest->approver_comment))
+        @php
+            $commentStatus = $uamRequest->status ?? '';
+            $isApproved    = $commentStatus === 'Approved';
+            $commentBorder = $isApproved ? '#bbf7d0' : '#fca5a5';
+            $commentBg     = $isApproved ? '#f0fdf4' : '#fff7f7';
+            $commentIcon   = $isApproved ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+            $commentColor  = $isApproved ? '#15803d' : '#b91c1c';
+            $commentLabel  = $isApproved ? 'Approver Note' : 'Approver Feedback — Action Required';
+        @endphp
+        <div class="animate-in mb-4" style="padding:.9rem 1.1rem;background:{{ $commentBg }};border:1.5px solid {{ $commentBorder }};border-radius:14px;display:flex;align-items:flex-start;gap:.75rem;box-shadow:0 2px 10px rgba(0,0,0,.04);">
+            <div style="width:32px;height:32px;background:{{ $commentColor }};border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem;box-shadow:0 3px 8px rgba(0,0,0,.12);">
+                <i class="bi {{ $commentIcon }}" style="color:#fff;font-size:.85rem;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:.72rem;font-weight:700;color:{{ $commentColor }};text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">
+                    {{ $commentLabel }}
+                </div>
+                <div style="font-size:.84rem;color:#374151;line-height:1.6;white-space:pre-wrap;word-break:break-word;">{{ $uamRequest->approver_comment }}</div>
+            </div>
+        </div>
+        @endif
+
+        {{-- ── Approval History (Audit Trail) ── --}}
+        @if(isset($uamRequest) && $uamRequest && $uamRequest->approvalHistories->count() > 0)
+        <div class="animate-in mb-4" style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.02);">
+            <div style="padding:.75rem 1.25rem;background:#f3f4f6;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:.6rem;">
+                <div style="width:28px;height:28px;background:#d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="bi bi-clock-history" style="color:#4b5563;font-size:.8rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size:.82rem;font-weight:700;color:#374151;line-height:1.2;">Approval History</div>
+                    <div style="font-size:.68rem;color:#6b7280;">Audit trail of past decisions</div>
+                </div>
+            </div>
+            <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:1rem;">
+                @foreach($uamRequest->approvalHistories as $history)
+                    @php
+                        $isHistApprove = $history->status === 'Approved';
+                        $histColor     = $isHistApprove ? '#15803d' : '#b91c1c';
+                        $histIcon      = $isHistApprove ? 'bi-check-circle-fill' : 'bi-arrow-counterclockwise';
+                        $histBg        = $isHistApprove ? '#f0fdf4' : '#fef2f2';
+                    @endphp
+                    <div style="display:flex;gap:1rem;opacity:0.85;">
+                        <div style="width:36px;height:36px;background:{{ $histBg }};border:1px solid {{ $histColor }}33;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem;">
+                            <i class="bi {{ $histIcon }}" style="color:{{ $histColor }};font-size:.9rem;"></i>
+                        </div>
+                        <div style="flex:1;min-width:0;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:.75rem 1rem;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;flex-wrap:wrap;gap:.5rem;">
+                                <div style="display:flex;align-items:center;gap:.5rem;">
+                                    <span style="font-size:.78rem;font-weight:700;color:{{ $histColor }};text-transform:uppercase;letter-spacing:.05em;">{{ $history->status }}</span>
+                                    <span style="color:#9ca3af;font-size:.7rem;">•</span>
+                                    <span style="font-size:.75rem;font-weight:600;color:#4b5563;"><i class="bi bi-person-fill" style="margin-right:.2rem;"></i>{{ $history->approver_name ?: 'System' }}</span>
+                                </div>
+                                <div style="font-size:.7rem;color:#9ca3af;font-weight:500;">
+                                    {{ $history->created_at->format('d M Y, H:i') }}
+                                </div>
+                            </div>
+                            <div style="font-size:.82rem;color:#4b5563;line-height:1.5;white-space:pre-wrap;word-break:break-word;">{{ $history->comment ?: 'No comment provided.' }}</div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
         {{-- Submit Action (for Requester) --}}
-        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
+        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
                 <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
                     @csrf
@@ -964,7 +1000,7 @@
                             <div style="display:flex;align-items:center;gap:.5rem;">
                                 <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                                 {{-- Edit toggle --}}
-                                @if(!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
+                                @if((!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) && empty($isApproval))
                                 <button id="editOwnersBtn" type="button" onclick="toggleEditOwners()"
                                     style="font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;border:1.5px solid #166534;background:#fff;color:#166534;cursor:pointer;transition:all .15s;">
                                     <i class="bi bi-pencil-fill me-1"></i>Edit
