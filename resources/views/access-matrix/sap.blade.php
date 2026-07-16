@@ -445,7 +445,7 @@
                             <col style="min-width:0;">        {{-- Description Role (flex) --}}
                             <col style="width:100px;">        {{-- TCODE --}}
                             <col style="width:140px;">        {{-- Access --}}
-                            <col style="width:200px;">        {{-- Actions --}}
+                            <col style="width:100px;">        {{-- Actions --}}
                             <col style="width:56px;">         {{-- Expand arrow --}}
                         </colgroup>
                         <thead>
@@ -468,6 +468,7 @@
                                     $roleRecords = $recordsMap[$roleData->role] ?? collect();
                                     $firstRec = $roleRecords->first();
                                     $rowId = 'row-' . md5($roleData->role);
+                                    $returnedCount = $roleRecords->where('status', 'Return')->count();
                                 @endphp
                                 <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
                                     onmouseenter="this.style.background='var(--secondary-light)'"
@@ -489,13 +490,16 @@
                                     </td>
                                     <td style="padding:.7rem 1rem;overflow:hidden;vertical-align:middle;"></td>
                                     <td style="padding:.7rem 1rem;overflow:hidden;vertical-align:middle;"></td>
-                                    {{-- Expand/collapse column — always visible for every row --}}
+                                    {{-- Expand arrow column --}}
                                     <td style="padding:.7rem 0;border-left:1px solid #e5e7eb;text-align:center;vertical-align:middle;">
                                         <button type="button" onclick="toggleSubRows('{{ $rowId }}')" id="btn-toggle-{{ $rowId }}"
-                                            style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;color:var(--text-muted);border:none;cursor:pointer;transition:all var(--transition);"
+                                            style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;color:var(--text-muted);border:none;cursor:pointer;transition:all var(--transition);"
                                             onmouseenter="this.style.color='var(--secondary)';"
                                             onmouseleave="this.style.color='var(--text-muted)';">
                                             <i class="bi bi-chevron-down" id="icon-sub-{{ $rowId }}" style="transition:transform .2s;font-size:1rem;"></i>
+                                            @if($returnedCount > 0)
+                                                <span style="position:absolute; top:-6px; right:-8px; background:#ef4444; color:#fff; font-size:0.65rem; font-weight:700; padding:0.15rem 0.35rem; border-radius:12px; border:2px solid #fff; line-height:1; transform: scale(0.9);" title="{{ $returnedCount }} returned item(s)">{{ $returnedCount }}</span>
+                                            @endif
                                         </button>
                                     </td>
                                 </tr>
@@ -645,7 +649,7 @@
                                 @endforeach
                             @empty
                                 <tr>
-                                    <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
+                                    <td colspan="7" style="padding:3.5rem 1rem;text-align:center;">
                                         @if($search)
                                             {{-- Searched but no results --}}
                                             <div style="width:56px;height:56px;background:var(--primary-light);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
