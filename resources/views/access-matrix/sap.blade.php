@@ -1324,6 +1324,15 @@
         if (textToggle) {
             textToggle.textContent = isHidden ? 'Hide TCODE' : 'View TCODE';
         }
+        
+        // Hide parent action buttons when expanded
+        const viewBtn = document.querySelector('.view-access-btn-' + rowId);
+        const editBtn = document.querySelector('.edit-btn-' + rowId);
+        const deleteForm = document.querySelector('.delete-form-' + rowId);
+        
+        if (viewBtn) viewBtn.style.display = isHidden ? 'none' : 'inline-flex';
+        if (editBtn) editBtn.style.display = isHidden ? 'none' : 'inline-flex';
+        if (deleteForm) deleteForm.style.display = isHidden ? 'none' : 'block';
     };
 </script>
 @endpush
