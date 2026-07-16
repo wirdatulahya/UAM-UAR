@@ -146,11 +146,12 @@ class AccessMatrixController extends Controller
     public function approveDecision(Request $request, UamRequest $uamRequest)
     {
         $validated = $request->validate([
-            'decision'         => ['required', 'in:Approved,Return'],
+            'decisions'        => ['required', 'array'],
+            'decisions.*'      => ['required', 'in:Approved,Return'],
             'approver_comment' => ['required', 'string', 'max:2000'],
         ]);
 
-        // Comment must contain at least 3 words for both decisions
+        // Comment must contain at least 3 words
         $wordCount = str_word_count(trim($validated['approver_comment']));
         if ($wordCount < 3) {
             return redirect()->back()
@@ -158,16 +159,33 @@ class AccessMatrixController extends Controller
                 ->withInput();
         }
 
+        // Ensure a decision was made for all records in the request
+        $expectedCount = $uamRequest->records()->count();
+        if (count($validated['decisions']) !== $expectedCount) {
+            return redirect()->back()
+                ->withErrors(['decisions' => 'Please make a decision (Approve or Return) for every TCODE record.'])
+                ->withInput();
+        }
+
+        // Update each record's status independently
+        foreach ($validated['decisions'] as $recordId => $decision) {
+            $uamRequest->records()->where('id', $recordId)->update(['status' => $decision]);
+        }
+
+        // Determine overall request status
+        $hasReturn = in_array('Return', $validated['decisions']);
+        $overallStatus = $hasReturn ? 'Return' : 'Approved';
+
         $uamRequest->update([
-            'status'           => $validated['decision'],
+            'status'           => $overallStatus,
             'approver_comment' => trim($validated['approver_comment']),
         ]);
 
-        $label = $validated['decision'] === 'Approved' ? 'approved' : 'returned for revision';
+        $label = $overallStatus === 'Approved' ? 'approved' : 'returned for revision';
 
         return redirect()
             ->route('access-matrix.approval.sap')
-            ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully.");
+            ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully based on individual TCODE decisions.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
