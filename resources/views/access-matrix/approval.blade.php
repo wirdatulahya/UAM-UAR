@@ -107,6 +107,9 @@
                 <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
+                <a href="{{ route('access-matrix.uam-request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                    Accept
+                </a>
                 <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Approval Access Matrix
                 </a>
@@ -297,7 +300,7 @@
                                     @php
                                         $si = match($req->status) {
                                             'Draft'         => ['dot' => '#9ca3af', 'bg' => '#f3f4f6', 'color' => '#6b7280', 'icon' => 'bi-circle-half',          'label' => 'Draft'],
-                                            'Review'        => ['dot' => '#f59e0b', 'bg' => '#fffbeb', 'color' => '#92400e', 'icon' => 'bi-circle-fill',          'label' => 'Under Review'],
+                                            'Review', 'Stage 2' => ['dot' => '#f59e0b', 'bg' => '#fffbeb', 'color' => '#92400e', 'icon' => 'bi-circle-fill',          'label' => 'Under Review'],
                                             'Approved','Done'=> ['dot' => '#22c55e', 'bg' => '#f0fdf4', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',   'label' => 'Approved'],
                                             'Need Revision','Return','Returned' => ['dot' => '#ef4444', 'bg' => '#fff5f5', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Returned'],
                                             default         => ['dot' => '#9ca3af', 'bg' => '#f9fafb', 'color' => '#6b7280', 'icon' => 'bi-circle',              'label' => $req->status],

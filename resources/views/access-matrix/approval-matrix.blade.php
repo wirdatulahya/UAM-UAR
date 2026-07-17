@@ -107,10 +107,10 @@
                 <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
-                <a href="{{ route('access-matrix.uam-request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.approval.sap') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Accept
                 </a>
-                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.approval.sap') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Approval Access Matrix
                 </a>
             </div>
@@ -144,7 +144,7 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item d-flex align-items-center">
-                    <a href="{{ route('access-matrix.approval.index') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
+                    <a href="{{ route('access-matrix.approval.sap') }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
                        onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">Approval Access Matrix</a>
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
@@ -179,7 +179,7 @@
         <div class="mb-4 animate-in d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Approval Access Matrix</h1>
-                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Review and approve submitted user access matrix requests</p>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Final review of accepted requests</p>
             </div>
         </div>
 
@@ -236,7 +236,7 @@
                             <i class="bi bi-inbox-fill" style="color:var(--secondary);font-size:.95rem;"></i>
                         </div>
                         <div>
-                            <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">UAM Requests</div>
+                            <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">Approval Pending Requests</div>
                             <div style="font-size:.72rem;color:var(--text-muted);">
                                 {{ $requests->count() }} request(s)
                                 @if($filterApplication || $filterYear || $filterPeriod || $search)
@@ -259,16 +259,17 @@
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Modul</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Requested By</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">AO</th>
+                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Summary</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Status</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);text-align:center;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($requests as $req)
-                            <tr style="cursor:pointer;transition:background var(--transition);"
-                                onmouseenter="this.style.background='var(--secondary-light)'"
+                            <tr style="transition:background var(--transition); {{ $req->status !== 'Review' ? 'cursor:pointer;' : '' }}"
+                                onmouseenter="{{ $req->status !== 'Review' ? 'this.style.background=\'var(--secondary-light)\'' : '' }}"
                                 onmouseleave="this.style.background=''"
-                                onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'approval']) }}'">
+                                onclick="if('{{ $req->status }}' !== 'Review') window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'stage2']) }}'">
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;color:var(--text-muted);">{{ $req->no }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;font-weight:500;">{{ $req->application }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->period }} {{ $req->year }}</td>
@@ -283,13 +284,30 @@
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
                                 </td>
+                                
+                                <td style="padding:1rem 1.25rem;vertical-align:middle;">
+                                    @if($req->status === 'Review')
+                                        <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;">Pending Accept Review</div>
+                                    @else
+                                        @php
+                                            $approved = $req->records()->where('status', 'Approved')->count();
+                                            $returned = $req->records()->where('status', 'Return')->count();
+                                        @endphp
+                                        <div style="font-size:.78rem;color:var(--text-muted);white-space:nowrap;">
+                                            <span style="color:#15803d;font-weight:600;">{{ $approved }} Approved</span>, 
+                                            <span style="color:#b91c1c;font-weight:600;">{{ $returned }} Returned</span>
+                                        </div>
+                                    @endif
+                                </td>
+
                                 <td style="padding:.9rem 1.25rem;vertical-align:middle;" onclick="event.stopPropagation();">
                                     @php
                                         $si = match($req->status) {
                                             'Draft'         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle-half',           'label' => 'Draft'],
-                                            'Review'        => ['dot' => '#f59e0b', 'color' => '#92400e', 'icon' => 'bi-circle-fill',           'label' => 'Under Review'],
+                                            'Review'        => ['dot' => '#f59e0b', 'color' => '#92400e', 'icon' => 'bi-circle-fill',           'label' => 'Waiting for Accept Review'],
+                                            'Stage 2'       => ['dot' => '#3b82f6', 'color' => '#1d4ed8', 'icon' => 'bi-circle-fill',           'label' => 'Pending Final Approval'],
                                             'Approved','Done'=> ['dot' => '#22c55e', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',    'label' => 'Approved'],
-                                            'Need Revision','Return','Returned' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Returned'],
+                                            'Need Revision','Return' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Return'],
                                             default         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle',               'label' => $req->status],
                                         };
                                     @endphp
@@ -299,17 +317,31 @@
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;" onclick="event.stopPropagation();">
-                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'approval']) }}"
+                                    @if($req->status === 'Stage 2')
+                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'stage2']) }}"
                                        class="btn btn-sm"
                                        style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;transition:filter var(--transition);"
                                        onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
-                                       <i class="bi bi-eye-fill me-1"></i> View Details
+                                       <i class="bi bi-box-arrow-in-up-right me-1"></i> Review
                                     </a>
+                                    @elseif($req->status === 'Review')
+                                    <button class="btn btn-sm" disabled
+                                       style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:#9ca3af;background:#f3f4f6;border:none;border-radius:6px;cursor:not-allowed;">
+                                       <i class="bi bi-lock-fill me-1"></i> Locked
+                                    </button>
+                                    @else
+                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'stage2']) }}"
+                                       class="btn btn-sm"
+                                       style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--secondary);background:var(--secondary-light);border:none;border-radius:6px;transition:filter var(--transition);"
+                                       onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
+                                       <i class="bi bi-eye-fill me-1"></i> View
+                                    </a>
+                                    @endif
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
+                                <td colspan="9" style="padding:3.5rem 1rem;text-align:center;">
                                     <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
                                         <i class="bi bi-inbox" style="font-size:1.6rem;color:var(--secondary);"></i>
                                     </div>

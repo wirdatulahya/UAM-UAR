@@ -46,8 +46,17 @@ Route::middleware('auth')->group(function () {
     // ── Modules Entry Pages ───────────────────────────────────────
     Route::get('/access-matrix/request', [AccessMatrixController::class, 'requestModules'])
         ->name('access-matrix.request.index');
-    Route::get('/access-matrix/approval', [AccessMatrixController::class, 'approvalModules'])
+    Route::get('/access-matrix/uam-request', [AccessMatrixController::class, 'acceptModules'])
+        ->name('access-matrix.uam-request.index');
+    Route::get('/access-matrix/approval', [AccessMatrixController::class, 'approvalLanding'])
         ->name('access-matrix.approval.index');
+
+    
+    // ── Accept & Approval Lists ────────────────────────────────────────────────
+    Route::get('/access-matrix/uam-request/sap', [AccessMatrixController::class, 'uamRequestList'])
+        ->name('access-matrix.uam-request.sap');
+    Route::get('/access-matrix/approval/sap', [AccessMatrixController::class, 'approvalList'])
+        ->name('access-matrix.approval.sap');
 
     // ── Request Access Matrix (UAM SAP) ──────────────────────────────────────────────
     Route::get('/access-matrix/request/sap', [AccessMatrixController::class, 'approval'])
@@ -60,6 +69,8 @@ Route::middleware('auth')->group(function () {
         ->name('access-matrix.approval.sap');
     Route::post('/access-matrix/approval/{uamRequest}/status', [AccessMatrixController::class, 'updateRequestStatus'])
         ->name('access-matrix.update-status');
+    Route::post('/access-matrix/approval/{uamRequest}/decide', [AccessMatrixController::class, 'approveDecision'])
+        ->name('access-matrix.approve-decision');
 
     // ── Import Excel (from Request UAM page) ──────────────────────────────
     Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])

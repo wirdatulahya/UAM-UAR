@@ -1,52 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'User Access Matrix Modules')
-
-@push('styles')
-<style>
-    .module-landing-card {
-        background: #fff;
-        border: 1.5px solid var(--border);
-        border-radius: 16px;
-        padding: 1.75rem;
-        position: relative;
-        overflow: hidden;
-        transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-        cursor: pointer;
-        text-decoration: none;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .module-landing-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--card-shadow);
-        border-color: var(--secondary);
-    }
-
-    .module-landing-card:hover .btn-enter i {
-        transform: translateX(4px);
-    }
-
-    .module-landing-card:hover .btn-enter {
-        color: var(--primary-dark) !important;
-    }
-
-    .module-landing-card-disabled {
-        background: rgba(255,255,255,0.7);
-        border: 1.5px solid var(--border);
-        border-radius: 16px;
-        padding: 1.75rem;
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        opacity: 0.8;
-    }
-</style>
-@endpush
+@section('title', 'Approval Access Matrix')
 
 @section('content')
 
@@ -56,17 +10,16 @@
         <div class="d-flex align-items-center justify-content-between">
 
             <div class="d-flex align-items-center gap-2">
-
                 {{-- Brand --}}
-            <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
-                <div class="brand-dot">
-                    <i class="bi bi-shield-lock-fill"></i>
-                </div>
-                <div>
-                    <div class="brand-text-main">AccessHub</div>
-                    <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
-                </div>
-            </a>
+                <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
+                    <div class="brand-dot">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <div>
+                        <div class="brand-text-main">AccessHub</div>
+                        <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
+                    </div>
+                </a>
             </div>
 
             {{-- Right — Profile Dropdown --}}
@@ -98,40 +51,31 @@
 
                     <a href="{{ route('profile.index') }}"
                         style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text);text-decoration:none;transition:background var(--transition);"
-                        onmouseenter="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';"
-                        onmouseleave="this.style.background='';this.style.color='var(--text)';">
-                        <i class="bi bi-person-circle" style="font-size:.9rem;color:var(--text-muted);"></i>
-                        My Profile
+                        onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background='none'">
+                        <i class="bi bi-person" style="font-size:1rem;color:var(--secondary);"></i> My Profile
                     </a>
-
                     <a href="{{ route('password.change') }}"
                         style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text);text-decoration:none;transition:background var(--transition);"
-                        onmouseenter="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';"
-                        onmouseleave="this.style.background='';this.style.color='var(--text)';">
-                        <i class="bi bi-gear-fill" style="font-size:.9rem;color:var(--text-muted);"></i>
-                        Change Password
+                        onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background='none'">
+                        <i class="bi bi-key" style="font-size:1rem;color:var(--secondary);"></i> Change Password
                     </a>
 
-                    <div style="height:1px;background:var(--border);"></div>
-
-                    <form method="POST" action="{{ route('logout') }}" id="logoutForm">
-                        @csrf
-                        <button type="submit" id="logoutBtn"
-                            style="display:flex;align-items:center;gap:.65rem;width:100%;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:#c0392b;background:none;border:none;cursor:pointer;transition:background var(--transition);"
-                            onmouseenter="this.style.background='#fde8e9';"
-                            onmouseleave="this.style.background='';">
-                            <i class="bi bi-box-arrow-right" style="font-size:.9rem;"></i>
-                            Logout
-                        </button>
-                    </form>
+                    <div style="border-top:1px solid var(--border);padding:.5rem;">
+                        <form method="POST" action="{{ route('logout') }}" id="logoutForm">
+                            @csrf
+                            <button type="submit" class="btn-logout w-100 justify-content-center" id="logoutBtn">
+                                <i class="bi bi-box-arrow-right"></i>
+                                Logout
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
-
         </div>
     </div>
 </nav>
 
-{{-- ─── App Shell ──────────────────────────────────────────────────── --}}
+{{-- ─── App Shell (Sidebar + Main) ────────────────────────────────── --}}
 <div class="d-flex" style="min-height:calc(100vh - 57px);">
 
     {{-- Sidebar --}}
@@ -194,7 +138,7 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 <li class="breadcrumb-item active" style="color:var(--secondary);font-weight:600;margin-left:.35rem;" aria-current="page">
-                    {{ $type === 'request' ? 'Request Access Matrix' : ($type === 'accept' ? 'Accept' : 'Approval Access Matrix') }}
+                    Approval Access Matrix
                 </li>
             </ol>
         </nav>
@@ -202,48 +146,29 @@
         {{-- ── Page Header ── --}}
         <div class="mb-4 animate-in">
             <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                <i class="bi bi-table me-2" style="color:var(--primary);"></i>
-                {{ $type === 'request' ? 'Request Access Matrix Modules' : ($type === 'accept' ? 'Accept Modules' : 'Approval Access Matrix Modules') }}
+                <i class="bi bi-ui-checks-grid me-2" style="color:var(--primary);"></i>
+                Approval Access Matrix
             </h1>
             <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                Select a target system module to {{ $type === 'request' ? 'submit and manage requests' : ($type === 'accept' ? 'review TCODEs for' : 'provide final approvals for') }}.
+                Future feature placeholder. Ready for redevelopment.
             </p>
         </div>
 
-        {{-- ── Modules Grid ── --}}
+        {{-- ── Placeholder Content ── --}}
         <div class="row g-4 animate-in animate-in-delay-1">
-
-            {{-- 1. UAM SAP Module Card --}}
-            <div class="col-12 col-md-6 col-xl-4">
-                <a href="{{ $type === 'request' ? route('access-matrix.request.sap') : ($type === 'accept' ? route('access-matrix.uam-request.sap') : route('access-matrix.approval.sap')) }}" class="module-landing-card">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div style="width:52px;height:52px;background:{{ $type === 'request' ? 'var(--secondary-light)' : ($type === 'accept' ? '#fffbeb' : '#fde8e9') }};border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="bi {{ $type === 'request' ? 'bi-pc-display-horizontal' : ($type === 'accept' ? 'bi-card-checklist' : 'bi-check2-square') }}" style="font-size:1.5rem;color:{{ $type === 'request' ? 'var(--secondary)' : ($type === 'accept' ? '#f59e0b' : '#E31E24') }};"></i>
-                        </div>
-                        <div>
-                            <h2 style="font-size:1.15rem;font-weight:800;color:{{ $type === 'request' ? 'var(--secondary)' : ($type === 'accept' ? '#f59e0b' : '#E31E24') }};margin:0;">UAM SAP</h2>
-                            <span style="display:inline-flex;align-items:center;gap:.25rem;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
-                                <i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Active
-                            </span>
-                            @if(isset($pendingCount) && $pendingCount > 0)
-                            <span style="display:inline-flex;align-items:center;gap:.25rem;background:{{ $type === 'request' ? '#f3f4f6' : ($type === 'accept' ? '#fef3c7' : '#fee2e2') }};color:{{ $type === 'request' ? '#4b5563' : ($type === 'accept' ? '#92400e' : '#991b1b') }};border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;margin-left:.25rem;">
-                                {{ $pendingCount }} Pending
-                            </span>
-                            @endif
-                        </div>
+            <div class="col-12">
+                <div style="background:#fff;border:1.5px dashed var(--border);border-radius:16px;padding:3rem 1.5rem;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);">
+                    <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;">
+                        <i class="bi bi-tools" style="font-size:1.8rem;color:var(--secondary);"></i>
                     </div>
-
-                    <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.5rem;">
-                        {{ $type === 'request' ? 'Submit and manage user access matrix requests for SAP modules.' : ($type === 'accept' ? 'Review individual TCODEs for pending UAM requests waiting for accept review.' : 'Process final approvals for UAM SAP requests.') }}
+                    <h3 style="font-size:1.15rem;font-weight:800;color:var(--secondary);margin-bottom:.5rem;">Module Temporarily Disabled</h3>
+                    <p style="font-size:.85rem;max-width:400px;margin-bottom:0;">
+                        The functionality of this module has been migrated to Accept. This section is currently a placeholder undergoing redevelopment.
                     </p>
-
-                    <div class="d-flex align-items-center justify-content-between pt-3" style="border-top:1px solid var(--border); margin-top:auto;">
-                        <span style="font-size:.7rem;color:var(--text-muted);">
-                            <i class="bi bi-clock-history me-1"></i> {{ $lastUpdated ? 'Updated ' . $lastUpdated->diffForHumans() : 'No updates' }}
-                        </span>
-
-
+                </div>
+            </div>
         </div>
+
     </main>
 
 </div>
@@ -279,6 +204,3 @@
     });
 </script>
 @endpush
-
-
-

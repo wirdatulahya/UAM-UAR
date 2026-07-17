@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Approval Access Matrix')
+@section('title', 'Accept')
 
 @section('content')
 {{-- Navbar --}}
@@ -107,7 +107,7 @@
                 <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
-                <a href="{{ route('access-matrix.uam-request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                <a href="{{ route('access-matrix.uam-request.sap') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Accept
                 </a>
                 <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
@@ -178,14 +178,14 @@
         {{-- Page Header --}}
         <div class="mb-4 animate-in d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Approval Access Matrix</h1>
-                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Review and approve submitted user access matrix requests</p>
+                <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Accept</h1>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Review and manage user access matrix requests</p>
             </div>
         </div>
 
         {{-- ── Filters & Search ──────────────────────────────────────────────── --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in animate-in-delay-2" style="gap:1rem;flex-wrap:wrap;">
-            <form method="GET" action="{{ route('access-matrix.approval.sap') }}" id="filterForm"
+            <form method="GET" action="{{ route('access-matrix.uam-request.sap') }}" id="filterForm"
                   class="d-flex align-items-center gap-3 flex-wrap" style="flex:1;">
                 <select name="application" class="form-select" style="width:200px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
                         onchange="document.getElementById('filterForm').submit()">
@@ -213,7 +213,7 @@
                     <i class="bi bi-search" style="font-size:.8rem;"></i> SEARCH
                 </button>
                 @if($filterApplication || $filterYear || $filterPeriod || $search)
-                    <a href="{{ route('access-matrix.approval.sap') }}"
+                    <a href="{{ route('access-matrix.uam-request.sap') }}"
                        style="display:inline-flex;align-items:center;gap:.3rem;padding:.45rem .9rem;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
                        onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
@@ -236,7 +236,7 @@
                             <i class="bi bi-inbox-fill" style="color:var(--secondary);font-size:.95rem;"></i>
                         </div>
                         <div>
-                            <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">UAM Requests</div>
+                            <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">Accept Requests</div>
                             <div style="font-size:.72rem;color:var(--text-muted);">
                                 {{ $requests->count() }} request(s)
                                 @if($filterApplication || $filterYear || $filterPeriod || $search)
@@ -288,8 +288,9 @@
                                         $si = match($req->status) {
                                             'Draft'         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle-half',           'label' => 'Draft'],
                                             'Review'        => ['dot' => '#f59e0b', 'color' => '#92400e', 'icon' => 'bi-circle-fill',           'label' => 'Under Review'],
+                                            'Stage 2'       => ['dot' => '#3b82f6', 'color' => '#1d4ed8', 'icon' => 'bi-circle-fill',           'label' => 'Pending Final Approval'],
                                             'Approved','Done'=> ['dot' => '#22c55e', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',    'label' => 'Approved'],
-                                            'Need Revision','Return','Returned' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Returned'],
+                                            'Need Revision','Return' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Return'],
                                             default         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle',               'label' => $req->status],
                                         };
                                     @endphp
@@ -299,12 +300,21 @@
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;" onclick="event.stopPropagation();">
+                                    @if($req->status === 'Review')
                                     <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'approval']) }}"
                                        class="btn btn-sm"
                                        style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;transition:filter var(--transition);"
                                        onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
-                                       <i class="bi bi-eye-fill me-1"></i> View Details
+                                       <i class="bi bi-box-arrow-in-up-right me-1"></i> Review
                                     </a>
+                                    @else
+                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'approval']) }}"
+                                       class="btn btn-sm"
+                                       style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--secondary);background:var(--secondary-light);border:none;border-radius:6px;transition:filter var(--transition);"
+                                       onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
+                                       <i class="bi bi-eye-fill me-1"></i> View
+                                    </a>
+                                    @endif
                                 </td>
                             </tr>
                             @empty
