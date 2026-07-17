@@ -286,7 +286,7 @@
                                             'Draft'         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle-half',           'label' => 'Draft'],
                                             'Review'        => ['dot' => '#f59e0b', 'color' => '#92400e', 'icon' => 'bi-circle-fill',           'label' => 'Under Review'],
                                             'Approved','Done'=> ['dot' => '#22c55e', 'color' => '#15803d', 'icon' => 'bi-check-circle-fill',    'label' => 'Approved'],
-                                            'Need Revision','Return' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Return'],
+                                            'Need Revision','Return','Returned' => ['dot' => '#ef4444', 'color' => '#b91c1c', 'icon' => 'bi-exclamation-circle-fill','label' => 'Returned'],
                                             default         => ['dot' => '#9ca3af', 'color' => '#6b7280', 'icon' => 'bi-circle',               'label' => $req->status],
                                         };
                                     @endphp
@@ -300,7 +300,7 @@
                                        class="btn btn-sm"
                                        style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;transition:filter var(--transition);"
                                        onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
-                                       <i class="bi bi-box-arrow-in-up-right me-1"></i> Review
+                                       <i class="bi bi-eye-fill me-1"></i> View Details
                                     </a>
                                 </td>
                             </tr>

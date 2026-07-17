@@ -141,61 +141,7 @@ class AccessMatrixController extends Controller
         return redirect()->back()->with('success', 'Status updated successfully.');
     }
 
-    // ────────────────────────────────────────────────────────────────────────
-    // APPROVE DECISION — AO submits Approved / Return from SAP page
-    // ────────────────────────────────────────────────────────────────────────
-    public function approveDecision(Request $request, UamRequest $uamRequest)
-    {
-        $validated = $request->validate([
-            'decisions'        => ['required', 'array'],
-            'decisions.*'      => ['required', 'in:Approved,Return'],
-            'approver_comment' => ['required', 'string', 'max:2000'],
-            'overall_decision' => ['required', 'in:Approved,Return'],
-        ]);
 
-        // Comment must contain at least 3 words
-        $wordCount = str_word_count(trim($validated['approver_comment']));
-        if ($wordCount < 3) {
-            return redirect()->back()
-                ->withErrors(['approver_comment' => 'Comment must contain at least 3 words.'])
-                ->withInput();
-        }
-
-        // Ensure a decision was made for all records in the request
-        $expectedCount = $uamRequest->records()->count();
-        if (count($validated['decisions']) !== $expectedCount) {
-            return redirect()->back()
-                ->withErrors(['decisions' => 'Please make a decision (Approve or Return) for every TCODE record.'])
-                ->withInput();
-        }
-
-        // Update each record's status independently
-        foreach ($validated['decisions'] as $recordId => $decision) {
-            $uamRequest->records()->where('id', $recordId)->update(['status' => $decision]);
-        }
-
-        // Use the explicit overall decision from Stage 2
-        $overallStatus = $validated['overall_decision'];
-
-        // Record approval history
-        UamApprovalHistory::create([
-            'uam_request_id' => $uamRequest->id,
-            'status'         => $overallStatus,
-            'approver_name'  => Auth::user()->name,
-            'comment'        => trim($validated['approver_comment']),
-        ]);
-
-        $uamRequest->update([
-            'status'           => $overallStatus,
-            'approver_comment' => trim($validated['approver_comment']),
-        ]);
-
-        $label = $overallStatus === 'Approved' ? 'approved' : 'returned for revision';
-
-        return redirect()
-            ->route('access-matrix.approval.sap')
-            ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully.");
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // SAP — Search by Role; filter by request_id when provided
@@ -1062,15 +1008,58 @@ class AccessMatrixController extends Controller
         return response()->json(['success' => true, 'updated' => $records->count()]);
     }
 
-    public function submitRequest(UamRequest $uamRequest)
+    public function submitRequest(Request $request, UamRequest $uamRequest)
     {
-        $uamRequest->update([
-            'status' => 'Review',
-            'approver_comment' => null,
+        $validated = $request->validate([
+            'decisions'        => ['required', 'array'],
+            'decisions.*'      => ['required', 'in:Approved,Return'],
+            'approver_comment' => ['required', 'string', 'max:2000'],
         ]);
-        
-        $uamRequest->records()->update(['status' => 'Pending']);
 
-        return redirect()->route('access-matrix.request.sap')->with('success', 'UAM request submitted successfully for review.');
+        // Comment must contain at least 3 words
+        $wordCount = str_word_count(trim($validated['approver_comment']));
+        if ($wordCount < 3) {
+            return redirect()->back()
+                ->withErrors(['approver_comment' => 'Comment must contain at least 3 words.'])
+                ->withInput();
+        }
+
+        // Ensure a decision was made for all records in the request
+        $expectedCount = $uamRequest->records()->count();
+        if (count($validated['decisions']) !== $expectedCount) {
+            return redirect()->back()
+                ->withErrors(['decisions' => 'Please make a decision (Approve or Return) for every TCODE record.'])
+                ->withInput();
+        }
+
+        // Update each record's status independently
+        foreach ($validated['decisions'] as $recordId => $decision) {
+            $uamRequest->records()->where('id', $recordId)->update(['status' => $decision]);
+        }
+
+        // Calculate overall status automatically
+        // If all items are approved, the request status becomes Approved.
+        // If one or more items are returned, the request status becomes Returned.
+        $hasReturn = in_array('Return', $validated['decisions']);
+        $overallStatus = $hasReturn ? 'Returned' : 'Approved';
+
+        // Record approval history
+        UamApprovalHistory::create([
+            'uam_request_id' => $uamRequest->id,
+            'status'         => $overallStatus,
+            'approver_name'  => Auth::user()->name,
+            'comment'        => trim($validated['approver_comment']),
+        ]);
+
+        $uamRequest->update([
+            'status'           => $overallStatus,
+            'approver_comment' => trim($validated['approver_comment']),
+        ]);
+
+        $label = $overallStatus === 'Approved' ? 'approved' : 'returned for revision';
+
+        return redirect()
+            ->route('access-matrix.request.sap')
+            ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully.");
     }
 }

@@ -60,8 +60,6 @@ Route::middleware('auth')->group(function () {
         ->name('access-matrix.approval.sap');
     Route::post('/access-matrix/approval/{uamRequest}/status', [AccessMatrixController::class, 'updateRequestStatus'])
         ->name('access-matrix.update-status');
-    Route::post('/access-matrix/approval/{uamRequest}/decide', [AccessMatrixController::class, 'approveDecision'])
-        ->name('access-matrix.approve-decision');
 
     // ── Import Excel (from Request UAM page) ──────────────────────────────
     Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])
