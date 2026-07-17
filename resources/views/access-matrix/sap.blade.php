@@ -110,6 +110,9 @@
                 <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Request Access Matrix
                 </a>
+                <a href="{{ route('access-matrix.uam-request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
+                    Accept
+                </a>
                 <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
                     Approval Access Matrix
                 </a>
@@ -168,12 +171,18 @@
                     <span style="color:var(--text-muted);margin-left:.35rem;">&gt;</span>
                 </li>
                 @php
-                    // Strict check: Only show Approval features if they came from the Approval Access Matrix (source=approval)
                     $isApproval = request('source') === 'approval';
+                    $isStage2   = request('source') === 'stage2';
                     
-                    $moduleRoute = $isApproval ? route('access-matrix.approval.index') : route('access-matrix.request.index');
-                    $moduleName  = $isApproval ? 'Approval Access Matrix' : 'Request Access Matrix';
-                    $tableRoute  = $isApproval ? route('access-matrix.approval.sap') : route('access-matrix.request.sap');
+                    if ($isStage2) {
+                        $moduleRoute = route('access-matrix.approval.index');
+                        $moduleName  = 'Approval Access Matrix';
+                        $tableRoute  = route('access-matrix.approval.sap');
+                    } else {
+                        $moduleRoute = $isApproval ? route('access-matrix.uam-request.index') : route('access-matrix.request.index');
+                        $moduleName  = $isApproval ? 'Accept' : 'Request Access Matrix';
+                        $tableRoute  = $isApproval ? route('access-matrix.uam-request.sap') : route('access-matrix.request.sap');
+                    }
                 @endphp
                 <li class="breadcrumb-item d-flex align-items-center" style="margin-left:.35rem;">
                     <a href="{{ $moduleRoute }}" style="color:var(--text-muted);text-decoration:none;transition:color var(--transition);"
@@ -392,11 +401,15 @@
         </div>
 
         {{-- ── Results Table ── --}}
+        @if(!($isStage2View ?? false))
         <div class="animate-in animate-in-delay-2 mb-4">
             <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
 
                 {{-- Table Header Bar --}}
-                @php $isApprovalView = isset($uamRequest) && $uamRequest && $uamRequest->status === 'Review' && isset($isApproval) && $isApproval; @endphp
+                @php 
+                    $isApprovalView = isset($uamRequest) && $uamRequest && $uamRequest->status === 'Review' && isset($isApproval) && $isApproval;
+                    $isStage2View   = isset($uamRequest) && $uamRequest && $uamRequest->status === 'Stage 2' && isset($isStage2) && $isStage2;
+                @endphp
                 <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
                     <div style="display:flex;align-items:center;gap:.65rem;">
                         <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
@@ -564,16 +577,33 @@
                                                 <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 1rem;">
                                                         @if($isApprovalView ?? false)
-                                                            {{-- ── Approval view: radio buttons ── --}}
-                                                            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.3rem;">
-                                                                <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
-                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
-                                                                    <span style="font-size:.75rem;color:#15803d;font-weight:700;">Approve</span>
-                                                                </label>
-                                                                <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
-                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
-                                                                    <span style="font-size:.75rem;color:#c0392b;font-weight:700;">Return</span>
-                                                                </label>
+                                                            {{-- ── Stage 1 Approval view ── --}}
+                                                            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.4rem;">
+                                                                <div style="display:flex; gap:1rem;">
+                                                                    <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
+                                                                        <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
+                                                                        <span style="font-size:.75rem;color:#15803d;font-weight:700;">Approve</span>
+                                                                    </label>
+                                                                    <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
+                                                                        <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
+                                                                        <span style="font-size:.75rem;color:#c0392b;font-weight:700;">Return</span>
+                                                                    </label>
+                                                                </div>
+
+                                                            </div>
+                                                        @elseif($isStage2View ?? false)
+                                                            {{-- ── Stage 2 Approval view (Read-Only) ── --}}
+                                                            @php
+                                                                $recStatus = $rec->status ?? 'Pending';
+                                                                $statusColor = match($recStatus) {
+                                                                    'Approved' => '#15803d',
+                                                                    'Return'   => '#b91c1c',
+                                                                    default    => '#92400e',
+                                                                };
+                                                            @endphp
+                                                            <div style="display:flex;flex-direction:column;gap:.3rem;">
+                                                                <span style="font-size:.75rem;font-weight:700;color:{{ $statusColor }};">{{ $recStatus }}</span>
+
                                                             </div>
                                                         @else
                                                             @php
@@ -583,7 +613,7 @@
                                                                 $isEditable    = (!$uamRequest
                                                                     || in_array($reqStatus, ['Draft', 'Need Revision'])
                                                                     || ($reqStatus === 'Return' && $recStatus === 'Return'))
-                                                                    && empty($isApproval);
+                                                                    && empty($isApproval) && empty($isStage2);
                                                                 $statusColor = match($recStatus) {
                                                                     'Approved' => '#15803d',
                                                                     'Return'   => '#b91c1c',
@@ -738,6 +768,8 @@
         </div>
         @endif
 
+        @endif
+
         {{-- ── Approval History (Audit Trail) ── --}}
         @if(isset($uamRequest) && $uamRequest && $uamRequest->approvalHistories->count() > 0)
         <div class="animate-in mb-4" style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.02);">
@@ -781,7 +813,7 @@
         </div>
         @endif
         {{-- Submit Action (for Requester) --}}
-        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval))
+        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval) && empty($isStage2))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
                 <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
                     @csrf
@@ -796,195 +828,159 @@
             </div>
         @endif
 
-        {{-- Approval Decision (for Approver when status is Review) --}}
-        @if($isApprovalView)
+        {{-- Stage 1 Approval Decision Form --}}
+        @if($isApprovalView ?? false)
             <div class="animate-in animate-in-delay-3 mt-4" style="margin-bottom:2rem;">
                 <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
-
-                    {{-- Header --}}
                     <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border);background:var(--secondary-light);display:flex;align-items:center;gap:.55rem;">
                         <div style="width:30px;height:30px;background:var(--secondary);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                             <i class="bi bi-patch-check-fill" style="color:#fff;font-size:.85rem;"></i>
                         </div>
                         <div>
-                            <div style="font-size:.85rem;font-weight:800;color:var(--secondary);line-height:1.1;">Approval Decision</div>
-                            <div style="font-size:.7rem;color:var(--text-muted);">Review the UAM records above, then submit your decision</div>
+                            <div style="font-size:.85rem;font-weight:800;color:var(--secondary);line-height:1.1;">Submit TCODE Decisions</div>
+                            <div style="font-size:.7rem;color:var(--text-muted);">Ensure all TCODEs are reviewed and a general comment is provided.</div>
                         </div>
                     </div>
-
-                    {{-- Form --}}
-                    <form action="{{ route('access-matrix.approve-decision', $uamRequest->id) }}" method="POST" id="approvalDecisionForm" style="padding:.85rem 1.1rem;">
+                    <form action="{{ route('access-matrix.uam-request.approve-decision', $uamRequest->id) }}" method="POST" id="approvalDecisionForm" style="padding:.85rem 1.1rem;">
                         @csrf
-
-                        {{-- Validation Errors --}}
                         @if($errors->any())
                             <div style="background:#fde8e9;border-left:4px solid #c0392b;border-radius:7px;padding:.45rem .8rem;margin-bottom:.75rem;font-size:.78rem;color:#7b0d0f;display:flex;align-items:center;gap:.4rem;">
                                 <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;"></i>
                                 {{ $errors->first() }}
                             </div>
                         @endif
-
                         <div style="display:flex;align-items:stretch;gap:.85rem;flex-wrap:wrap;">
-
                             <div style="flex:1;min-width:280px;display:flex;flex-direction:column;justify-content:center;">
-                                <div style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">Submit Approval</div>
+                                <div style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">Submit to Approval</div>
                                 <div style="font-size:.7rem;color:var(--text-muted);line-height:1.4;">
-                                    Please make sure you have selected <strong>Approve</strong> or <strong>Return</strong> for every TCODE record in the table above before submitting your decision.
+                                    Please ensure you have selected <strong>Approve</strong> or <strong>Return</strong> for every TCODE record.
                                 </div>
                             </div>
-
-                            {{-- Comment --}}
+                            
+                            {{-- General Comment --}}
                             <div style="flex:2;min-width:200px;display:flex;flex-direction:column;gap:.2rem;">
                                 <label for="approverComment" style="font-size:.72rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.3rem;">
-                                    Comment
+                                    General Comment
                                     <span id="commentHint" style="color:#ef4444;font-weight:500;font-size:.68rem;">— required, minimum 3 words</span>
                                 </label>
                                 <textarea name="approver_comment" id="approverComment" rows="2"
-                                          placeholder="Add notes or approval/revision instructions…"
+                                          placeholder="Add general notes or instructions for this request..."
                                           style="flex:1;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.8rem;color:var(--text);resize:none;transition:border-color .2s;outline:none;font-family:inherit;min-height:58px;max-height:90px;"
                                           onfocus="this.style.borderColor='var(--secondary)'"
                                           onblur="this.style.borderColor='var(--border)'"
-                                          oninput="validateDecisionForm()">{{ old('approver_comment') }}</textarea>
+                                          oninput="validateDecisionForm()" required>{{ old('approver_comment', $uamRequest->approver_comment) }}</textarea>
                             </div>
 
-                            {{-- Action Buttons --}}
                             <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
-                                <button type="button" id="submitDecisionBtn"
-                                        disabled onclick="lockStage1()"
-                                        style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(11,46,109,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
-                                        onmouseenter="if(!this.disabled){this.style.background='#0a2355';this.style.transform='translateY(-1px)';}"
-                                        onmouseleave="this.style.background='var(--secondary)';this.style.transform='none';">
-                                    <i class="bi bi-lock-fill" style="font-size:.68rem;"></i> Lock Decisions
+                                <button type="submit" id="submitDecisionBtn" disabled style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(11,46,109,.2);transition:all .18s;opacity:.45;" onmouseenter="if(!this.disabled){this.style.background='#0a2355';}" onmouseleave="this.style.background='var(--secondary)';">
+                                    <i class="bi bi-send-fill" style="font-size:.68rem;"></i> Submit to Approval
                                 </button>
-                                <a href="{{ route('access-matrix.approval.sap') }}"
-                                   style="display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.38rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.73rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all .18s;white-space:nowrap;"
-                                   onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
-                                   onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+                                <a href="{{ $tableRoute ?? '#' }}" style="display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.38rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.73rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all .18s;white-space:nowrap;" onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
                                     <i class="bi bi-arrow-left" style="font-size:.65rem;"></i> Back to List
                                 </a>
-                            </div>
-
-                        </div>
-
-                        {{-- Stage 2 UI (Hidden Initially) --}}
-                        <div id="stage2Container" style="display:none;margin-top:1.5rem;padding-top:1.5rem;border-top:1px dashed var(--border);">
-                            <div style="display:flex;align-items:stretch;gap:.85rem;flex-wrap:wrap;">
-                                <div style="flex:1;min-width:280px;display:flex;flex-direction:column;justify-content:center;">
-                                    <div style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">Final Approval Decision</div>
-                                    <div style="font-size:.7rem;color:var(--text-muted);line-height:1.4;" id="stage2Summary">
-                                        0 Approved, 0 Returned TCODEs.
-                                    </div>
-                                </div>
-                                <div style="flex:2;min-width:200px;display:flex;align-items:center;gap:1.5rem;">
-                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
-                                        <input type="radio" name="overall_decision" value="Approved" style="accent-color:#22c55e;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
-                                        <span style="font-size:.85rem;color:#15803d;font-weight:700;">Overall Approve</span>
-                                    </label>
-                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
-                                        <input type="radio" name="overall_decision" value="Return" style="accent-color:#ef4444;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
-                                        <span style="font-size:.85rem;color:#c0392b;font-weight:700;">Overall Return</span>
-                                    </label>
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
-                                    <button type="submit" id="finalSubmitBtn"
-                                            disabled
-                                            style="display:inline-flex;align-items:center;gap:.35rem;background:#15803d;color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
-                                            onmouseenter="if(!this.disabled){this.style.background='#166534';this.style.transform='translateY(-1px)';}"
-                                            onmouseleave="this.style.background='#15803d';this.style.transform='none';">
-                                        <i class="bi bi-send-fill" style="font-size:.68rem;"></i> Submit Final Decision
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
-
             <script>
             function countWords(str) {
-                return str.trim().split(/\s+/).filter(function(w){ return w.length > 0; }).length;
+                return (str || '').trim().split(/\s+/).filter(function(w){ return w.length > 0; }).length;
             }
-
             function validateDecisionForm() {
                 const allRadios = document.querySelectorAll('input[type="radio"][name^="decisions"]');
                 const uniqueNames = new Set([...allRadios].map(r => r.name));
                 const allSelected = uniqueNames.size > 0 && [...uniqueNames].every(name => document.querySelector(`input[name="${name}"]:checked`));
+                
+                const comment = document.getElementById('approverComment') ? document.getElementById('approverComment').value : '';
+                const words = countWords(comment);
+                const isCommentValid = words >= 3;
 
-                const comment          = document.getElementById('approverComment').value;
-                const submitBtn        = document.getElementById('submitDecisionBtn');
-                const commentHint      = document.getElementById('commentHint');
-                const words            = countWords(comment);
-                const valid            = allSelected && words >= 3;
+                const valid = allSelected && isCommentValid;
+                const submitBtn = document.getElementById('submitDecisionBtn');
+                if (submitBtn) {
+                    submitBtn.disabled = !valid;
+                    submitBtn.style.opacity = valid ? '1' : '.45';
+                    submitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
+                }
 
-                submitBtn.disabled = !valid;
-                submitBtn.style.opacity = valid ? '1' : '.45';
-                submitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
-
-                // Hint colour: green when satisfied, red otherwise
-                commentHint.style.color = words >= 3 ? '#15803d' : '#ef4444';
-                if (words >= 3) {
-                    if (allSelected) {
-                        commentHint.textContent = '— ✓ Ready to submit';
+                const hint = document.getElementById('commentHint');
+                if (hint) {
+                    if (valid) {
+                        hint.style.color = '#15803d';
+                        hint.textContent = '— ✓ Ready to submit';
+                    } else if (!isCommentValid) {
+                        hint.style.color = '#ef4444';
+                        hint.textContent = '— required, minimum 3 words (' + words + '/3)';
                     } else {
-                        commentHint.textContent = '— please make a decision for all TCODEs';
-                        commentHint.style.color = '#ef4444';
+                        hint.style.color = '#ef4444';
+                        hint.textContent = '— please make a decision for all TCODEs';
                     }
-                } else {
-                    commentHint.textContent = '— required, minimum 3 words (' + words + '/' + 3 + ')';
                 }
             }
+            document.addEventListener('DOMContentLoaded', validateDecisionForm);
+            </script>
+        @endif
 
+        {{-- Stage 2 Final Approval Form --}}
+        @if($isStage2View ?? false)
+            <div class="animate-in animate-in-delay-3 mt-4" style="margin-bottom:2rem;">
+                <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
+                    <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border);background:#f0fdf4;display:flex;align-items:center;gap:.55rem;">
+                        <div style="width:30px;height:30px;background:#15803d;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="bi bi-shield-check" style="color:#fff;font-size:.85rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:.85rem;font-weight:800;color:#15803d;line-height:1.1;">Final Stage 2 Decision</div>
+                            <div style="font-size:.7rem;color:var(--text-muted);">Review TCODE decisions summary and provide the final Request decision.</div>
+                        </div>
+                    </div>
+                    <form action="{{ route('access-matrix.approval.final-decision', $uamRequest->id) }}" method="POST" id="stage2DecisionForm" style="padding:.85rem 1.1rem;">
+                        @csrf
+                        <div style="display:flex;align-items:stretch;gap:.85rem;flex-wrap:wrap;">
+                            <div style="flex:1;min-width:280px;display:flex;flex-direction:column;justify-content:center;">
+                                <div style="font-size:.8rem;font-weight:700;color:#15803d;margin-bottom:.2rem;">Final Approval Decision</div>
+                                @php
+                                    $approvedCount = $uamRequest->records()->where('status', 'Approved')->count();
+                                    $returnedCount = $uamRequest->records()->where('status', 'Return')->count();
+                                @endphp
+                                <div style="font-size:.7rem;color:var(--text-muted);line-height:1.4;" id="stage2Summary">
+                                    {{ $approvedCount }} Approved, {{ $returnedCount }} Returned TCODEs.
+                                </div>
+                            </div>
+                            <div style="flex:2;min-width:200px;display:flex;align-items:center;gap:1.5rem;">
+                                <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
+                                    <input type="radio" name="overall_decision" value="Approved" required style="accent-color:#22c55e;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
+                                    <span style="font-size:.85rem;color:#15803d;font-weight:700;">Overall Approve</span>
+                                </label>
+                                <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
+                                    <input type="radio" name="overall_decision" value="Return" style="accent-color:#ef4444;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
+                                    <span style="font-size:.85rem;color:#c0392b;font-weight:700;">Overall Return</span>
+                                </label>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
+                                <button type="submit" id="finalSubmitBtn" disabled style="display:inline-flex;align-items:center;gap:.35rem;background:#15803d;color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.2);transition:all .18s;opacity:.45;" onmouseenter="if(!this.disabled){this.style.background='#166534';}" onmouseleave="this.style.background='#15803d';">
+                                    <i class="bi bi-send-fill" style="font-size:.68rem;"></i> Submit Final Decision
+                                </button>
+                                <a href="{{ $tableRoute ?? '#' }}" style="display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.38rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.73rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all .18s;white-space:nowrap;" onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+                                    <i class="bi bi-arrow-left" style="font-size:.65rem;"></i> Back to List
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <script>
             function validateStage2Form() {
                 const finalSubmitBtn = document.getElementById('finalSubmitBtn');
                 const selected = document.querySelector('input[name="overall_decision"]:checked');
                 const valid = !!selected;
-                finalSubmitBtn.disabled = !valid;
-                finalSubmitBtn.style.opacity = valid ? '1' : '.45';
-                finalSubmitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
+                if (finalSubmitBtn) {
+                    finalSubmitBtn.disabled = !valid;
+                    finalSubmitBtn.style.opacity = valid ? '1' : '.45';
+                    finalSubmitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
+                }
             }
-
-            function lockStage1() {
-                // Check validity first, just in case
-                const comment = document.getElementById('approverComment').value;
-                if (countWords(comment) < 3) return;
-
-                // Count TCODE decisions and lock them visually
-                const allRadios = document.querySelectorAll('input[type="radio"][name^="decisions"]');
-                let approvedCount = 0;
-                let returnedCount = 0;
-                allRadios.forEach(r => {
-                    if (r.checked) {
-                        if (r.value === 'Approved') approvedCount++;
-                        if (r.value === 'Return') returnedCount++;
-                    }
-                    // lock radios visually but keep them submittable
-                    r.style.pointerEvents = 'none';
-                    if (r.parentElement) {
-                        r.parentElement.style.opacity = '0.6';
-                        r.parentElement.style.cursor = 'default';
-                        r.parentElement.style.pointerEvents = 'none';
-                    }
-                });
-                
-                // lock comment
-                const commentEl = document.getElementById('approverComment');
-                commentEl.readOnly = true;
-                commentEl.style.backgroundColor = '#f9fafb';
-                
-                // update summary
-                const summaryEl = document.getElementById('stage2Summary');
-                summaryEl.innerHTML = `<strong>${approvedCount} Approved</strong>, <strong>${returnedCount} Returned</strong> TCODEs.`;
-                
-                // hide stage 1 submit button, show stage 2
-                document.getElementById('submitDecisionBtn').style.display = 'none';
-                document.getElementById('stage2Container').style.display = 'block';
-                
-                // scroll to stage 2
-                document.getElementById('stage2Container').scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }
-
-            // Run once on load so button state matches any pre-filled values
-            document.addEventListener('DOMContentLoaded', validateDecisionForm);
             </script>
         @endif
 
