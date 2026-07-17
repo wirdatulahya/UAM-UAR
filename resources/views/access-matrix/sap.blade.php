@@ -152,7 +152,7 @@
             <div class="animate-in mb-4" role="alert"
                  style="background:var(--primary-light);border:0;border-left:4px solid var(--primary);border-radius:10px;color:#7b0d0f;font-size:.875rem;padding:.75rem 1rem;">
                 <div style="display:flex;align-items:center;gap:.6rem;font-weight:600;margin-bottom:.3rem;">
-                    <i class="bi bi-exclamation-triangle-fill"></i> Import Error
+                    <i class="bi bi-exclamation-triangle-fill"></i> Validation Error
                 </div>
                 <ul style="margin:0;padding-left:1.2rem;">
                     @foreach ($errors->all() as $error)
@@ -400,6 +400,16 @@
                         </div>
                     </div>
 
+                    {{-- Add Role button (top-right, only when editable) --}}
+                    @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])))
+                        <a href="{{ route('access-matrix.create', array_filter(['request_id' => $requestId ?? null])) }}"
+                           id="addRoleBtn"
+                           style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.8rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(11,46,109,.18);transition:all .18s;"
+                           onmouseenter="this.style.background='#0a2355';this.style.transform='translateY(-1px)';"
+                           onmouseleave="this.style.background='var(--secondary)';this.style.transform='none';">
+                            <i class="bi bi-plus-lg" style="font-size:.8rem;"></i> Add Role
+                        </a>
+                    @endif
 
                 </div>
 
