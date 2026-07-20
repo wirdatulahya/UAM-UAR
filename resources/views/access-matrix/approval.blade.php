@@ -308,35 +308,33 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end" style="border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:var(--border);">
                                             <li>
-                                                <a class="dropdown-item" href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request']) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;">
+                                                <a class="dropdown-item" href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request']) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;">
                                                     <i class="bi bi-eye"></i> View Records
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item" href="{{ route('access-matrix.download-excel', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);">
+                                                <a class="dropdown-item" href="{{ route('access-matrix.download-excel', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;">
                                                     <i class="bi bi-file-earmark-excel"></i> Download Excel
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="dropdown-item" href="{{ route('access-matrix.download-pdf', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);">
+                                                <a class="dropdown-item" href="{{ route('access-matrix.download-pdf', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;">
                                                     <i class="bi bi-file-earmark-pdf"></i> Download PDF
                                                 </a>
                                             </li>
-                                            <li><hr class="dropdown-divider"></li>
                                             @if($req->status === 'Approved')
                                                 <li>
-                                                    <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);">
+                                                    <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
                                                         <i class="bi bi-files"></i> Modified
                                                     </button>
                                                 </li>
-                                                <li><hr class="dropdown-divider"></li>
                                             @endif
                                             <li>
-                                                <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;" onsubmit="return confirm('Delete this request and all its records? This cannot be undone.');">
+                                                <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;padding:0;display:block;" onsubmit="return confirm('Delete this request and all its records? This cannot be undone.');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <input type="hidden" name="request_id" value="{{ $req->id }}">
-                                                    <button type="submit" class="dropdown-item text-danger" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                                                    <button type="submit" class="dropdown-item text-danger" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
                                                         <i class="bi bi-trash"></i> Delete Request
                                                     </button>
                                                 </form>

@@ -1314,54 +1314,192 @@ class AccessMatrixController extends Controller
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
-        // Headers
-        $headers = ['Role', 'Description Role', 'TCODE', 'UNIT', 'BPO', 'Access Owner', 'Status', 'Change Type'];
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . '1', $header);
-            $sheet->getStyle($col . '1')->getFont()->setBold(true);
-            $col++;
+        // 1. Gather all unique BPO -> Unit -> Owners for headers
+        $hierarchy = [];
+        foreach ($records as $record) {
+            $matrix = is_array($record->matrix_data) ? $record->matrix_data : [];
+            if (empty($matrix)) {
+                $bpo = trim($record->bpo ?: 'Unknown BPO');
+                $unit = trim($record->unit ?: 'Unknown Unit');
+                $owner = trim($record->access_owner ?: 'Unknown Owner');
+                if (!empty($owner) && $owner !== 'Unknown Owner') {
+                    $matrix = [$unit => [$bpo => [$owner]]];
+                }
+            }
+
+            foreach ($matrix as $unit => $bpos) {
+                foreach ($bpos as $bpo => $owners) {
+                    if (!isset($hierarchy[$bpo])) $hierarchy[$bpo] = [];
+                    if (!isset($hierarchy[$bpo][$unit])) $hierarchy[$bpo][$unit] = [];
+                    foreach ($owners as $owner) {
+                        if (!in_array($owner, $hierarchy[$bpo][$unit], true)) {
+                            $hierarchy[$bpo][$unit][] = $owner;
+                        }
+                    }
+                }
+            }
         }
         
-        $row = 2;
-        foreach ($records as $record) {
-            // Split tcode by commas or newlines
-            $tcodes = preg_split('/[\s,]+/', $record->tcode, -1, PREG_SPLIT_NO_EMPTY);
-            
-            // If there are no TCODEs, still print the row with empty TCODE
-            if (empty($tcodes)) {
-                $tcodes = [''];
+        // Setup Fixed Headers
+        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . 1, 'Role');
+        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . 3);
+        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . 1, 'Description Role');
+        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . 3);
+        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . 1, 'TCODE');
+        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . 3);
+        
+        // 2. Generate Dynamic Headers
+        $currentColIndex = 4;
+        $ownerColumns = []; // $ownerColumns[$bpo][$unit][$owner] = $colIndex
+        
+        foreach ($hierarchy as $bpo => $units) {
+            $bpoStartCol = $currentColIndex;
+            foreach ($units as $unit => $owners) {
+                $unitStartCol = $currentColIndex;
+                foreach ($owners as $owner) {
+                    // Row 3: Owner
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($currentColIndex) . 3, $owner);
+                    $ownerColumns[$bpo][$unit][$owner] = $currentColIndex;
+                    $currentColIndex++;
+                }
+                $unitEndCol = $currentColIndex - 1;
+                // Row 2: Unit
+                if ($unitEndCol >= $unitStartCol) {
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($unitStartCol) . 2, $unit);
+                    if ($unitEndCol > $unitStartCol) {
+                        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($unitStartCol) . 2 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($unitEndCol) . 2);
+                    }
+                }
             }
+            $bpoEndCol = $currentColIndex - 1;
+            // Row 1: BPO
+            if ($bpoEndCol >= $bpoStartCol) {
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($bpoStartCol) . 1, $bpo);
+                if ($bpoEndCol > $bpoStartCol) {
+                    $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($bpoStartCol) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($bpoEndCol) . 1);
+                }
+            }
+        }
+        
+        // If there are no owners in the request, make sure we have at least standard columns
+        if ($currentColIndex == 4) {
+             // Just add a dummy column so it doesn't break
+             $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . 1, 'Access Owner');
+             $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . 3);
+             $currentColIndex++;
+        }
+        
+        // Status and Change Type at the end
+        $endColIndex = $currentColIndex;
+        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . 1, 'Status');
+        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . 3);
+        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . 1, 'Change Type');
+        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . 3);
+        
+        // 3. Insert Data
+        $row = 4;
+        foreach ($records as $record) {
+            $tcodes = preg_split('/[\s,]+/', $record->tcode, -1, PREG_SPLIT_NO_EMPTY);
+            if (empty($tcodes)) $tcodes = [''];
             
-            $owners = is_array($record->matrix_data) ? json_encode($record->matrix_data) : $record->access_owner;
-            
+            $matrix = is_array($record->matrix_data) ? $record->matrix_data : [];
+            if (empty($matrix)) {
+                $bpo = trim($record->bpo ?: 'Unknown BPO');
+                $unit = trim($record->unit ?: 'Unknown Unit');
+                $owner = trim($record->access_owner ?: 'Unknown Owner');
+                if (!empty($owner) && $owner !== 'Unknown Owner') {
+                    $matrix = [$unit => [$bpo => [$owner]]];
+                }
+            }
+
             foreach ($tcodes as $tcode) {
-                $sheet->setCellValue('A' . $row, $record->role);
-                $sheet->setCellValue('B' . $row, $record->description_role);
-                $sheet->setCellValue('C' . $row, $tcode);
-                $sheet->setCellValue('D' . $row, $record->unit);
-                $sheet->setCellValue('E' . $row, $record->bpo);
-                $sheet->setCellValue('F' . $row, $owners);
-                $sheet->setCellValue('G' . $row, $record->status);
-                $sheet->setCellValue('H' . $row, $record->change_type);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . $row, $record->role);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . $row, $record->description_role);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . $row, $tcode);
+                
+                // Mark '1' for granted access
+                foreach ($matrix as $unit => $bpos) {
+                    foreach ($bpos as $bpo => $owners) {
+                        foreach ($owners as $owner) {
+                            if (isset($ownerColumns[$bpo][$unit][$owner])) {
+                                $col = $ownerColumns[$bpo][$unit][$owner];
+                                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row, '1');
+                            }
+                        }
+                    }
+                }
+                
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . $row, $record->status);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . $row, $record->change_type);
                 $row++;
             }
         }
         
-        // AutoFilter & FreezePane
-        $highestColumn = $sheet->getHighestColumn();
-        $highestRow = $sheet->getHighestRow();
-        $range = "A1:{$highestColumn}{$highestRow}";
+        // 4. Styling & Formatting
+        $maxColStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1);
+        $headerRange = "A1:{$maxColStr}3";
         
-        $sheet->setAutoFilter($range);
-        $sheet->freezePane('A2');
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => ['bold' => true],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ]);
         
-        // Auto-size columns
-        // PhpSpreadsheet column iteration: ++$highestColumn increments the string like 'H' -> 'I'
-        $highestColStr = $highestColumn;
-        ++$highestColStr; // one past the last column
-        for ($c = 'A'; $c !== $highestColStr; $c++) {
-            $sheet->getColumnDimension($c)->setAutoSize(true);
+        // Data borders & alignment
+        if ($row > 4) {
+            $dataRange = "A4:{$maxColStr}" . ($row - 1);
+            $sheet->getStyle($dataRange)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    ],
+                ],
+                'alignment' => [
+                    'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                    'wrapText' => true,
+                ]
+            ]);
+            
+            // Center align the matrix columns (D to EndColIndex - 1)
+            if ($endColIndex > 4) {
+                $matrixStart = 'D';
+                $matrixEnd = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex - 1);
+                $sheet->getStyle("{$matrixStart}4:{$matrixEnd}" . ($row - 1))->applyFromArray([
+                    'alignment' => [
+                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                    ]
+                ]);
+                
+                // Rotate Access Owner headers 90 degrees
+                $sheet->getStyle("{$matrixStart}3:{$matrixEnd}3")->applyFromArray([
+                    'alignment' => [
+                        'textRotation' => 90,
+                    ]
+                ]);
+            }
+        }
+        
+        // FreezePane
+        $sheet->freezePane('A4');
+        
+        // Auto-size columns and set fixed width for matrix
+        for ($c = 1; $c <= $endColIndex + 1; $c++) {
+            $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
+            if ($c >= 4 && $c < $endColIndex) {
+                // Access Owner column: narrow fixed width
+                $sheet->getColumnDimension($colStr)->setAutoSize(false);
+                $sheet->getColumnDimension($colStr)->setWidth(4);
+            } else {
+                $sheet->getColumnDimension($colStr)->setAutoSize(true);
+            }
         }
         
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
