@@ -218,9 +218,18 @@
 
                         {{-- TCODE (multi-entry) --}}
                         <div class="mb-3">
-                            <label class="form-label">TCODE</label>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label mb-0">TCODE</label>
+                                <button type="button" id="addTcodeBtn" onclick="addTcodeRow()"
+                                    title="Add another TCODE"
+                                    style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#22c55e;color:#fff;border:none;cursor:pointer;flex-shrink:0;box-shadow:0 2px 6px rgba(34,197,94,.25);transition:transform .15s,box-shadow .15s;"
+                                    onmouseenter="this.style.transform='scale(1.12)';this.style.boxShadow='0 4px 10px rgba(34,197,94,.38)';"
+                                    onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 6px rgba(34,197,94,.25)';">
+                                    <i class="bi bi-plus-lg" style="font-size:.72rem;line-height:1;"></i>
+                                </button>
+                            </div>
                             <div id="tcodeList" style="display:flex;flex-direction:column;gap:.45rem;">
-                                {{-- First TCODE row (always present; + button managed by syncTcodeButtons()) --}}
+                                {{-- First TCODE row (always present) --}}
                                 <div class="tcode-row" style="display:flex;align-items:center;gap:.4rem;">
                                     <input type="text" name="tcode[]"
                                            class="form-control @error('tcode.0') is-invalid @enderror"
@@ -328,7 +337,7 @@
         const row  = document.createElement('div');
         row.className = 'tcode-row';
         row.style.cssText = 'display:flex;align-items:center;gap:.4rem;';
-        // New row starts with only the × button; syncTcodeButtons will add + to it
+        // New row starts with only the × button
         row.innerHTML = `
             <input type="text" name="tcode[]"
                    class="form-control"
@@ -352,42 +361,11 @@
         syncTcodeButtons();
     }
 
-    // Single source of truth: ensures "+" lives only on the last row,
-    // and "×" is disabled when there is only one row.
+    // Single source of truth: ensures "×" is disabled when there is only one row.
     function syncTcodeButtons() {
         const rows = document.querySelectorAll('#tcodeList .tcode-row');
-        const ADD_STYLE = 'display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;border:none;cursor:pointer;flex-shrink:0;box-shadow:0 2px 6px rgba(0,102,204,.25);transition:transform .15s,box-shadow .15s;';
 
-        rows.forEach(function(row, i) {
-            const isLast = i === rows.length - 1;
-
-            // ── Add (+) button ───────────────────────────────────────────────
-            let addBtn = row.querySelector('.add-tcode-btn');
-            if (isLast) {
-                if (!addBtn) {
-                    // Create and insert before the × button
-                    addBtn = document.createElement('button');
-                    addBtn.type = 'button';
-                    addBtn.className = 'add-tcode-btn';
-                    addBtn.title = 'Add another TCODE';
-                    addBtn.setAttribute('style', ADD_STYLE);
-                    addBtn.innerHTML = '<i class="bi bi-plus-lg" style="font-size:.72rem;line-height:1;"></i>';
-                    addBtn.onclick = addTcodeRow;
-                    addBtn.addEventListener('mouseenter', function() {
-                        this.style.transform = 'scale(1.12)';
-                        this.style.boxShadow = '0 4px 10px rgba(0,102,204,.38)';
-                    });
-                    addBtn.addEventListener('mouseleave', function() {
-                        this.style.transform = '';
-                        this.style.boxShadow = '0 2px 6px rgba(0,102,204,.25)';
-                    });
-                    const removeBtn = row.querySelector('.remove-tcode-btn');
-                    row.insertBefore(addBtn, removeBtn);
-                }
-            } else {
-                if (addBtn) addBtn.remove();
-            }
-
+        rows.forEach(function(row) {
             // ── Remove (×) button ────────────────────────────────────────────
             const removeBtn = row.querySelector('.remove-tcode-btn');
             if (removeBtn) {

@@ -64,13 +64,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/access-matrix/request/{uamRequest}/submit', [AccessMatrixController::class, 'submitRequest'])
         ->name('access-matrix.submit');
 
-    // ── Approval Access Matrix (UAM SAP) ─────────────────────────────────────────────
-    Route::get('/access-matrix/approval/sap', [AccessMatrixController::class, 'review'])
-        ->name('access-matrix.approval.sap');
     Route::post('/access-matrix/approval/{uamRequest}/status', [AccessMatrixController::class, 'updateRequestStatus'])
         ->name('access-matrix.update-status');
     Route::post('/access-matrix/approval/{uamRequest}/decide', [AccessMatrixController::class, 'approveDecision'])
         ->name('access-matrix.approve-decision');
+    Route::post('/access-matrix/approval/{uamRequest}/final-decide', [AccessMatrixController::class, 'finalApproveDecision'])
+        ->name('access-matrix.final-decide');
+    Route::post('/access-matrix/approval/{uamRequest}/auto-save', [AccessMatrixController::class, 'autoSaveDecision'])
+        ->name('access-matrix.auto-save');
 
     // ── Import Excel (from Request UAM page) ──────────────────────────────
     Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])

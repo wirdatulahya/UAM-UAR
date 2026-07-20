@@ -214,7 +214,6 @@ class AccessMatrixController extends Controller
             'decisions'        => ['required', 'array'],
             'decisions.*'      => ['required', 'in:Approved,Return'],
             'approver_comment' => ['required', 'string', 'max:2000'],
-            'overall_decision' => ['required', 'in:Approved,Return'],
         ]);
 
         // Comment must contain at least 3 words
@@ -238,10 +237,44 @@ class AccessMatrixController extends Controller
             $uamRequest->records()->where('id', $recordId)->update(['status' => $decision]);
         }
 
-        // Use the explicit overall decision from Stage 2
+        // Record history for Stage 1 completion
+        UamApprovalHistory::create([
+            'uam_request_id' => $uamRequest->id,
+            'status'         => 'Stage 2',
+            'approver_name'  => Auth::user()->name,
+            'comment'        => trim($validated['approver_comment']),
+        ]);
+
+        // Move to Stage 2
+        $uamRequest->update([
+            'status'           => 'Stage 2',
+            'approver_comment' => trim($validated['approver_comment']),
+        ]);
+
+        return redirect()
+            ->route('access-matrix.uam-request.sap')
+            ->with('success', "Request \"{$uamRequest->module}\" has been reviewed and forwarded to Stage 2 Approval.");
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // FINAL APPROVE DECISION — AO submits Final Approved / Return from SAP page (Stage 2)
+    // ────────────────────────────────────────────────────────────────────────
+    public function finalApproveDecision(Request $request, UamRequest $uamRequest)
+    {
+        $validated = $request->validate([
+            'overall_decision' => ['required', 'in:Approved,Return'],
+            'approver_comment' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $wordCount = str_word_count(trim($validated['approver_comment']));
+        if ($wordCount < 3) {
+            return redirect()->back()
+                ->withErrors(['approver_comment' => 'Comment must contain at least 3 words.'])
+                ->withInput();
+        }
+
         $overallStatus = $validated['overall_decision'];
 
-        // Record approval history
         UamApprovalHistory::create([
             'uam_request_id' => $uamRequest->id,
             'status'         => $overallStatus,
@@ -257,8 +290,30 @@ class AccessMatrixController extends Controller
         $label = $overallStatus === 'Approved' ? 'approved' : 'returned for revision';
 
         return redirect()
-            ->route('access-matrix.approval.sap')
+            ->route('access-matrix.approval.index')
             ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully.");
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // AUTO-SAVE DRAFT (AJAX) — Save intermediate decisions and comments
+    // ────────────────────────────────────────────────────────────────────────
+    public function autoSaveDecision(Request $request, UamRequest $uamRequest)
+    {
+        $validated = $request->validate([
+            'record_id'        => ['nullable', 'integer'],
+            'decision'         => ['nullable', 'in:Approved,Return'],
+            'approver_comment' => ['nullable', 'string'],
+        ]);
+
+        if ($request->has('record_id') && $request->has('decision')) {
+            $uamRequest->records()->where('id', $validated['record_id'])->update(['status' => $validated['decision']]);
+        }
+
+        if ($request->has('approver_comment')) {
+            $uamRequest->update(['approver_comment' => $validated['approver_comment']]);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

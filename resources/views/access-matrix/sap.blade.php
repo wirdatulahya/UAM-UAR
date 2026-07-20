@@ -548,11 +548,11 @@
                                                             {{-- ── Approval view: radio buttons ── --}}
                                                             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.3rem;">
                                                                 <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
-                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
+                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm(); autoSaveDecision({{ $rec->id }}, this.value);" {{ $rec->status === 'Approved' ? 'checked' : '' }}>
                                                                     <span style="font-size:.75rem;color:#15803d;font-weight:700;">Approve</span>
                                                                 </label>
                                                                 <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
-                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm()">
+                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm(); autoSaveDecision({{ $rec->id }}, this.value);" {{ $rec->status === 'Return' ? 'checked' : '' }}>
                                                                     <span style="font-size:.75rem;color:#c0392b;font-weight:700;">Return</span>
                                                                 </label>
                                                             </div>
@@ -671,6 +671,57 @@
                             @endif
                         </div>
                     </div>
+                @endif
+
+                {{-- Overall Decision + Final Submit (Stage 2) --}}
+                @if($isStage2 && isset($uamRequest) && $uamRequest->status === 'Stage 2')
+                <div id="overallDecisionContainer" style="padding:1.25rem 1.25rem;border-top:1.5px solid var(--border);background:linear-gradient(135deg, #f0f4ff 0%, #f8fafc 100%);">
+                    <form action="{{ route('access-matrix.final-decide', $uamRequest->id) }}" method="POST" id="finalDecisionForm">
+                        @csrf
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+                            <div style="flex:1;min-width:240px;">
+                                <div style="font-size:.82rem;font-weight:800;color:var(--secondary);margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;">
+                                    <i class="bi bi-clipboard2-check" style="font-size:.9rem;"></i> Final Approval Decision
+                                </div>
+                                <div style="font-size:.72rem;color:var(--text-muted);line-height:1.4;margin-bottom:.6rem;" id="stage2Summary">
+                                    TCODE review completed by {{ $uamRequest->requester_nik ?? 'Reviewer' }}. Please select your overall decision.
+                                </div>
+                                <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
+                                        <input type="radio" name="overall_decision" value="Approved" required style="accent-color:#22c55e;width:16px;height:16px;cursor:pointer;">
+                                        <span style="font-size:.85rem;color:#15803d;font-weight:700;">Overall Approve</span>
+                                    </label>
+                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
+                                        <input type="radio" name="overall_decision" value="Return" required style="accent-color:#ef4444;width:16px;height:16px;cursor:pointer;">
+                                        <span style="font-size:.85rem;color:#c0392b;font-weight:700;">Overall Return</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div style="flex:2;min-width:200px;display:flex;flex-direction:column;gap:.2rem;margin-right:1rem;">
+                                <label for="finalComment" style="font-size:.72rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.3rem;">
+                                    Final Approver Comment
+                                    <span style="color:#ef4444;font-weight:500;font-size:.68rem;">— required, minimum 3 words</span>
+                                </label>
+                                <textarea name="approver_comment" id="finalComment" rows="2"
+                                          placeholder="Add notes or approval/revision instructions…"
+                                          style="flex:1;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.8rem;color:var(--text);resize:none;transition:border-color .2s;outline:none;font-family:inherit;min-height:58px;max-height:90px;"
+                                          onfocus="this.style.borderColor='var(--secondary)'"
+                                          onblur="this.style.borderColor='var(--border)'"
+                                          required></textarea>
+                            </div>
+
+                            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem;">
+                                <button type="submit" id="finalSubmitBtn"
+                                        style="display:inline-flex;align-items:center;gap:.35rem;background:#15803d;color:#fff;border:none;border-radius:8px;padding:.5rem 1.25rem;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.2);transition:all .18s;letter-spacing:.1px;"
+                                        onmouseenter="this.style.background='#166534';this.style.transform='translateY(-1px)';"
+                                        onmouseleave="this.style.background='#15803d';this.style.transform='none';">
+                                    <i class="bi bi-send-fill" style="font-size:.7rem;"></i> Submit Final Decision
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
                 @endif
 
             </div>
@@ -802,16 +853,16 @@
                                           style="flex:1;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.8rem;color:var(--text);resize:none;transition:border-color .2s;outline:none;font-family:inherit;min-height:58px;max-height:90px;"
                                           onfocus="this.style.borderColor='var(--secondary)'"
                                           onblur="this.style.borderColor='var(--border)'"
-                                          oninput="validateDecisionForm()" required>{{ old('approver_comment', $uamRequest->approver_comment) }}</textarea>
+                                          oninput="validateDecisionForm(); debouncedAutoSaveComment(this.value);" required>{{ old('approver_comment', $uamRequest->approver_comment) }}</textarea>
                             </div>
 
                             <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
-                                <button type="button" id="submitDecisionBtn"
-                                        disabled onclick="lockStage1()"
+                                <button type="submit" id="submitDecisionBtn"
+                                        disabled
                                         style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(11,46,109,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
                                         onmouseenter="if(!this.disabled){this.style.background='#0a2355';this.style.transform='translateY(-1px)';}"
                                         onmouseleave="this.style.background='var(--secondary)';this.style.transform='none';">
-                                    <i class="bi bi-lock-fill" style="font-size:.68rem;"></i> Lock Decisions
+                                    <i class="bi bi-check2-circle" style="font-size:.72rem;"></i> Complete TCODE Review
                                 </button>
                                 <a href="{{ route('access-matrix.approval.sap') }}"
                                    style="display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.38rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.73rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all .18s;white-space:nowrap;"
@@ -823,36 +874,6 @@
 
                         </div>
 
-                        {{-- Stage 2 UI (Hidden Initially) --}}
-                        <div id="stage2Container" style="display:none;margin-top:1.5rem;padding-top:1.5rem;border-top:1px dashed var(--border);">
-                            <div style="display:flex;align-items:stretch;gap:.85rem;flex-wrap:wrap;">
-                                <div style="flex:1;min-width:280px;display:flex;flex-direction:column;justify-content:center;">
-                                    <div style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.2rem;">Final Approval Decision</div>
-                                    <div style="font-size:.7rem;color:var(--text-muted);line-height:1.4;" id="stage2Summary">
-                                        0 Approved, 0 Returned TCODEs.
-                                    </div>
-                                </div>
-                                <div style="flex:2;min-width:200px;display:flex;align-items:center;gap:1.5rem;">
-                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
-                                        <input type="radio" name="overall_decision" value="Approved" style="accent-color:#22c55e;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
-                                        <span style="font-size:.85rem;color:#15803d;font-weight:700;">Overall Approve</span>
-                                    </label>
-                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
-                                        <input type="radio" name="overall_decision" value="Return" style="accent-color:#ef4444;width:16px;height:16px;cursor:pointer;" onchange="validateStage2Form()">
-                                        <span style="font-size:.85rem;color:#c0392b;font-weight:700;">Overall Return</span>
-                                    </label>
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:.35rem;justify-content:flex-end;align-self:flex-end;">
-                                    <button type="submit" id="finalSubmitBtn"
-                                            disabled
-                                            style="display:inline-flex;align-items:center;gap:.35rem;background:#15803d;color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
-                                            onmouseenter="if(!this.disabled){this.style.background='#166534';this.style.transform='translateY(-1px)';}"
-                                            onmouseleave="this.style.background='#15803d';this.style.transform='none';">
-                                        <i class="bi bi-send-fill" style="font-size:.68rem;"></i> Submit Final Decision
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </form>
                 </div>
             </div>
@@ -870,8 +891,9 @@
                 const submitBtn        = document.getElementById('submitDecisionBtn');
                 const commentHint      = document.getElementById('commentHint');
                 const words            = countWords(comment);
-                const valid            = allSelected && words >= 3;
 
+                // "Complete TCODE Review" enabled when all TCODEs decided + comment ≥ 3 words
+                const valid = allSelected && words >= 3;
                 submitBtn.disabled = !valid;
                 submitBtn.style.opacity = valid ? '1' : '.45';
                 submitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
@@ -880,7 +902,7 @@
                 commentHint.style.color = words >= 3 ? '#15803d' : '#ef4444';
                 if (words >= 3) {
                     if (allSelected) {
-                        commentHint.textContent = '— ✓ Ready to submit';
+                        commentHint.textContent = '— ✓ Ready to complete review';
                     } else {
                         commentHint.textContent = '— please make a decision for all TCODEs';
                         commentHint.style.color = '#ef4444';
@@ -890,54 +912,6 @@
                 }
             }
 
-            function validateStage2Form() {
-                const finalSubmitBtn = document.getElementById('finalSubmitBtn');
-                const selected = document.querySelector('input[name="overall_decision"]:checked');
-                const valid = !!selected;
-                finalSubmitBtn.disabled = !valid;
-                finalSubmitBtn.style.opacity = valid ? '1' : '.45';
-                finalSubmitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
-            }
-
-            function lockStage1() {
-                // Check validity first, just in case
-                const comment = document.getElementById('approverComment').value;
-                if (countWords(comment) < 3) return;
-
-                // Count TCODE decisions and lock them visually
-                const allRadios = document.querySelectorAll('input[type="radio"][name^="decisions"]');
-                let approvedCount = 0;
-                let returnedCount = 0;
-                allRadios.forEach(r => {
-                    if (r.checked) {
-                        if (r.value === 'Approved') approvedCount++;
-                        if (r.value === 'Return') returnedCount++;
-                    }
-                    // lock radios visually but keep them submittable
-                    r.style.pointerEvents = 'none';
-                    if (r.parentElement) {
-                        r.parentElement.style.opacity = '0.6';
-                        r.parentElement.style.cursor = 'default';
-                        r.parentElement.style.pointerEvents = 'none';
-                    }
-                });
-                
-                // lock comment
-                const commentEl = document.getElementById('approverComment');
-                commentEl.readOnly = true;
-                commentEl.style.backgroundColor = '#f9fafb';
-                
-                // update summary
-                const summaryEl = document.getElementById('stage2Summary');
-                summaryEl.innerHTML = `<strong>${approvedCount} Approved</strong>, <strong>${returnedCount} Returned</strong> TCODEs.`;
-                
-                // hide stage 1 submit button, show stage 2
-                document.getElementById('submitDecisionBtn').style.display = 'none';
-                document.getElementById('stage2Container').style.display = 'block';
-                
-                // scroll to stage 2
-                document.getElementById('stage2Container').scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }
 
             // Run once on load so button state matches any pre-filled values
             document.addEventListener('DOMContentLoaded', validateDecisionForm);
@@ -1481,6 +1455,48 @@
             }, 300);
         }
     };
+
+    // Auto-save helpers
+    window.autoSaveDecision = function(recordId, decision) {
+        const reqId = "{{ $uamRequest ? $uamRequest->id : '' }}";
+        if (!reqId) return;
+        fetch(`/access-matrix/approval/${reqId}/auto-save`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                record_id: recordId,
+                decision: decision
+            })
+        });
+    };
+
+    let _commentDebounceTimer = null;
+    window.debouncedAutoSaveComment = function(comment) {
+        const reqId = "{{ $uamRequest ? $uamRequest->id : '' }}";
+        if (!reqId) return;
+        clearTimeout(_commentDebounceTimer);
+        _commentDebounceTimer = setTimeout(() => {
+            fetch(`/access-matrix/approval/${reqId}/auto-save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                },
+                body: JSON.stringify({
+                    approver_comment: comment
+                })
+            });
+        }, 500);
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof validateDecisionForm === 'function') {
+            validateDecisionForm();
+        }
+    });
 </script>
 @endpush
 
