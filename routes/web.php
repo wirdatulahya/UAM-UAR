@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ── Modules Entry Pages ───────────────────────────────────────
+    Route::post('/access-matrix/copy-baseline', [AccessMatrixController::class, 'copyFromBaseline'])->name('access-matrix.copy-baseline');
     Route::get('/access-matrix/request', [AccessMatrixController::class, 'requestModules'])
         ->name('access-matrix.request.index');
     Route::get('/access-matrix/uam-request', [AccessMatrixController::class, 'acceptModules'])
@@ -63,6 +64,12 @@ Route::middleware('auth')->group(function () {
         ->name('access-matrix.request.sap');
     Route::post('/access-matrix/request/{uamRequest}/submit', [AccessMatrixController::class, 'submitRequest'])
         ->name('access-matrix.submit');
+    Route::post('/access-matrix/request/{uamRequest}/sign', [AccessMatrixController::class, 'signRequest'])
+        ->name('access-matrix.sign');
+    Route::get('/access-matrix/request/{uamRequest}/download-excel', [AccessMatrixController::class, 'downloadExcel'])
+        ->name('access-matrix.download-excel');
+    Route::get('/access-matrix/request/{uamRequest}/download-pdf', [AccessMatrixController::class, 'downloadPdf'])
+        ->name('access-matrix.download-pdf');
 
     Route::post('/access-matrix/approval/{uamRequest}/status', [AccessMatrixController::class, 'updateRequestStatus'])
         ->name('access-matrix.update-status');
@@ -97,6 +104,9 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/', [AccessMatrixController::class, 'store'])
             ->name('access-matrix.store');
+
+        Route::delete('/role/{uamRequest}/{role}', [AccessMatrixController::class, 'destroyRole'])
+            ->name('access-matrix.destroy-role');
 
         Route::get('/{uamRecord}/edit', [AccessMatrixController::class, 'edit'])
             ->name('access-matrix.edit');

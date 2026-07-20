@@ -123,16 +123,6 @@
             Access Review
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
         </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-graph-up-arrow"></i>
-            Monitoring
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-file-earmark-bar-graph-fill"></i>
-            Reports
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
 
     </aside>
 
@@ -196,22 +186,13 @@
                     ],
 
                     [
-                        'icon' => 'bi-graph-up-arrow',
+                        'icon' => 'bi-ui-checks-grid',
                         'color' => '#0B2E6D',
                         'bg' => '#e8edf7',
-                        'title' => 'Monitoring',
-                        'desc' => 'Real-time monitoring of access activities and system events.',
-                        'status' => 'coming-soon',
-                        'route' => '#'
-                    ],
-                    [
-                        'icon' => 'bi-file-earmark-bar-graph-fill',
-                        'color' => '#0B2E6D',
-                        'bg' => '#e8edf7',
-                        'title' => 'Reports',
-                        'desc' => 'Generate compliance and audit reports for management review.',
-                        'status' => 'coming-soon',
-                        'route' => '#'
+                        'title' => 'Access User Review',
+                        'desc' => 'Review and approve access matrices submitted by users.',
+                        'status' => 'inactive',
+                        'route' => route('access-matrix.approval.index')
                     ],
                 ];
             @endphp
@@ -238,7 +219,7 @@
                         <span style="display:inline-flex;align-items:center;gap:.35rem;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:.25rem .7rem;font-size:.72rem;font-weight:700;">
                             <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i> Active
                         </span>
-                        @else
+                        @elseif ($mod['status'] === 'coming-soon')
                         <span style="display:inline-flex;align-items:center;gap:.35rem;background:var(--primary-light);color:var(--primary);border-radius:20px;padding:.25rem .7rem;font-size:.72rem;font-weight:700;">
                             <i class="bi bi-clock-history" style="font-size:.7rem;"></i> Coming soon
                         </span>

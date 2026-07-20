@@ -23,6 +23,7 @@ class UamRequest extends Model
         'record_count',
         'requested_by',
         'requester_nik',
+        'signed_by',
     ];
 
     /**

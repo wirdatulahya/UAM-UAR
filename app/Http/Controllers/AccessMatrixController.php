@@ -282,10 +282,16 @@ class AccessMatrixController extends Controller
             'comment'        => trim($validated['approver_comment']),
         ]);
 
-        $uamRequest->update([
+        $updateData = [
             'status'           => $overallStatus,
             'approver_comment' => trim($validated['approver_comment']),
-        ]);
+        ];
+
+        if ($overallStatus === 'Approved') {
+            $updateData['signed_by'] = 'Approved by ' . Auth::user()->name . ' on ' . now()->format('d M Y, H:i:s');
+        }
+
+        $uamRequest->update($updateData);
 
         $label = $overallStatus === 'Approved' ? 'approved' : 'returned for revision';
 
@@ -401,6 +407,72 @@ class AccessMatrixController extends Controller
             'totalRecords', 'availableModules', 'availablePeriods',
             'requestId', 'uamRequest'
         ));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // COPY FROM BASELINE — Creates a new request by cloning an approved one
+    // ─────────────────────────────────────────────────────────────────────────
+    public function copyFromBaseline(Request $request)
+    {
+        $request->validate([
+            'request_id'  => ['required', 'integer', 'exists:uam_requests,id'],
+            'year'        => ['required', 'integer', 'min:2026', 'max:9999'],
+            'period'      => ['required', 'string', 'in:Q1,Q2,Q3'],
+        ]);
+
+        $baseline = UamRequest::find($request->input('request_id'));
+        $year     = $request->input('year');
+        $period   = $request->input('period');
+
+        if ($baseline->status !== 'Approved') {
+            return back()->withErrors(['request_id' => 'The selected baseline request is not approved.']);
+        }
+
+        $application = $baseline->application;
+
+        // Check if a request already exists for this application, year, and period
+        $exists = UamRequest::where('application', $application)
+            ->where('year', $year)
+            ->where('period', $period)
+            ->exists();
+            
+        if ($exists) {
+            return back()->withErrors(['period' => "A request for {$application} {$period} {$year} already exists."]);
+        }
+
+        // Auto-generate batch name
+        $batchName = 'UAM_' . now()->format('Ymd') . '_Copy_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $application);
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            // Create new request
+            $newRequest = UamRequest::create([
+                'application'      => $application,
+                'module'           => $baseline->module,
+                'year'             => $year,
+                'period'           => $period,
+                'batch_name'       => $batchName,
+                'file_name'        => 'Copied from ' . $baseline->batch_name,
+                'status'           => 'Draft',
+                'record_count'     => $baseline->record_count,
+                'requested_by'     => auth()->id(),
+                'requester_nik'    => auth()->user()->username ?? null,
+            ]);
+
+            // Copy all records using raw SQL for performance
+            \Illuminate\Support\Facades\DB::insert("
+                INSERT INTO uam_records (request_id, module, period, role, description_role, tcode, unit, bpo, access_owner, matrix_data, status, change_type, imported_by, created_at, updated_at)
+                SELECT ?, module, ?, role, description_role, tcode, unit, bpo, access_owner, matrix_data, 'Draft', 'Unchanged', ?, NOW(), NOW()
+                FROM uam_records
+                WHERE request_id = ?
+            ", [$newRequest->id, $period, auth()->id(), $baseline->id]);
+
+            \Illuminate\Support\Facades\DB::commit();
+            return back()->with('success', "Successfully copied {$baseline->record_count} records from the baseline.");
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to copy from baseline: ' . $e->getMessage()]);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -941,6 +1013,7 @@ class AccessMatrixController extends Controller
             'module'           => $module,
             'period'           => $period,
             'request_id'       => $requestId,
+            'change_type'      => 'Added',
             'imported_by'      => Auth::id(),
         ];
 
@@ -996,6 +1069,10 @@ class AccessMatrixController extends Controller
             'period'           => ['required', 'string', 'in:Q1,Q2,Q3'],
         ]);
 
+        if ($uamRecord->change_type !== 'Added') {
+            $validated['change_type'] = 'Modified';
+        }
+
         $uamRecord->update($validated);
 
         $redirectParams = ['search' => $uamRecord->role];
@@ -1025,6 +1102,24 @@ class AccessMatrixController extends Controller
         return redirect()
             ->route('access-matrix.sap', $redirectParams)
             ->with('success', "Record for role \"{$role}\" has been deleted.");
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // DESTROY ROLE — Delete all records for a specific role
+    // ─────────────────────────────────────────────────────────────────────────
+    public function destroyRole(UamRequest $uamRequest, $role)
+    {
+        // Must be editable
+        if (!in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) {
+            return redirect()->back()->withErrors(['error' => 'Cannot delete role when request is not editable.']);
+        }
+
+        UamRecord::where('request_id', $uamRequest->id)
+            ->where('role', $role)
+            ->delete();
+
+        return redirect()
+            ->route('access-matrix.sap', ['request_id' => $uamRequest->id])
+            ->with('success', "All records for role \"{$role}\" have been deleted.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1175,6 +1270,9 @@ class AccessMatrixController extends Controller
             // Replace the owners list for this unit→bpo
             $matrix[$unit][$bpo] = $owners;
             $rec->matrix_data = $matrix;
+            if ($rec->change_type !== 'Added') {
+                $rec->change_type = 'Modified';
+            }
             $rec->save();
         }
 
@@ -1194,5 +1292,97 @@ class AccessMatrixController extends Controller
         return redirect()
             ->route('access-matrix.request.sap')
             ->with('success', "Request \"{$uamRequest->module}\" has been submitted for review successfully.");
+    }
+
+    public function signRequest(Request $request, UamRequest $uamRequest)
+    {
+        $request->validate([
+            'signed_by' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $uamRequest->update([
+            'signed_by' => $request->input('signed_by'),
+        ]);
+
+        return back()->with('success', 'Signature saved successfully.');
+    }
+
+    public function downloadExcel(UamRequest $uamRequest)
+    {
+        $records = UamRecord::where('request_id', $uamRequest->id)->orderBy('role')->get();
+        
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Headers
+        $headers = ['Role', 'Description Role', 'TCODE', 'UNIT', 'BPO', 'Access Owner', 'Status', 'Change Type'];
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $sheet->getStyle($col . '1')->getFont()->setBold(true);
+            $col++;
+        }
+        
+        $row = 2;
+        foreach ($records as $record) {
+            // Split tcode by commas or newlines
+            $tcodes = preg_split('/[\s,]+/', $record->tcode, -1, PREG_SPLIT_NO_EMPTY);
+            
+            // If there are no TCODEs, still print the row with empty TCODE
+            if (empty($tcodes)) {
+                $tcodes = [''];
+            }
+            
+            $owners = is_array($record->matrix_data) ? json_encode($record->matrix_data) : $record->access_owner;
+            
+            foreach ($tcodes as $tcode) {
+                $sheet->setCellValue('A' . $row, $record->role);
+                $sheet->setCellValue('B' . $row, $record->description_role);
+                $sheet->setCellValue('C' . $row, $tcode);
+                $sheet->setCellValue('D' . $row, $record->unit);
+                $sheet->setCellValue('E' . $row, $record->bpo);
+                $sheet->setCellValue('F' . $row, $owners);
+                $sheet->setCellValue('G' . $row, $record->status);
+                $sheet->setCellValue('H' . $row, $record->change_type);
+                $row++;
+            }
+        }
+        
+        // AutoFilter & FreezePane
+        $highestColumn = $sheet->getHighestColumn();
+        $highestRow = $sheet->getHighestRow();
+        $range = "A1:{$highestColumn}{$highestRow}";
+        
+        $sheet->setAutoFilter($range);
+        $sheet->freezePane('A2');
+        
+        // Auto-size columns
+        // PhpSpreadsheet column iteration: ++$highestColumn increments the string like 'H' -> 'I'
+        $highestColStr = $highestColumn;
+        ++$highestColStr; // one past the last column
+        for ($c = 'A'; $c !== $highestColStr; $c++) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+        
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $fileName = 'UAM_Export_' . $uamRequest->period . '_' . $uamRequest->year . '.xlsx';
+        
+        $tempFile = tempnam(sys_get_temp_dir(), 'uam');
+        $writer->save($tempFile);
+        
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public function downloadPdf(UamRequest $uamRequest)
+    {
+        $records = UamRecord::where('request_id', $uamRequest->id)->orderBy('role')->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('access-matrix.pdf', [
+            'uamRequest' => $uamRequest,
+            'records' => $records
+        ])->setPaper('a4', 'landscape');
+
+        $fileName = 'UAM_Export_' . $uamRequest->period . '_' . $uamRequest->year . '.pdf';
+        return $pdf->download($fileName);
     }
 }

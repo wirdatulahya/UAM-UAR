@@ -120,16 +120,6 @@
             Access Review
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
         </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-graph-up-arrow"></i>
-            Monitoring
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-file-earmark-bar-graph-fill"></i>
-            Reports
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
     </aside>
 
     {{-- Main Content --}}
@@ -322,7 +312,25 @@
                                                     <i class="bi bi-eye"></i> View Records
                                                 </a>
                                             </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('access-matrix.download-excel', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);">
+                                                    <i class="bi bi-file-earmark-excel"></i> Download Excel
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('access-matrix.download-pdf', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);">
+                                                    <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                                                </a>
+                                            </li>
                                             <li><hr class="dropdown-divider"></li>
+                                            @if($req->status === 'Approved')
+                                                <li>
+                                                    <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);">
+                                                        <i class="bi bi-files"></i> Modified
+                                                    </button>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                            @endif
                                             <li>
                                                 <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;" onsubmit="return confirm('Delete this request and all its records? This cannot be undone.');">
                                                     @csrf
@@ -406,20 +414,112 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" style="padding:1.75rem;">
-                <form method="POST" action="{{ route('access-matrix.import') }}" enctype="multipart/form-data" id="importForm">
-                    @csrf
-                    {{-- Metadata Fields --}}
-                    <div style="display:flex;gap:1rem;margin-bottom:1.5rem;">
+
+                        <form method="POST" action="{{ route('access-matrix.import') }}" enctype="multipart/form-data" id="importForm">
+                            @csrf
+                            {{-- Metadata Fields --}}
+                            <div style="display:flex;gap:1rem;margin-bottom:1.5rem;">
+                                <div style="flex:1;">
+                                    <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Application <span class="text-danger">*</span></label>
+                                    <input type="text" name="application" class="form-control" required placeholder="e.g. SAP S/4HANA" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                                </div>
+                                <div style="flex:1;">
+                                    <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Year <span class="text-danger">*</span></label>
+                                    <input type="number" name="year" min="2026" max="9999" class="form-control" required placeholder="e.g. 2026" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                                </div>
+                                <div style="flex:1;">
+                                    <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Period <span class="text-danger">*</span></label>
+                                    <select name="period" class="form-select" required style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                                        <option value="" disabled selected>-- Select --</option>
+                                        <option value="Q1">Q1 (First Period)</option>
+                                        <option value="Q2">Q2 (Second Period)</option>
+                                        <option value="Q3">Q3 (Third Period)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {{-- File upload area --}}
+                            <div id="uploadCard"
+                                 style="background:#fafbff;border:2px dashed var(--border);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;transition:border-color var(--transition),background var(--transition);"
+                                 onclick="document.getElementById('fileInput').click();"
+                                 ondragover="event.preventDefault();this.style.borderColor='var(--secondary)';this.style.background='var(--secondary-light)';"
+                                 ondragleave="this.style.borderColor='var(--border)';this.style.background='#fafbff';"
+                                 ondrop="handleDrop(event)">
+                                <div style="width:56px;height:56px;background:var(--secondary-light);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                                    <i class="bi bi-file-earmark-arrow-up-fill" style="font-size:1.6rem;color:var(--secondary);"></i>
+                                </div>
+                                <h3 style="font-size:1.05rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">
+                                    Drag &amp; Drop your UAM Excel file here
+                                </h3>
+                                <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;">
+                                    Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> &nbsp;·&nbsp; Max 10 MB
+                                </p>
+                                <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1.25rem;">
+                                    Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNIT</code>, <code>BPO</code>, <code>Access Owner</code>
+                                </p>
+            
+                                <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display:none;">
+            
+                                <div id="fileLabel"
+                                    style="display:inline-flex;align-items:center;gap:.5rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.6rem 1.5rem;font-size:.85rem;font-weight:600;cursor:pointer;transition:filter var(--transition);"
+                                    onmouseenter="this.style.filter='brightness(1.1)'"
+                                    onmouseleave="this.style.filter=''">
+                                    <i class="bi bi-folder2-open"></i>
+                                    Browse File
+                                </div>
+                            </div>
+            
+                            {{-- File preview --}}
+                            <div id="filePreview" style="display:none;margin-top:1.25rem;padding:1rem 1.25rem;background:var(--secondary-light);border-radius:12px;align-items:center;gap:.75rem;">
+                                <div style="width:42px;height:42px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+                                    <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:1.2rem;color:var(--secondary);"></i>
+                                </div>
+                                <div style="flex:1;min-width:0;">
+                                    <div id="fileName" style="font-size:.9rem;font-weight:600;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                                    <div id="fileSize" style="font-size:.75rem;color:var(--text-muted);"></div>
+                                </div>
+                                <button type="button" id="removeFile"
+                                    style="background:none;border:none;padding:.2rem .4rem;color:var(--text-muted);cursor:pointer;border-radius:6px;font-size:1.1rem;flex-shrink:0;"
+                                    title="Remove file">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+            
+                            {{-- Submit button (hidden by default until file is selected) --}}
+                            <div id="submitWrapper" style="display:none;margin-top:1.5rem;text-align:right;">
+                                <button type="submit" id="submitBtn" class="btn btn-primary" style="background:#0066cc;border:none;border-radius:8px;padding:.6rem 1.75rem;font-weight:600;font-size:.85rem;">
+                                    <i class="bi bi-upload me-2"></i> Upload
+                                </button>
+                            </div>
+                        </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Copy Baseline Modal --}}
+<div class="modal fade" id="copyBaselineModal" tabindex="-1" aria-labelledby="copyBaselineModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border:none;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
+            <form method="POST" action="{{ route('access-matrix.copy-baseline') }}" id="copyBaselineForm">
+                @csrf
+                <input type="hidden" name="request_id" id="copyBaselineRequestId">
+                <div class="modal-header" style="border-bottom:1px solid var(--border);padding:1.5rem 1.75rem;">
+                    <h5 class="modal-title" id="copyBaselineModalLabel" style="font-size:1.05rem;font-weight:800;color:var(--secondary);margin:0;">Create Modified Baseline</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding:1.75rem;">
+                    <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.25rem;">
+                        Copying approved baseline for <strong id="copyBaselineAppName" style="color:var(--secondary);"></strong>.
+                    </p>
+                    <div style="display:flex;gap:1rem;">
                         <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Application <span class="text-danger">*</span></label>
-                            <input type="text" name="application" class="form-control" required placeholder="e.g. SAP S/4HANA" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
-                        </div>
-                        <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Year <span class="text-danger">*</span></label>
+                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">New Year <span class="text-danger">*</span></label>
                             <input type="number" name="year" min="2026" max="9999" class="form-control" required placeholder="e.g. 2026" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                         </div>
                         <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Period <span class="text-danger">*</span></label>
+                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">New Period <span class="text-danger">*</span></label>
                             <select name="period" class="form-select" required style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                                 <option value="" disabled selected>-- Select --</option>
                                 <option value="Q1">Q1 (First Period)</option>
@@ -428,68 +528,23 @@
                             </select>
                         </div>
                     </div>
-
-                    {{-- File upload area --}}
-                    <div id="uploadCard"
-                         style="background:#fafbff;border:2px dashed var(--border);border-radius:14px;padding:2rem;text-align:center;cursor:pointer;transition:border-color var(--transition),background var(--transition);"
-                         onclick="document.getElementById('fileInput').click();"
-                         ondragover="event.preventDefault();this.style.borderColor='var(--secondary)';this.style.background='var(--secondary-light)';"
-                         ondragleave="this.style.borderColor='var(--border)';this.style.background='#fafbff';"
-                         ondrop="handleDrop(event)">
-                        <div style="width:56px;height:56px;background:var(--secondary-light);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                            <i class="bi bi-file-earmark-arrow-up-fill" style="font-size:1.6rem;color:var(--secondary);"></i>
-                        </div>
-                        <h3 style="font-size:1.05rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">
-                            Drag &amp; Drop your UAM Excel file here
-                        </h3>
-                        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;">
-                            Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> &nbsp;·&nbsp; Max 10 MB
-                        </p>
-                        <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                            Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNIT</code>, <code>BPO</code>, <code>Access Owner</code>
-                        </p>
-    
-                        <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display:none;">
-    
-                        <div id="fileLabel"
-                            style="display:inline-flex;align-items:center;gap:.5rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.6rem 1.5rem;font-size:.85rem;font-weight:600;cursor:pointer;transition:filter var(--transition);"
-                            onmouseenter="this.style.filter='brightness(1.1)'"
-                            onmouseleave="this.style.filter=''">
-                            <i class="bi bi-folder2-open"></i>
-                            Browse File
-                        </div>
-                    </div>
-    
-                    {{-- File preview --}}
-                    <div id="filePreview" style="display:none;margin-top:1.25rem;padding:1rem 1.25rem;background:var(--secondary-light);border-radius:12px;align-items:center;gap:.75rem;">
-                        <div style="width:42px;height:42px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08);">
-                            <i class="bi bi-file-earmark-spreadsheet-fill" style="font-size:1.2rem;color:var(--secondary);"></i>
-                        </div>
-                        <div style="flex:1;min-width:0;">
-                            <div id="fileName" style="font-size:.9rem;font-weight:600;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                            <div id="fileSize" style="font-size:.75rem;color:var(--text-muted);"></div>
-                        </div>
-                        <button type="button" id="removeFile"
-                            style="background:none;border:none;padding:.2rem .4rem;color:var(--text-muted);cursor:pointer;border-radius:6px;font-size:1.1rem;flex-shrink:0;"
-                            title="Remove file">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
-    
-                    {{-- Submit button (hidden by default until file is selected) --}}
-                    <div id="submitWrapper" style="display:none;margin-top:1.5rem;text-align:right;">
-                        <button type="submit" id="submitBtn" class="btn btn-primary" style="background:#0066cc;border:none;border-radius:8px;padding:.6rem 1.75rem;font-weight:600;font-size:.85rem;">
-                            <i class="bi bi-upload me-2"></i> Upload
-                        </button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border);padding:1.25rem 1.75rem;">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="background:#f1f5f9;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background:var(--primary);border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Copy Baseline</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 @push('scripts')
 <script>
+    window.openCopyBaselineModal = function(id, appName) {
+        document.getElementById('copyBaselineRequestId').value = id;
+        document.getElementById('copyBaselineAppName').textContent = appName;
+        new bootstrap.Modal(document.getElementById('copyBaselineModal')).show();
+    };
     // ── Profile dropdown ──────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
         const btn     = document.getElementById('profileDropdownBtn');

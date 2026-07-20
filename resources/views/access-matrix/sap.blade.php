@@ -123,16 +123,6 @@
             Access Review
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
         </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-graph-up-arrow"></i>
-            Monitoring
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-file-earmark-bar-graph-fill"></i>
-            Reports
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
 
     </aside>
 
@@ -223,6 +213,7 @@
                     @endif
                 </p>
             </div>
+            
 
 
         </div>
@@ -414,7 +405,7 @@
                 </div>
 
                 {{-- Table --}}
-                <div style="overflow-x:auto;">
+                <div style="overflow-x:auto; padding-bottom: 6rem; min-height: 200px;">
                     <table class="uam-table" style="width:100%;border-collapse:collapse;font-size:.82rem;table-layout:fixed;">
                         <colgroup>
                             <col style="width:48px;">         {{-- # --}}
@@ -520,6 +511,19 @@
                                                         <span style="font-family:monospace;background:#eff6ff;padding:.2rem .5rem;border-radius:4px;font-size:.78rem;border:1px solid #bfdbfe;font-weight:700;color:#1d4ed8;display:inline-block;">
                                                             {{ $rec->tcode ?: '—' }}
                                                         </span>
+                                                        @if(isset($rec->change_type) && $rec->change_type !== 'Unchanged')
+                                                            @php
+                                                                $badgeColors = [
+                                                                    'Added'    => ['bg' => '#dcfce7', 'text' => '#166534', 'border' => '#bbf7d0'],
+                                                                    'Modified' => ['bg' => '#fef9c3', 'text' => '#854d0e', 'border' => '#fef08a'],
+                                                                    'Deleted'  => ['bg' => '#fee2e2', 'text' => '#991b1b', 'border' => '#fecaca'],
+                                                                ];
+                                                                $c = $badgeColors[$rec->change_type] ?? ['bg' => '#f3f4f6', 'text' => '#374151', 'border' => '#e5e7eb'];
+                                                            @endphp
+                                                            <span style="margin-left:.35rem; font-size:.65rem; font-weight:700; padding:.15rem .45rem; border-radius:12px; background:{{ $c['bg'] }}; color:{{ $c['text'] }}; border:1px solid {{ $c['border'] }}; vertical-align:middle;">
+                                                                {{ $rec->change_type }}
+                                                            </span>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </td>
@@ -597,10 +601,38 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            {{-- Expand arrow column (empty for sub-rows) --}}
-                                            <td style="padding:0;border:none;border-left:1px solid #e5e7eb;vertical-align:middle;">
+                                            {{-- Expand arrow column (Action Menu for sub-rows) --}}
+                                            <td style="padding:0;border:none;border-left:1px solid #e5e7eb;vertical-align:middle;text-align:center;">
                                                 <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
-                                                    <div style="padding:.7rem 0;"></div>
+                                                    <div style="padding:.7rem 0;display:flex;justify-content:center;align-items:center;">
+                                                        @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])))
+                                                            <div class="dropdown">
+                                                                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration:none;">
+                                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:10px;font-size:0.8rem;">
+                                                                    <li>
+                                                                        <form action="{{ route('access-matrix.destroy-role', ['uamRequest' => $uamRequest->id, 'role' => $roleData->role]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this Role and ALL its associated TCODEs?');">
+                                                                            @csrf
+                                                                            @method('DELETE')
+                                                                            <button type="submit" class="dropdown-item text-danger" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 1rem;">
+                                                                                <i class="bi bi-trash"></i> Delete Role
+                                                                            </button>
+                                                                        </form>
+                                                                    </li>
+                                                                    <li>
+                                                                        <form action="{{ route('access-matrix.destroy', $rec->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this specific TCODE?');">
+                                                                            @csrf
+                                                                            @method('DELETE')
+                                                                            <button type="submit" class="dropdown-item text-danger" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 1rem;">
+                                                                                <i class="bi bi-x-circle"></i> Delete TCODE
+                                                                            </button>
+                                                                        </form>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1077,6 +1109,8 @@
 </style>
 @endpush
 
+
+
 @push('scripts')
 <script>
     // ── Profile Dropdown ───────────────────────────────────────────────
@@ -1397,6 +1431,7 @@
     if (searchSubmitBtn) searchSubmitBtn.disabled = false;
 
     // Sub-row TCODE toggle
+
     window.toggleSubRows = function(rowId) {
         const subrows = document.querySelectorAll('.subrow-' + rowId);
         const icon = document.getElementById('icon-sub-' + rowId);
@@ -1435,11 +1470,22 @@
                     wrapper.style.opacity = '1';
                 });
             });
+            setTimeout(() => {
+                // Check if still expanded
+                if (icon && icon.style.transform === 'rotate(180deg)') {
+                    subrows.forEach(row => {
+                        row.querySelectorAll('.anim-wrapper').forEach(wrapper => {
+                            wrapper.style.overflow = 'visible';
+                        });
+                    });
+                }
+            }, 300);
         } else {
             // Collapse with animation
             subrows.forEach(row => {
                 row.style.borderColor = 'transparent';
                 row.querySelectorAll('.anim-wrapper').forEach(wrapper => {
+                    wrapper.style.overflow = 'hidden';
                     wrapper.style.maxHeight = '0';
                     wrapper.style.opacity = '0';
                 });

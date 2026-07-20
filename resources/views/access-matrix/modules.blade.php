@@ -169,16 +169,6 @@
             Access Review
             <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
         </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-graph-up-arrow"></i>
-            Monitoring
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-file-earmark-bar-graph-fill"></i>
-            Reports
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
 
     </aside>
 

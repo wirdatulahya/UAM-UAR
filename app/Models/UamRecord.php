@@ -20,6 +20,8 @@ class UamRecord extends Model
         'bpo',
         'access_owner',
         'matrix_data',
+        'status',
+        'change_type',
         'imported_by',
     ];
 

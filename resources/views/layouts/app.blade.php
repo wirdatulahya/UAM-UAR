@@ -49,6 +49,12 @@
             min-height: 100vh;
         }
 
+        /* Hide native password reveal button in Edge/IE */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none;
+        }
+
         /* ──────────────────────────────────────
            Auth Pages — Full-screen split layout
         ────────────────────────────────────── */
