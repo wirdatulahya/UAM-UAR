@@ -30,16 +30,16 @@
             font-weight: bold;
             white-space: nowrap; /* Keep headers from wrapping unnecessarily */
         }
-        /* Allow columns to size dynamically based on content */
-        .col-tcode {
-            white-space: nowrap;
-            width: 1%; /* Force it to be as narrow as the content allows */
-        }
-        .col-status, .col-change {
-            white-space: nowrap;
-            width: 1%; /* Force these to be narrow to give space to org hierarchy */
-        }
-        
+        /* Allow columns to size dynamically */
+        .col-role { width: 10%; }
+        .col-desc { width: 12%; }
+        .col-tcode { width: 6%; }
+        .col-org { width: 20%; }
+        .col-owner { width: 20%; }
+        .col-status { width: 7%; }
+        .col-change { width: 8%; }
+        .col-details { width: 17%; }
+
         ul.owner-list {
             margin: 0;
             padding-left: 15px;
@@ -48,7 +48,7 @@
 </head>
 <body>
 
-    <h2>UAM Request - {{ $uamRequest->application }} ({{ $uamRequest->period }} {{ $uamRequest->year }})</h2>
+    <h2>UAM Request - {{ $uamRequest->application }} ({{ $uamRequest->full_period }})</h2>
 
     <table>
         <thead>
@@ -59,6 +59,7 @@
                 <th class="col-org">Organization Hierarchy (BPO|Unit |Access Owner)</th>
                 <th class="col-status">Status</th>
                 <th class="col-change">Change Type</th>
+                <th class="col-details">Change Details</th>
             </tr>
         </thead>
         <tbody>
@@ -135,6 +136,17 @@
                         </td>
                         <td>{{ $record->status }}</td>
                         <td>{{ $record->change_type }}</td>
+                        <td>
+                            @if(isset($changeDetailsMap) && isset($changeDetailsMap[$record->id]) && count($changeDetailsMap[$record->id]) > 0)
+                                <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+                                    @foreach($changeDetailsMap[$record->id] as $detail)
+                                        <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <span style="color: #999;">-</span>
+                            @endif
+                        </td>
                     </tr>
                 @endforeach
             @endforeach

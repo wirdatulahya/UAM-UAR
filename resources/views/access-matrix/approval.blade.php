@@ -274,7 +274,7 @@
                                 onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request']) }}'">
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;color:var(--text-muted);">{{ $req->no }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;font-weight:500;">{{ $req->application }}</td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->period }} {{ $req->year }}</td>
+                                <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->full_period }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:600;color:var(--secondary);">
                                         {{ $req->module ?: 'N/A' }}
@@ -517,13 +517,25 @@
                             <input type="number" name="year" min="2026" max="9999" class="form-control" required placeholder="e.g. 2026" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                         </div>
                         <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">New Period <span class="text-danger">*</span></label>
+                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">New Quarter <span class="text-danger">*</span></label>
                             <select name="period" class="form-select" required style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                                 <option value="" disabled selected>-- Select --</option>
-                                <option value="Q1">Q1 (First Period)</option>
-                                <option value="Q2">Q2 (Second Period)</option>
-                                <option value="Q3">Q3 (Third Period)</option>
+                                <option value="Q1">Q1 (First Quarter)</option>
+                                <option value="Q2">Q2 (Second Quarter)</option>
+                                <option value="Q3">Q3 (Third Quarter)</option>
+                                <option value="Q4">Q4 (Fourth Quarter)</option>
                             </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Version <span class="text-danger">*</span></label>
+                            <input type="text" name="version" list="versionOptions" class="form-control" required placeholder="e.g. V1, V2..." style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                            <datalist id="versionOptions">
+                                <option value="V1">
+                                <option value="V2">
+                                <option value="V3">
+                                <option value="V4">
+                                <option value="V5">
+                            </datalist>
                         </div>
                     </div>
                 </div>

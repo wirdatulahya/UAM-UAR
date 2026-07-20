@@ -417,12 +417,14 @@ class AccessMatrixController extends Controller
         $request->validate([
             'request_id'  => ['required', 'integer', 'exists:uam_requests,id'],
             'year'        => ['required', 'integer', 'min:2026', 'max:9999'],
-            'period'      => ['required', 'string', 'in:Q1,Q2,Q3'],
+            'period'      => ['required', 'string', 'in:Q1,Q2,Q3,Q4'],
+            'version'     => ['required', 'string', 'max:50'],
         ]);
 
         $baseline = UamRequest::find($request->input('request_id'));
         $year     = $request->input('year');
         $period   = $request->input('period');
+        $version  = $request->input('version');
 
         if ($baseline->status !== 'Approved') {
             return back()->withErrors(['request_id' => 'The selected baseline request is not approved.']);
@@ -430,14 +432,15 @@ class AccessMatrixController extends Controller
 
         $application = $baseline->application;
 
-        // Check if a request already exists for this application, year, and period
+        // Check if a request already exists for this application, year, period, and version
         $exists = UamRequest::where('application', $application)
             ->where('year', $year)
             ->where('period', $period)
+            ->where('version', $version)
             ->exists();
             
         if ($exists) {
-            return back()->withErrors(['period' => "A request for {$application} {$period} {$year} already exists."]);
+            return back()->withErrors(['version' => "A request for {$application} {$period} {$year} - {$version} already exists."]);
         }
 
         // Auto-generate batch name
@@ -451,6 +454,7 @@ class AccessMatrixController extends Controller
                 'module'           => $baseline->module,
                 'year'             => $year,
                 'period'           => $period,
+                'version'          => $version,
                 'batch_name'       => $batchName,
                 'file_name'        => 'Copied from ' . $baseline->batch_name,
                 'status'           => 'Draft',
@@ -1515,9 +1519,73 @@ class AccessMatrixController extends Controller
     {
         $records = UamRecord::where('request_id', $uamRequest->id)->orderBy('role')->get();
 
+        $changeDetailsMap = [];
+
+        if (!empty($uamRequest->version)) {
+            $baselineRequest = UamRequest::where('application', $uamRequest->application)
+                ->where('year', $uamRequest->year)
+                ->where('period', $uamRequest->period)
+                ->where('id', '<', $uamRequest->id)
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($baselineRequest) {
+                $baselineRecords = UamRecord::where('request_id', $baselineRequest->id)->get()->keyBy('role');
+
+                foreach ($records as $record) {
+                    $details = [];
+                    if ($record->change_type === 'Added') {
+                        $details[] = 'New role added';
+                    } elseif ($record->change_type === 'Modified' && $baselineRecords->has($record->role)) {
+                        $baseRecord = $baselineRecords[$record->role];
+                        
+                        if (trim($record->bpo) !== trim($baseRecord->bpo)) {
+                            $details[] = 'BPO Changed';
+                        }
+                        if (trim($record->unit) !== trim($baseRecord->unit)) {
+                            $details[] = 'Unit Changed';
+                        }
+                        
+                        // Compare owners
+                        $getOwners = function($matrix) {
+                            $owners = [];
+                            if (is_array($matrix)) {
+                                foreach ($matrix as $bpos) {
+                                    foreach ($bpos as $ownerList) {
+                                        foreach ($ownerList as $o) {
+                                            $oName = trim($o);
+                                            if ($oName !== '' && !in_array($oName, $owners)) {
+                                                $owners[] = $oName;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            return $owners;
+                        };
+
+                        $baseOwners = $getOwners($baseRecord->matrix_data);
+                        $currOwners = $getOwners($record->matrix_data);
+
+                        $added = array_diff($currOwners, $baseOwners);
+                        $removed = array_diff($baseOwners, $currOwners);
+
+                        foreach ($added as $a) {
+                            $details[] = "Added Access Owner: {$a}";
+                        }
+                        foreach ($removed as $r) {
+                            $details[] = "Removed Access Owner: {$r}";
+                        }
+                    }
+                    $changeDetailsMap[$record->id] = $details;
+                }
+            }
+        }
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('access-matrix.pdf', [
             'uamRequest' => $uamRequest,
-            'records' => $records
+            'records' => $records,
+            'changeDetailsMap' => $changeDetailsMap
         ])->setPaper('a4', 'landscape');
 
         $fileName = 'UAM_Export_' . $uamRequest->period . '_' . $uamRequest->year . '.pdf';

@@ -204,7 +204,7 @@
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
                     @if($uamRequest)
-                        Records from request &mdash; {{ $uamRequest->period }} {{ $uamRequest->year }} &mdash; {{ $uamRequest->record_count }} record(s)
+                        Records from request &mdash; {{ $uamRequest->full_period ?: 'N/A' }} &mdash; {{ $uamRequest->record_count }} record(s)
                     @else
                         Search by Role to view, add, edit, or delete access records
                         @if($totalRecords > 0)
@@ -314,7 +314,7 @@
                     <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:.6rem;padding:.4rem .9rem;background:#fff5f5;border:1.5px solid rgba(192,57,43,.2);border-radius:10px;">
                         <div style="line-height:1.2;text-align:right;">
                             <div style="font-size:.62rem;font-weight:700;color:#c0392b;text-transform:uppercase;letter-spacing:.06em;">Period</div>
-                            <div style="font-size:.88rem;font-weight:800;color:#c0392b;font-family:monospace;">{{ $uamRequest->period ?: 'N/A' }} {{ $uamRequest->year }}</div>
+                            <div style="font-size:.88rem;font-weight:800;color:#c0392b;font-family:monospace;">{{ $uamRequest->full_period ?: 'N/A' }}</div>
                         </div>
                         <div style="width:28px;height:28px;background:#c0392b;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 8px rgba(192,57,43,.25);">
                             <i class="bi bi-calendar3" style="color:#fff;font-size:.65rem;"></i>

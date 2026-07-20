@@ -187,7 +187,7 @@
                                     This role will be added to
                                     <strong>{{ $uamRequest->module }}</strong>
                                     &nbsp;·&nbsp;
-                                    <strong>{{ $uamRequest->period }} {{ $uamRequest->year }}</strong>
+                                    <strong>{{ $uamRequest->full_period }}</strong>
                                 </span>
                             </div>
                         @else

@@ -15,6 +15,7 @@ class UamRequest extends Model
         'module',
         'year',
         'period',
+        'version',
         'batch_name',
         'file_name',
         'status',
@@ -25,6 +26,18 @@ class UamRequest extends Model
         'requester_nik',
         'signed_by',
     ];
+
+    /**
+     * Get the fully formatted period including version if available.
+     */
+    public function getFullPeriodAttribute()
+    {
+        $base = "{$this->period} {$this->year}";
+        if (!empty($this->version)) {
+            return "{$base} - {$this->version}";
+        }
+        return $base;
+    }
 
     /**
      * The user who created this request.

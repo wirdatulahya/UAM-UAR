@@ -262,7 +262,7 @@
                                 onclick="if('{{ $req->status }}' !== 'Review') window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'stage2']) }}'">
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;color:var(--text-muted);">{{ $req->no }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;font-weight:500;">{{ $req->application }}</td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->period }} {{ $req->year }}</td>
+                                <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->full_period }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:600;color:var(--secondary);">
                                         {{ $req->module ?: 'N/A' }}
