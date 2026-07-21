@@ -437,10 +437,13 @@
                                     $firstRec = $roleRecords->first();
                                     $rowId = 'row-' . md5($roleData->role);
                                     $returnedCount = $roleRecords->where('status', 'Return')->count();
+                                    
+                                    // A role is considered newly added if its first record is 'Added'
+                                    $isNewRole = $firstRec && isset($firstRec->change_type) && $firstRec->change_type === 'Added';
                                 @endphp
-                                <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
-                                    onmouseenter="this.style.background='var(--secondary-light)'"
-                                    onmouseleave="this.style.background=''">
+                                <tr style="border-bottom:1px solid var(--border);transition:background var(--transition); {{ $isNewRole ? 'background:#ECFDF3; border-left:4px solid #22c55e;' : '' }}"
+                                    onmouseenter="this.style.background='{{ $isNewRole ? '#dcfce7' : 'var(--secondary-light)' }}'"
+                                    onmouseleave="this.style.background='{{ $isNewRole ? '#ECFDF3' : '' }}'">
                                     <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;vertical-align:middle;overflow:hidden;">
                                         <span>{{ $roles->firstItem() + $i }}</span>
                                     </td>
@@ -474,9 +477,12 @@
 
                                 {{-- EXPANDED TCODE ROWS — rendered for all records (single or multiple) --}}
                                 @foreach($roleRecords as $rec)
-                                        <tr class="subrow-{{ $rowId }}" style="display:none; border-bottom:1px solid transparent; background:#f1f5f9; transition:background var(--transition), border-color 300ms ease-in-out;"
-                                            onmouseenter="this.style.background='var(--secondary-light)'"
-                                            onmouseleave="this.style.background='#f1f5f9'">
+                                    @php
+                                        $isNewRec = isset($rec->change_type) && $rec->change_type === 'Added';
+                                    @endphp
+                                        <tr class="subrow-{{ $rowId }}" style="display:none; border-bottom:1px solid transparent; background: {{ $isNewRec ? '#ECFDF3' : '#f1f5f9' }}; transition:background var(--transition), border-color 300ms ease-in-out; {{ $isNewRec ? 'border-left:4px solid #22c55e;' : '' }}"
+                                            onmouseenter="this.style.background='{{ $isNewRec ? '#dcfce7' : 'var(--secondary-light)' }}'"
+                                            onmouseleave="this.style.background='{{ $isNewRec ? '#ECFDF3' : '#f1f5f9' }}'">
                                             
                                             {{-- # column --}}
                                             <td style="padding:0;border:none;vertical-align:middle;">
@@ -511,10 +517,9 @@
                                                         <span style="font-family:monospace;background:#eff6ff;padding:.2rem .5rem;border-radius:4px;font-size:.78rem;border:1px solid #bfdbfe;font-weight:700;color:#1d4ed8;display:inline-block;">
                                                             {{ $rec->tcode ?: '—' }}
                                                         </span>
-                                                        @if(isset($rec->change_type) && $rec->change_type !== 'Unchanged')
+                                                        @if(isset($rec->change_type) && $rec->change_type !== 'Unchanged' && $rec->change_type !== 'Added')
                                                             @php
                                                                 $badgeColors = [
-                                                                    'Added'    => ['bg' => '#dcfce7', 'text' => '#166534', 'border' => '#bbf7d0'],
                                                                     'Modified' => ['bg' => '#fef9c3', 'text' => '#854d0e', 'border' => '#fef08a'],
                                                                     'Deleted'  => ['bg' => '#fee2e2', 'text' => '#991b1b', 'border' => '#fecaca'],
                                                                 ];
@@ -1162,23 +1167,20 @@
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-6">
                                 <label for="addTcodeBpo" class="form-label fw-bold">BPO</label>
-                                <select id="addTcodeBpo" name="bpo" class="form-select" required>
-                                    <option value="">-- Select BPO --</option>
-                                </select>
+                                <input list="bpo-options" id="addTcodeBpo" name="bpo" class="form-control" required placeholder="Select or type BPO" autocomplete="off">
+                                <datalist id="bpo-options"></datalist>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label for="addTcodeUnit" class="form-label fw-bold">Unit</label>
-                                <select id="addTcodeUnit" name="unit" class="form-select" required disabled>
-                                    <option value="">-- Select BPO first --</option>
-                                </select>
+                                <input list="unit-options" id="addTcodeUnit" name="unit" class="form-control" required placeholder="Select or type Unit" autocomplete="off">
+                                <datalist id="unit-options"></datalist>
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-6">
-                                <label for="addTcodeAo" class="form-label fw-bold">User Access Matrix (AO)</label>
-                                <select id="addTcodeAo" name="access_owner" class="form-select" required disabled>
-                                    <option value="">-- Select Unit first --</option>
-                                </select>
+                                <label for="addTcodeAo" class="form-label fw-bold">User Access Matrix</label>
+                                <input list="ao-options" id="addTcodeAo" name="access_owner" class="form-control" required placeholder="Select or type Access Owner" autocomplete="off">
+                                <datalist id="ao-options"></datalist>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label for="addTcodeCode" class="form-label fw-bold">TCODE</label>
@@ -1700,46 +1702,50 @@
         const form = document.getElementById('addTcodeForm');
         form.action = `/access-matrix/sap/role/${addTcodeReqId}/${role}/tcode`;
 
-        // Reset dropdowns
-        const bpoSelect = document.getElementById('addTcodeBpo');
-        const unitSelect = document.getElementById('addTcodeUnit');
-        const aoSelect = document.getElementById('addTcodeAo');
+        // Reset inputs
+        const bpoInp = document.getElementById('addTcodeBpo');
+        const unitInp = document.getElementById('addTcodeUnit');
+        const aoInp = document.getElementById('addTcodeAo');
         const tcodeInp = document.getElementById('addTcodeCode');
 
+        bpoInp.value = '';
+        unitInp.value = '';
+        aoInp.value = '';
         tcodeInp.value = '';
-        unitSelect.innerHTML = '<option value="">-- Select BPO first --</option>';
-        unitSelect.disabled = true;
-        aoSelect.innerHTML = '<option value="">-- Select Unit first --</option>';
-        aoSelect.disabled = true;
 
-        // Populate BPO
-        bpoSelect.innerHTML = '<option value="">-- Select BPO --</option>';
+        // Datalists
+        const bpoList = document.getElementById('bpo-options');
+        const unitList = document.getElementById('unit-options');
+        const aoList = document.getElementById('ao-options');
+        
+        unitList.innerHTML = '';
+        aoList.innerHTML = '';
+
+        // Populate BPO datalist
+        bpoList.innerHTML = '';
         addTcodeBpos.forEach(b => {
             const opt = document.createElement('option');
             opt.value = b;
-            opt.textContent = b;
-            bpoSelect.appendChild(opt);
+            bpoList.appendChild(opt);
         });
 
         addTcodeModal.show();
     };
 
-    const tcodeBpoSelect = document.getElementById('addTcodeBpo');
-    const tcodeUnitSelect = document.getElementById('addTcodeUnit');
-    const tcodeAoSelect = document.getElementById('addTcodeAo');
+    const tcodeBpoInp = document.getElementById('addTcodeBpo');
+    const tcodeUnitInp = document.getElementById('addTcodeUnit');
+    const tcodeAoInp = document.getElementById('addTcodeAo');
 
-    if (tcodeBpoSelect) {
-        tcodeBpoSelect.addEventListener('change', function() {
+    if (tcodeBpoInp) {
+        tcodeBpoInp.addEventListener('input', function() {
             const selectedBpo = this.value;
-            tcodeUnitSelect.innerHTML = '<option value="">-- Select Unit --</option>';
-            tcodeAoSelect.innerHTML = '<option value="">-- Select Unit first --</option>';
-            tcodeAoSelect.disabled = true;
+            const unitList = document.getElementById('unit-options');
+            const aoList = document.getElementById('ao-options');
+            
+            unitList.innerHTML = '';
+            aoList.innerHTML = '';
 
-            if (!selectedBpo) {
-                tcodeUnitSelect.innerHTML = '<option value="">-- Select BPO first --</option>';
-                tcodeUnitSelect.disabled = true;
-                return;
-            }
+            if (!selectedBpo) return;
 
             const unitsSet = new Set();
             Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
@@ -1749,32 +1755,23 @@
             });
 
             const units = Array.from(unitsSet).sort();
-            if (units.length === 0) {
-                tcodeUnitSelect.innerHTML = '<option value="">-- No Units found --</option>';
-                tcodeUnitSelect.disabled = true;
-            } else {
-                tcodeUnitSelect.disabled = false;
-                units.forEach(u => {
-                    const opt = document.createElement('option');
-                    opt.value = u;
-                    opt.textContent = u;
-                    tcodeUnitSelect.appendChild(opt);
-                });
-            }
+            units.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u;
+                unitList.appendChild(opt);
+            });
         });
     }
 
-    if (tcodeUnitSelect) {
-        tcodeUnitSelect.addEventListener('change', function() {
-            const selectedBpo = tcodeBpoSelect.value;
+    if (tcodeUnitInp) {
+        tcodeUnitInp.addEventListener('input', function() {
+            const selectedBpo = tcodeBpoInp.value;
             const selectedUnit = this.value;
-            tcodeAoSelect.innerHTML = '<option value="">-- Select Access Owner --</option>';
+            const aoList = document.getElementById('ao-options');
+            
+            aoList.innerHTML = '';
 
-            if (!selectedUnit) {
-                tcodeAoSelect.innerHTML = '<option value="">-- Select Unit first --</option>';
-                tcodeAoSelect.disabled = true;
-                return;
-            }
+            if (!selectedUnit || !selectedBpo) return;
 
             const aosSet = new Set();
             Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
@@ -1784,18 +1781,11 @@
             });
 
             const aos = Array.from(aosSet).sort();
-            if (aos.length === 0) {
-                tcodeAoSelect.innerHTML = '<option value="">-- No Access Owners found --</option>';
-                tcodeAoSelect.disabled = true;
-            } else {
-                tcodeAoSelect.disabled = false;
-                aos.forEach(a => {
-                    const opt = document.createElement('option');
-                    opt.value = a;
-                    opt.textContent = a;
-                    tcodeAoSelect.appendChild(opt);
-                });
-            }
+            aos.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a;
+                aoList.appendChild(opt);
+            });
         });
     }
 </script>

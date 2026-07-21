@@ -253,9 +253,8 @@
                             {{-- BPO — LEFT --}}
                             <div class="col-12 col-sm-6">
                                 <label for="bpo" class="form-label">BPO</label>
-                                <select id="bpo" name="bpo" class="form-select @error('bpo') is-invalid @enderror">
-                                    <option value="">-- Type a TCODE first --</option>
-                                </select>
+                                <input list="bpo-options" id="bpo" name="bpo" class="form-control @error('bpo') is-invalid @enderror" placeholder="Select or type BPO" autocomplete="off" value="{{ old('bpo') }}">
+                                <datalist id="bpo-options"></datalist>
                                 @error('bpo')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -264,9 +263,8 @@
                             {{-- UNIT — RIGHT --}}
                             <div class="col-12 col-sm-6">
                                 <label for="unit" class="form-label">UNIT</label>
-                                <select id="unit" name="unit" class="form-select @error('unit') is-invalid @enderror">
-                                    <option value="">-- Select BPO first --</option>
-                                </select>
+                                <input list="unit-options" id="unit" name="unit" class="form-control @error('unit') is-invalid @enderror" placeholder="Select or type Unit" autocomplete="off" value="{{ old('unit') }}">
+                                <datalist id="unit-options"></datalist>
                                 @error('unit')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -276,10 +274,9 @@
                         <div class="row g-3 mb-3">
                             {{-- Access Owner --}}
                             <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">User Access Matrix (AO)</label>
-                                <select id="access_owner" name="access_owner" class="form-select @error('access_owner') is-invalid @enderror">
-                                    <option value="">-- Select Unit first --</option>
-                                </select>
+                                <label for="access_owner" class="form-label">User Access Matrix</label>
+                                <input list="ao-options" id="access_owner" name="access_owner" class="form-control @error('access_owner') is-invalid @enderror" placeholder="Select or type Access Owner" autocomplete="off" value="{{ old('access_owner') }}">
+                                <datalist id="ao-options"></datalist>
                                 @error('access_owner')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -394,30 +391,33 @@
     }
 
     const tcodeList = document.getElementById('tcodeList');
-    const bpoSelect = document.getElementById('bpo');
-    const unitSelect = document.getElementById('unit');
-    const aoSelect = document.getElementById('access_owner');
+    const bpoInput = document.getElementById('bpo');
+    const unitInput = document.getElementById('unit');
+    const aoInput = document.getElementById('access_owner');
+    
+    const bpoDatalist = document.getElementById('bpo-options');
+    const unitDatalist = document.getElementById('unit-options');
+    const aoDatalist = document.getElementById('ao-options');
 
     tcodeList.addEventListener('input', function(e) {
         if (e.target.tagName === 'INPUT') refreshDropdowns();
     });
 
-    bpoSelect.addEventListener('change', refreshDropdowns);
-    unitSelect.addEventListener('change', refreshDropdowns);
+    bpoInput.addEventListener('input', refreshDropdowns);
+    unitInput.addEventListener('input', refreshDropdowns);
 
     function refreshDropdowns(e) {
         const tcodes = Array.from(document.querySelectorAll('input[name="tcode[]"]'))
                             .map(i => i.value.trim())
                             .filter(v => v !== '');
 
-        const selectedBpo = bpoSelect.value;
-        const selectedUnit = unitSelect.value;
-        const selectedAo = aoSelect.value;
+        const selectedBpo = bpoInput.value.trim();
+        const selectedUnit = unitInput.value.trim();
 
         if (tcodes.length === 0) {
-            setOptions(bpoSelect, [], '-- Type a TCODE first --');
-            setOptions(unitSelect, [], '-- Select BPO first --');
-            setOptions(aoSelect, [], '-- Select Unit first --');
+            bpoDatalist.innerHTML = '';
+            unitDatalist.innerHTML = '';
+            aoDatalist.innerHTML = '';
             return;
         }
 
@@ -430,75 +430,52 @@
             else validBpos = validBpos.filter(b => bpos.includes(b));
         }
 
-        if (!validBpos || validBpos.length === 0) {
-            setOptions(bpoSelect, [], '-- No BPOs found for TCODE --');
-            setOptions(unitSelect, [], '-- Select BPO first --');
-            setOptions(aoSelect, [], '-- Select Unit first --');
-            return;
-        }
-
-        setOptions(bpoSelect, validBpos, '-- Select BPO --', selectedBpo);
+        populateDatalist(bpoDatalist, validBpos || []);
 
         // If a BPO is selected, determine valid Units
-        if (!bpoSelect.value) {
-            setOptions(unitSelect, [], '-- Select BPO first --');
-            setOptions(aoSelect, [], '-- Select Unit first --');
+        if (!selectedBpo) {
+            unitDatalist.innerHTML = '';
+            aoDatalist.innerHTML = '';
             return;
         }
 
         let validUnits = null;
         for (let tc of tcodes) {
-            const units = Object.keys(globalMatrix[tc][bpoSelect.value] || {});
+            const units = Object.keys(globalMatrix[tc] && globalMatrix[tc][selectedBpo] ? globalMatrix[tc][selectedBpo] : {});
             if (validUnits === null) validUnits = units;
             else validUnits = validUnits.filter(u => units.includes(u));
         }
 
-        if (!validUnits || validUnits.length === 0) {
-            setOptions(unitSelect, [], '-- No Units found --');
-            setOptions(aoSelect, [], '-- Select Unit first --');
-            return;
-        }
-
-        setOptions(unitSelect, validUnits, '-- Select Unit --', selectedUnit);
+        populateDatalist(unitDatalist, validUnits || []);
 
         // If a Unit is selected, determine valid AOs
-        if (!unitSelect.value) {
-            setOptions(aoSelect, [], '-- Select Unit first --');
+        if (!selectedUnit) {
+            aoDatalist.innerHTML = '';
             return;
         }
 
         let validAos = null;
         for (let tc of tcodes) {
-            const aos = globalMatrix[tc][bpoSelect.value][unitSelect.value] || [];
+            const aos = (globalMatrix[tc] && globalMatrix[tc][selectedBpo] && globalMatrix[tc][selectedBpo][selectedUnit]) ? globalMatrix[tc][selectedBpo][selectedUnit] : [];
             if (validAos === null) validAos = aos;
             else validAos = validAos.filter(a => aos.includes(a));
         }
 
-        if (!validAos || validAos.length === 0) {
-            setOptions(aoSelect, [], '-- No Access Owners found --');
-            return;
-        }
-
-        setOptions(aoSelect, validAos, '-- Select Access Owner --', selectedAo);
+        populateDatalist(aoDatalist, validAos || []);
     }
 
-    function setOptions(selectEl, optionsArray, placeholder, selectedValue = null) {
-        selectEl.innerHTML = `<option value="">${placeholder}</option>`;
-        let valueFound = false;
-        optionsArray.sort().forEach(opt => {
+    function populateDatalist(datalistEl, optionsArray) {
+        datalistEl.innerHTML = '';
+        if (!optionsArray || optionsArray.length === 0) return;
+        
+        // Remove duplicates and sort
+        const uniqueOptions = [...new Set(optionsArray)].sort();
+        
+        uniqueOptions.forEach(opt => {
             const option = document.createElement('option');
             option.value = opt;
-            option.textContent = opt;
-            if (opt === selectedValue) {
-                option.selected = true;
-                valueFound = true;
-            }
-            selectEl.appendChild(option);
+            datalistEl.appendChild(option);
         });
-        if (!valueFound && optionsArray.length > 0) {
-            selectEl.value = "";
-        }
-        selectEl.disabled = optionsArray.length === 0;
     }
 </script>
 @endpush

@@ -1239,14 +1239,14 @@ class AccessMatrixController extends Controller
         foreach ($tcodesInput as $tc) {
             if ($tc === '') continue;
 
-            // Validate against global matrix
-            $isValid = false;
-            if (isset($globalMatrix[$tc][$bpo][$unit]) && in_array($owner, $globalMatrix[$tc][$bpo][$unit])) {
-                $isValid = true;
-            }
+            // Validate duplicate TCODE within the same role
+            $exists = UamRecord::where('request_id', $uamRequest->id)
+                ->where('role', $role)
+                ->where('tcode', $tc)
+                ->exists();
 
-            if (!$isValid) {
-                return redirect()->back()->withErrors(['tcode' => "TCODE '{$tc}' is not valid for the selected BPO, Unit, and Access Owner combination."])->withInput();
+            if ($exists) {
+                return redirect()->back()->withErrors(['tcode' => "TCODE '{$tc}' already exists for role '{$role}'."])->withInput();
             }
 
             // Prepare matrix_data
