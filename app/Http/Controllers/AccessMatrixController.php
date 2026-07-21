@@ -1251,7 +1251,7 @@ class AccessMatrixController extends Controller
                 'bpo' => $existingRecord->bpo,
                 'unit' => $existingRecord->unit,
                 'access_owner' => $existingRecord->access_owner,
-                'matrix_data' => $existingRecord->matrix_data,
+                'matrix_data' => json_encode($existingRecord->matrix_data),
                 'module' => $existingRecord->module,
                 'period' => $existingRecord->period,
                 'change_type' => 'Added',
@@ -1672,7 +1672,7 @@ class AccessMatrixController extends Controller
         }
         
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        $fileName = 'UAM_Export_' . $uamRequest->period . '_' . $uamRequest->year . '.xlsx';
+        $fileName = "UAM_{$uamRequest->application}_{$uamRequest->module}_{$uamRequest->period}_{$uamRequest->year}_{$uamRequest->version}.xlsx";
         
         $tempFile = tempnam(sys_get_temp_dir(), 'uam');
         $writer->save($tempFile);
@@ -1700,9 +1700,27 @@ class AccessMatrixController extends Controller
                 foreach ($records as $record) {
                     $details = [];
                     if ($record->change_type === 'Added') {
-                        $details[] = 'New role added';
+                        if ($baselineRecords->has($record->role)) {
+                            $details[] = "New TCODE Added: {$record->tcode}";
+                        } else {
+                            $details[] = "New Role Added: {$record->role}";
+                        }
                     } elseif ($record->change_type === 'Modified' && $baselineRecords->has($record->role)) {
+                        $details[] = "Role Modified: {$record->role}";
                         $baseRecord = $baselineRecords[$record->role];
+                        
+                        $baseTcodes = array_filter(array_map('trim', explode(',', $baseRecord->tcode)));
+                        $currTcodes = array_filter(array_map('trim', explode(',', $record->tcode)));
+                        
+                        $addedTcodes = array_diff($currTcodes, $baseTcodes);
+                        $removedTcodes = array_diff($baseTcodes, $currTcodes);
+                        
+                        foreach($addedTcodes as $add) {
+                            $details[] = "TCODE Added: {$add}";
+                        }
+                        foreach($removedTcodes as $rem) {
+                            $details[] = "TCODE Removed: {$rem}";
+                        }
                         
                         if (trim($record->bpo) !== trim($baseRecord->bpo)) {
                             $details[] = 'BPO Changed';
@@ -1753,7 +1771,7 @@ class AccessMatrixController extends Controller
             'changeDetailsMap' => $changeDetailsMap
         ])->setPaper('a4', 'landscape');
 
-        $fileName = 'UAM_Export_' . $uamRequest->period . '_' . $uamRequest->year . '.pdf';
+        $fileName = "UAM_{$uamRequest->application}_{$uamRequest->module}_{$uamRequest->period}_{$uamRequest->year}_{$uamRequest->version}.pdf";
         return $pdf->download($fileName);
     }
 
