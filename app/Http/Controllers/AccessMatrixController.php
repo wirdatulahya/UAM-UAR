@@ -1223,9 +1223,6 @@ class AccessMatrixController extends Controller
             return redirect()->back()->withErrors(['error' => 'Role not found in this request.']);
         }
 
-        $bpo = trim($existingRecord->bpo ?? '');
-        $unit = trim($existingRecord->unit ?? '');
-        $owner = trim($existingRecord->access_owner ?? '');
         $tcodesInput = array_map('trim', explode(',', $validated['tcode']));
 
         $globalMatrix = is_array($uamRequest->global_matrix) ? $uamRequest->global_matrix : [];
@@ -1246,22 +1243,15 @@ class AccessMatrixController extends Controller
                 return redirect()->back()->withErrors(['tcode' => "TCODE '{$tc}' already exists for role '{$role}'."])->withInput();
             }
 
-            // Prepare matrix_data
-            $matrixData = [
-                $unit => [
-                    $bpo => [$owner]
-                ]
-            ];
-
             $inserts[] = [
                 'request_id' => $uamRequest->id,
                 'role' => $role,
                 'description_role' => $existingRecord->description_role,
                 'tcode' => $tc,
-                'bpo' => $bpo,
-                'unit' => $unit,
-                'access_owner' => null, // keeping existing pattern
-                'matrix_data' => json_encode($matrixData),
+                'bpo' => $existingRecord->bpo,
+                'unit' => $existingRecord->unit,
+                'access_owner' => $existingRecord->access_owner,
+                'matrix_data' => $existingRecord->matrix_data,
                 'module' => $existingRecord->module,
                 'period' => $existingRecord->period,
                 'change_type' => 'Added',
