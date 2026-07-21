@@ -1167,20 +1167,41 @@
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-6">
                                 <label for="addTcodeBpo" class="form-label fw-bold">BPO</label>
-                                <input list="bpo-options" id="addTcodeBpo" name="bpo" class="form-control" required placeholder="Select or type BPO" autocomplete="off">
-                                <datalist id="bpo-options"></datalist>
+                                <div style="position:relative;">
+                                    <select id="addTcodeBpo" name="bpo" required
+                                        style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
+                                        onfocus="this.style.borderColor='var(--secondary)'"
+                                        onblur="this.style.borderColor='var(--border)'">
+                                        <option value="">-- select BPO --</option>
+                                    </select>
+                                    <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
+                                </div>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label for="addTcodeUnit" class="form-label fw-bold">Unit</label>
-                                <input list="unit-options" id="addTcodeUnit" name="unit" class="form-control" required placeholder="Select or type Unit" autocomplete="off">
-                                <datalist id="unit-options"></datalist>
+                                <div style="position:relative;">
+                                    <select id="addTcodeUnit" name="unit" required
+                                        style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
+                                        onfocus="this.style.borderColor='var(--secondary)'"
+                                        onblur="this.style.borderColor='var(--border)'">
+                                        <option value="">-- select BPO first --</option>
+                                    </select>
+                                    <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
+                                </div>
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-6">
                                 <label for="addTcodeAo" class="form-label fw-bold">User Access Matrix</label>
-                                <input list="ao-options" id="addTcodeAo" name="access_owner" class="form-control" required placeholder="Select or type Access Owner" autocomplete="off">
-                                <datalist id="ao-options"></datalist>
+                                <div style="position:relative;">
+                                    <select id="addTcodeAo" name="access_owner" required
+                                        style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
+                                        onfocus="this.style.borderColor='var(--secondary)'"
+                                        onblur="this.style.borderColor='var(--border)'">
+                                        <option value="">-- select Unit first --</option>
+                                    </select>
+                                    <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
+                                </div>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label for="addTcodeCode" class="form-label fw-bold">TCODE</label>
@@ -1710,28 +1731,25 @@
 
         tcodeInp.value = '';
 
-        // Datalists
-        const bpoList = document.getElementById('bpo-options');
-        const unitList = document.getElementById('unit-options');
-        const aoList = document.getElementById('ao-options');
-        
-        unitList.innerHTML = '';
-        aoList.innerHTML = '';
+        // Datalists -> Replace with Select elements options
+        unitInp.innerHTML = '<option value="">-- select BPO first --</option>';
+        aoInp.innerHTML = '<option value="">-- select Unit first --</option>';
 
-        // Populate BPO datalist
-        bpoList.innerHTML = '';
+        // Populate BPO select
+        bpoInp.innerHTML = '<option value="">-- select BPO --</option>';
         addTcodeBpos.forEach(b => {
             const opt = document.createElement('option');
             opt.value = b;
-            bpoList.appendChild(opt);
+            opt.textContent = b;
+            bpoInp.appendChild(opt);
         });
 
-        // Set pre-filled values and trigger cascading datalist population
+        // Set pre-filled values and trigger cascading dropdowns
         bpoInp.value = bpo;
-        if (bpo) bpoInp.dispatchEvent(new Event('input'));
+        if (bpo) bpoInp.dispatchEvent(new Event('change'));
         
         unitInp.value = unit;
-        if (unit) unitInp.dispatchEvent(new Event('input'));
+        if (unit) unitInp.dispatchEvent(new Event('change'));
         
         aoInp.value = ao;
 
@@ -1743,15 +1761,18 @@
     const tcodeAoInp = document.getElementById('addTcodeAo');
 
     if (tcodeBpoInp) {
-        tcodeBpoInp.addEventListener('input', function() {
+        tcodeBpoInp.addEventListener('change', function() {
             const selectedBpo = this.value;
-            const unitList = document.getElementById('unit-options');
-            const aoList = document.getElementById('ao-options');
+            const unitInp = document.getElementById('addTcodeUnit');
+            const aoInp = document.getElementById('addTcodeAo');
             
-            unitList.innerHTML = '';
-            aoList.innerHTML = '';
+            unitInp.innerHTML = '<option value="">-- select Unit --</option>';
+            aoInp.innerHTML = '<option value="">-- select Unit first --</option>';
 
-            if (!selectedBpo) return;
+            if (!selectedBpo) {
+                unitInp.innerHTML = '<option value="">-- select BPO first --</option>';
+                return;
+            }
 
             const unitsSet = new Set();
             Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
@@ -1764,20 +1785,24 @@
             units.forEach(u => {
                 const opt = document.createElement('option');
                 opt.value = u;
-                unitList.appendChild(opt);
+                opt.textContent = u;
+                unitInp.appendChild(opt);
             });
         });
     }
 
     if (tcodeUnitInp) {
-        tcodeUnitInp.addEventListener('input', function() {
+        tcodeUnitInp.addEventListener('change', function() {
             const selectedBpo = tcodeBpoInp.value;
             const selectedUnit = this.value;
-            const aoList = document.getElementById('ao-options');
+            const aoInp = document.getElementById('addTcodeAo');
             
-            aoList.innerHTML = '';
+            aoInp.innerHTML = '<option value="">-- select Access Owner --</option>';
 
-            if (!selectedUnit || !selectedBpo) return;
+            if (!selectedUnit || !selectedBpo) {
+                aoInp.innerHTML = '<option value="">-- select Unit first --</option>';
+                return;
+            }
 
             const aosSet = new Set();
             Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
@@ -1790,7 +1815,8 @@
             aos.forEach(a => {
                 const opt = document.createElement('option');
                 opt.value = a;
-                aoList.appendChild(opt);
+                opt.textContent = a;
+                aoInp.appendChild(opt);
             });
         });
     }
