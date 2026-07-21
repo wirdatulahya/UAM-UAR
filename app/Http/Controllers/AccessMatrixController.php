@@ -556,7 +556,14 @@ class AccessMatrixController extends Controller
             if ($ext !== 'csv') {
                 $this->expandMergedCells($sheet);
             }
-            $raw = array_values($sheet->toArray(null, false, true, false));
+            
+            // Dynamically detect the last used column and row
+            $highestColumn = $sheet->getHighestDataColumn();
+            $highestRow = $sheet->getHighestDataRow();
+            
+            // Read exactly up to the last populated column
+            $range = 'A1:' . $highestColumn . $highestRow;
+            $raw = array_values($sheet->rangeToArray($range, null, false, true, false));
         } catch (\Throwable $e) {
             return back()->withErrors(['file' => 'Could not parse the file: ' . $e->getMessage()]);
         }
@@ -588,7 +595,7 @@ class AccessMatrixController extends Controller
         $colMap       = [];
         $bestScore    = 0;
 
-        for ($i = 0; $i < min(count($raw), 30); $i++) {
+        for ($i = 0; $i < count($raw); $i++) {
             $score   = 0;
             $tempMap = [];
             foreach (array_values((array)$raw[$i]) as $idx => $cell) {
@@ -618,7 +625,7 @@ class AccessMatrixController extends Controller
         $bpoRowIdx  = -1;
         for ($i = 0; $i < $headerRowIdx; $i++) {
             $row = array_values((array)($raw[$i] ?? []));
-            foreach (array_slice($row, 0, 6) as $cell) {
+            foreach ($row as $cell) {
                 $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim((string)($cell ?? '')))));
                 if (in_array($lower, ['unit', 'unit kerja', 'nama unit'])) {
                     $unitRowIdx = $i;
@@ -641,7 +648,7 @@ class AccessMatrixController extends Controller
         $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
         $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
 
-        $startIdx = $tcodeColIdx !== false ? $tcodeColIdx + 1 : 6;
+        $startIdx = $tcodeColIdx + 1;
 
         $fillRowLocalized = function (array $row, int $start, array $labels) {
             for ($c = $start; $c < count($row); $c++) {
@@ -681,9 +688,22 @@ class AccessMatrixController extends Controller
 
         if ($tcodeColIdx !== false) {
             $headerRow = array_values((array)$raw[$headerRowIdx]);
+            
+            // First, fill in empty Access Owner names from the left to handle merged headers
+            $currAo = '';
+            for ($c = $startIdx; $c < count($headerRow); $c++) {
+                $val = trim((string)($headerRow[$c] ?? ''));
+                if ($val !== '') {
+                    $currAo = $val;
+                } else {
+                    $headerRow[$c] = $currAo;
+                }
+            }
+
             for ($c = $startIdx; $c < count($headerRow); $c++) {
                 $aoName = trim((string)($headerRow[$c] ?? ''));
-                if ($aoName === '' || isset($colMap[$c])) continue;
+                if (isset($colMap[$c])) continue;
+                if ($aoName === '') $aoName = '—';
                 $matrixAoCols[$c] = $aoName;
                 $aoUnitMap[$c]    = trim((string)($unitRowCleaned[$c] ?? ''));
                 $aoBpoMap[$c]     = trim((string)($bpoRowCleaned[$c]  ?? ''));
@@ -698,8 +718,8 @@ class AccessMatrixController extends Controller
         $extractedYear = null;
         $extractedNik = null;
         
-        // --- Dynamic Search in top 20 rows ---
-        for ($i = 0; $i < min(count($raw), 20); $i++) {
+        // --- Dynamic Search in top rows (up to header) ---
+        for ($i = 0; $i < $headerRowIdx; $i++) {
             $row = array_values((array)($raw[$i] ?? []));
             foreach ($row as $idx => $cell) {
                 $str = trim((string)($cell ?? ''));
@@ -926,9 +946,7 @@ class AccessMatrixController extends Controller
 
                     if (!isset($matrixData[$u])) $matrixData[$u] = [];
                     if (!isset($matrixData[$u][$b])) $matrixData[$u][$b] = [];
-                    if (!in_array($ownerName, $matrixData[$u][$b], true)) {
-                        $matrixData[$u][$b][] = $ownerName;
-                    }
+                    $matrixData[$u][$b][] = $ownerName;
 
                     // Build global matrix map based on TCODE -> BPO -> Unit -> Access Owner
                     $tcodes = array_map('trim', explode(',', $record['tcode']));
@@ -1313,26 +1331,37 @@ class AccessMatrixController extends Controller
             return response()->json(['error' => "No records found for role \"{$role}\" / TCODE \"{$tcode}\"."], 404);
         }
 
-        // Build hierarchy:  unit => bpo => [owner, …]
+        // Build hierarchy exactly as PDF export does (BPO -> Unit -> Owners)
         $tree = [];
 
         foreach ($records as $rec) {
-            $matrix = $rec->matrix_data;
-            if (is_array($matrix) && !empty($matrix)) {
-                foreach ($matrix as $unit => $bpos) {
-                    if (!isset($tree[$unit])) $tree[$unit] = [];
-                    foreach ($bpos as $bpo => $owners) {
-                        if (!isset($tree[$unit][$bpo])) $tree[$unit][$bpo] = [];
-                        foreach ($owners as $owner) {
-                            if (!in_array($owner, $tree[$unit][$bpo], true)) {
-                                $tree[$unit][$bpo][] = $owner;
+            if (is_array($rec->matrix_data) && !empty($rec->matrix_data)) {
+                foreach ($rec->matrix_data as $unit => $bpos) {
+                    foreach ($bpos as $bpo => $ownersList) {
+                        $bpoName = trim($bpo);
+                        $unitName = trim($unit);
+                        
+                        if ($bpoName !== '') {
+                            if (!isset($tree[$bpoName])) {
+                                $tree[$bpoName] = [];
+                            }
+                            if ($unitName !== '') {
+                                if (!isset($tree[$bpoName][$unitName])) {
+                                    $tree[$bpoName][$unitName] = [];
+                                }
+                                foreach ($ownersList as $owner) {
+                                    $ownerName = trim($owner);
+                                    if ($ownerName !== '') {
+                                        $tree[$bpoName][$unitName][] = $ownerName;
+                                    }
+                                }
                             }
                         }
                     }
                 }
             } else {
-                $unit = trim((string) ($rec->unit ?? '')) ?: '—';
-                $bpo  = trim((string) ($rec->bpo  ?? '')) ?: '—';
+                $unitName = trim((string) ($rec->unit ?? ''));
+                $bpoName  = trim((string) ($rec->bpo  ?? ''));
 
                 $owners = collect(explode('|', (string) ($rec->access_owner ?? '')))
                     ->map(fn ($o) => trim($o))
@@ -1342,22 +1371,31 @@ class AccessMatrixController extends Controller
 
                 if (empty($owners)) continue;
 
-                foreach ($owners as $owner) {
-                    if (!isset($tree[$unit][$bpo])) $tree[$unit][$bpo] = [];
-                    if (!in_array($owner, $tree[$unit][$bpo], true)) {
-                        $tree[$unit][$bpo][] = $owner;
+                if ($bpoName !== '') {
+                    if (!isset($tree[$bpoName])) {
+                        $tree[$bpoName] = [];
+                    }
+                    if ($unitName !== '') {
+                        if (!isset($tree[$bpoName][$unitName])) {
+                            $tree[$bpoName][$unitName] = [];
+                        }
+                        foreach ($owners as $ownerName) {
+                            if ($ownerName !== '') {
+                                $tree[$bpoName][$unitName][] = $ownerName;
+                            }
+                        }
                     }
                 }
             }
         }
 
         $hierarchy = [];
-        foreach ($tree as $unit => $bpos) {
-            $bpoList = [];
-            foreach ($bpos as $bpo => $owners) {
-                $bpoList[] = ['bpo' => $bpo, 'owners' => array_values($owners)];
+        foreach ($tree as $bpo => $units) {
+            $unitList = [];
+            foreach ($units as $unit => $owners) {
+                $unitList[] = ['unit' => $unit, 'owners' => array_values($owners)];
             }
-            $hierarchy[] = ['unit' => $unit, 'bpos' => $bpoList];
+            $hierarchy[] = ['bpo' => $bpo, 'units' => $unitList];
         }
 
         return response()->json([

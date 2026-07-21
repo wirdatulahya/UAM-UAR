@@ -88,7 +88,7 @@
                                         }
                                         foreach ($ownersList as $owner) {
                                             $ownerName = trim($owner);
-                                            if ($ownerName !== '' && !in_array($ownerName, $bpoHierarchy[$bpoName][$unitName])) {
+                                            if ($ownerName !== '') {
                                                 $bpoHierarchy[$bpoName][$unitName][] = $ownerName;
                                             }
                                         }

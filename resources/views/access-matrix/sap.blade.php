@@ -392,7 +392,7 @@
                     </div>
 
                     {{-- Add Role button (top-right, only when editable) --}}
-                    @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion())))
+                    @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))))
                         <a href="{{ route('access-matrix.create', array_filter(['request_id' => $requestId ?? null])) }}"
                            id="addRoleBtn"
                            style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.8rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(11,46,109,.18);transition:all .18s;"
@@ -605,7 +605,7 @@
                                             <td style="padding:0;border:none;border-left:1px solid #e5e7eb;vertical-align:middle;text-align:center;">
                                                 <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 0;display:flex;justify-content:center;align-items:center;">
-                                                        @if(empty($isApproval) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion())
+                                                        @if(empty($isApproval) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
                                                             <div class="dropdown">
                                                                 <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration:none;">
                                                                     <i class="bi bi-three-dots-vertical"></i>
@@ -869,7 +869,7 @@
         </div>
         @endif
         {{-- Submit Action (for Requester) --}}
-        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion() && empty($isApproval))
+        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
                 <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
                     @csrf
@@ -1064,15 +1064,19 @@
                             </div>
                         </div>
 
-                        {{-- UNIT — RIGHT (auto-filled based on BPO) --}}
+                        {{-- UNIT — RIGHT (dropdown based on BPO) --}}
                         <div>
                             <label for="modalUnitSelect"
-                                style="display:block;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem;">Unit <span style="font-size:.6rem;color:var(--text-muted);font-weight:500;text-transform:none;">(auto)</span></label>
-                            <div id="modalUnitDisplay"
-                                style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--text-muted);background:#f8f9fa;min-height:38px;display:flex;align-items:center;">
-                                <span style="color:var(--text-muted);font-size:.82rem;">— select BPO first —</span>
+                                style="display:block;font-size:.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.4rem;">Unit</label>
+                            <div style="position:relative;">
+                                <select id="modalUnitSelect"
+                                    style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
+                                    onfocus="this.style.borderColor='var(--secondary)'"
+                                    onblur="this.style.borderColor='var(--border)'">
+                                    <option value="">— select BPO first —</option>
+                                </select>
+                                <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
                             </div>
-                            <input type="hidden" id="modalUnitSelect">
                         </div>
                     </div>
 
@@ -1086,7 +1090,7 @@
                             <div style="display:flex;align-items:center;gap:.5rem;">
                                 <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                                 {{-- Edit toggle --}}
-                                @if((!$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion())) && empty($isApproval))
+                                @if((!$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))) && empty($isApproval))
                                 <button id="editOwnersBtn" type="button" onclick="toggleEditOwners()"
                                     style="font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;border:1.5px solid #166534;background:#fff;color:#166534;cursor:pointer;transition:all .15s;">
                                     <i class="bi bi-pencil-fill me-1"></i>Edit
@@ -1370,36 +1374,57 @@
         }
     }
 
-    function setUnitDisplay(unitVal) {
-        const unitDisplay = document.getElementById('modalUnitDisplay');
-        if (unitVal) {
-            unitDisplay.innerHTML = `<span style="color:var(--secondary);font-weight:700;">${unitVal}</span>`;
-            unitDisplay.style.borderColor = 'var(--secondary)';
-        } else {
-            unitDisplay.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem;">— select BPO first —</span>';
-            unitDisplay.style.borderColor = 'var(--border)';
-        }
-    }
-
-    function getOwnersForSelection() {
+    function filterOwnersByUnit() {
         const bpoVal = bpoSelect.value;
-        if (!bpoVal) { setUnitDisplay(''); renderOwners([]); return; }
-
-        // Find the unit that contains this BPO
-        let foundUnit = null;
-        let foundBpoNode = null;
-        for (const unitNode of _hierarchy) {
-            const bpoNode = unitNode.bpos.find(b => b.bpo === bpoVal);
-            if (bpoNode) { foundUnit = unitNode.unit; foundBpoNode = bpoNode; break; }
+        const unitVal = unitSelect.value;
+        
+        if (!bpoVal || !unitVal) {
+            renderOwners([]);
+            return;
         }
-
-        setUnitDisplay(foundUnit || '');
-        unitSelect.value = foundUnit || '';
-        renderOwners(foundBpoNode ? foundBpoNode.owners : []);
+        
+        const bpoNode = _hierarchy.find(node => node.bpo === bpoVal);
+        let allOwners = [];
+        if (bpoNode && bpoNode.units) {
+            const unitNode = bpoNode.units.find(u => u.unit === unitVal);
+            if (unitNode && unitNode.owners) {
+                allOwners = unitNode.owners;
+            }
+        }
+        
+        allOwners = allOwners.sort();
+        renderOwners(allOwners);
     }
 
-    // ── BPO change → auto-fill Unit → refresh owners ───────────────
-    bpoSelect.addEventListener('change', getOwnersForSelection);
+    function populateUnitsForBpo() {
+        const bpoVal = bpoSelect.value;
+        if (!bpoVal) {
+            setSelectOptions(unitSelect, [], '— select BPO first —');
+            renderOwners([]);
+            return;
+        }
+
+        const bpoNode = _hierarchy.find(node => node.bpo === bpoVal);
+        let foundUnits = [];
+        if (bpoNode && bpoNode.units) {
+            foundUnits = bpoNode.units
+                .map(u => u.unit)
+                .sort();
+        }
+
+        setSelectOptions(unitSelect, foundUnits, '— Select Unit —');
+        
+        // Auto-select if there's only 1 unit
+        if (foundUnits.length === 1) {
+            unitSelect.value = foundUnits[0];
+        }
+        
+        filterOwnersByUnit();
+    }
+
+    // ── BPO and Unit changes ───────────────
+    bpoSelect.addEventListener('change', populateUnitsForBpo);
+    unitSelect.addEventListener('change', filterOwnersByUnit);
 
     // ── Open modal ─────────────────────────────────────────────────
     async function openAccessModal(btn) {
@@ -1434,7 +1459,7 @@
         // Reset dropdowns & owners while loading
         _hierarchy = [];
         setSelectOptions(bpoSelect, [], null);
-        setUnitDisplay('');
+        setSelectOptions(unitSelect, [], '— select BPO first —');
         renderOwners([]);
 
         function showModalError(title, message) {
@@ -1472,22 +1497,17 @@
                     return;
                 }
 
-                // ── Collect ALL unique BPOs across all units ─────────
-                const allBpos = [];
-                _hierarchy.forEach(unitNode => {
-                    unitNode.bpos.forEach(b => {
-                        if (!allBpos.includes(b.bpo)) allBpos.push(b.bpo);
-                    });
-                });
+                // ── Collect ALL unique BPOs ─────────
+                const allBpos = _hierarchy.map(node => node.bpo).filter(b => b);
 
                 const hasMultipleBpos = allBpos.length > 1;
                 setSelectOptions(bpoSelect, allBpos, hasMultipleBpos ? '— Select BPO —' : null);
 
                 if (!hasMultipleBpos && allBpos.length === 1) {
                     // Only one BPO — auto-select and fill Unit
-                    getOwnersForSelection();
+                    populateUnitsForBpo();
                 } else {
-                    setUnitDisplay('');
+                    setSelectOptions(unitSelect, [], '— select BPO first —');
                     renderOwners([]);
                 }
 
@@ -1645,10 +1665,11 @@
     // ── Add TCODE Modal Logic ───────────────────────────────────────────────
     let addTcodeGlobalMatrix = {};
     let addTcodeBpos = [];
+    const addTcodeReqId = "{{ $uamRequest ? $uamRequest->id : '' }}";
 
     // Assuming global matrix is fetched via same mechanism
-    if (reqId) {
-        fetch(`/access-matrix/request/${reqId}/matrix-map`)
+    if (addTcodeReqId) {
+        fetch(`/access-matrix/request/${addTcodeReqId}/matrix-map`)
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
@@ -1677,7 +1698,7 @@
         
         // Update form action
         const form = document.getElementById('addTcodeForm');
-        form.action = `/access-matrix/sap/role/${reqId}/${role}/tcode`;
+        form.action = `/access-matrix/sap/role/${addTcodeReqId}/${role}/tcode`;
 
         // Reset dropdowns
         const bpoSelect = document.getElementById('addTcodeBpo');
