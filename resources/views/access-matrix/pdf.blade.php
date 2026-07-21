@@ -152,105 +152,199 @@
             @foreach($groupedRecords as $group)
                 @php
                     $bpoHierarchy = $group['bpoHierarchy'];
+                    $totalRoleRows = 0;
+                    if (empty($bpoHierarchy)) {
+                        $totalRoleRows = 1;
+                    } else {
+                        foreach ($bpoHierarchy as $bpoName => $units) {
+                            $totalRoleRows += max(1, count($units));
+                        }
+                    }
+                    $roleRowIndex = 0;
                 @endphp
-                <tr>
-                    <td style="vertical-align: top;">{{ $group['role'] }}</td>
-                    <td style="vertical-align: top;">{{ $group['description_role'] }}</td>
-                    <td style="vertical-align: top;">
-                        <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
-                            @foreach($group['tcodes'] as $tcode)
-                                <li style="margin-bottom: 2px;">{{ $tcode }}</li>
-                            @endforeach
-                        </ul>
-                    </td>
-                    <td colspan="3" style="padding: 0; vertical-align: top;">
-                        <table style="width: 100%; border-collapse: collapse; border: none; margin: 0; height: 100%;">
-                            @if(empty($bpoHierarchy))
-                                <tr>
-                                    <td style="width: 33.33%; border-bottom: none; border-right: 1px solid #000; border-top: none; border-left: none; padding: 4px; vertical-align: top;">-</td>
-                                    <td style="width: 33.33%; border-bottom: none; border-right: 1px solid #000; border-top: none; border-left: none; padding: 4px; vertical-align: top;">-</td>
-                                    <td style="width: 33.33%; border-bottom: none; border-right: none; border-top: none; border-left: none; padding: 4px; vertical-align: top;">-</td>
-                                </tr>
-                            @else
-                                @php 
-                                    $bpoCount = count($bpoHierarchy);
-                                    $bpoIndex = 0;
-                                @endphp
-                                @foreach($bpoHierarchy as $bpoName => $units)
-                                    @php
-                                        $bpoIndex++;
-                                        $isLastBpo = ($bpoIndex === $bpoCount);
-                                        $bpoRowspan = count($units) > 0 ? count($units) : 1;
-                                        $firstUnit = true;
-                                        
-                                        $unitCount = max(1, count($units));
-                                        $unitIndex = 0;
-                                    @endphp
-                                    
-                                    @if(count($units) == 0)
-                                        @php
-                                            $unitIndex++;
-                                            $isLastUnit = ($unitIndex === $unitCount);
-                                            $isAbsoluteLastRow = ($isLastBpo && $isLastUnit);
-                                            $bottomBorder = $isAbsoluteLastRow ? "border-bottom: none;" : "border-bottom: 1px solid #000;";
-                                        @endphp
-                                        <tr>
-                                            <td style="width: 33.33%; {{ $isLastBpo ? 'border-bottom: none;' : 'border-bottom: 1px solid #000;' }} border-right: 1px solid #000; border-top: none; border-left: none; padding: 4px; vertical-align: top;">
-                                                <strong>{{ $bpoName }}</strong>
-                                            </td>
-                                            <td style="width: 33.33%; {{ $bottomBorder }} border-right: 1px solid #000; border-top: none; border-left: none; padding: 4px; vertical-align: top;">-</td>
-                                            <td style="width: 33.33%; {{ $bottomBorder }} border-right: none; border-top: none; border-left: none; padding: 4px; vertical-align: top;">-</td>
-                                        </tr>
-                                    @else
-                                        @foreach($units as $unitName => $owners)
-                                            @php
-                                                $unitIndex++;
-                                                $isLastUnit = ($unitIndex === $unitCount);
-                                                $isAbsoluteLastRow = ($isLastBpo && $isLastUnit);
-                                                $bottomBorder = $isAbsoluteLastRow ? "border-bottom: none;" : "border-bottom: 1px solid #000;";
-                                            @endphp
-                                            <tr>
-                                                @if($firstUnit)
-                                                    <td rowspan="{{ $bpoRowspan }}" style="width: 33.33%; {{ $isLastBpo ? 'border-bottom: none;' : 'border-bottom: 1px solid #000;' }} border-right: 1px solid #000; border-top: none; border-left: none; padding: 4px; vertical-align: top;">
-                                                        <strong>{{ $bpoName }}</strong>
-                                                    </td>
-                                                @endif
-                                                <td style="width: 33.33%; {{ $bottomBorder }} border-right: 1px solid #000; border-top: none; border-left: none; padding: 4px; vertical-align: top;">
-                                                    <em>{{ $unitName }}</em>
-                                                </td>
-                                                <td style="width: 33.33%; {{ $bottomBorder }} border-right: none; border-top: none; border-left: none; padding: 4px; vertical-align: top;">
-                                                    @if(count($owners) > 0)
-                                                        <ul style="margin: 0; padding-left: 15px; list-style-type: square;">
-                                                            @foreach($owners as $ownerName)
-                                                                <li>{{ $ownerName }}</li>
-                                                            @endforeach
-                                                        </ul>
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                            @php $firstUnit = false; @endphp
-                                        @endforeach
-                                    @endif
-                                @endforeach
-                            @endif
-                        </table>
-                    </td>
-                    <td style="vertical-align: top;">{{ $group['status'] }}</td>
-                    <td style="vertical-align: top;">{{ $group['change_type'] }}</td>
-                    <td style="vertical-align: top;">
-                        @if(count($group['changeDetails']) > 0)
+
+                @if(empty($bpoHierarchy))
+                    <tr>
+                        <td style="vertical-align: top;">{{ $group['role'] }}</td>
+                        <td style="vertical-align: top;">{{ $group['description_role'] }}</td>
+                        <td style="vertical-align: top;">
                             <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
-                                @foreach($group['changeDetails'] as $detail)
-                                    <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                @foreach($group['tcodes'] as $tcode)
+                                    <li style="margin-bottom: 2px;">{{ $tcode }}</li>
                                 @endforeach
                             </ul>
+                        </td>
+                        <td style="vertical-align: top;">-</td>
+                        <td style="vertical-align: top;">-</td>
+                        <td style="vertical-align: top;">-</td>
+                        <td style="vertical-align: top;">{{ $group['status'] }}</td>
+                        <td style="vertical-align: top;">{{ $group['change_type'] }}</td>
+                        <td style="vertical-align: top;">
+                            @if(count($group['changeDetails']) > 0)
+                                <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+                                    @foreach($group['changeDetails'] as $detail)
+                                        <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <span style="color: #999;">-</span>
+                            @endif
+                        </td>
+                    </tr>
+                @else
+                    @foreach($bpoHierarchy as $bpoName => $units)
+                        @php
+                            $bpoTotalRows = max(1, count($units));
+                            $bpoRowIndex = 0;
+                        @endphp
+
+                        @if(count($units) == 0)
+                            @php
+                                $roleRowIndex++;
+                                $bpoRowIndex++;
+                                $isFirstRoleRow = ($roleRowIndex === 1);
+                                $isLastRoleRow  = ($roleRowIndex === $totalRoleRows);
+                                $roleBorderStyle = '';
+                                if ($totalRoleRows > 1) {
+                                    if ($isFirstRoleRow)      $roleBorderStyle = 'border-bottom: none;';
+                                    elseif ($isLastRoleRow)   $roleBorderStyle = 'border-top: none;';
+                                    else                      $roleBorderStyle = 'border-top: none; border-bottom: none;';
+                                }
+                                $isFirstBpoRow = ($bpoRowIndex === 1);
+                                $isLastBpoRow  = ($bpoRowIndex === $bpoTotalRows);
+                                $bpoBorderStyle = '';
+                                if ($bpoTotalRows > 1) {
+                                    if ($isFirstBpoRow)     $bpoBorderStyle = 'border-bottom: none;';
+                                    elseif ($isLastBpoRow)  $bpoBorderStyle = 'border-top: none;';
+                                    else                    $bpoBorderStyle = 'border-top: none; border-bottom: none;';
+                                }
+                            @endphp
+                            <tr>
+                                <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                    @if($isFirstRoleRow) {{ $group['role'] }} @else &nbsp; @endif
+                                </td>
+                                <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                    @if($isFirstRoleRow) {{ $group['description_role'] }} @else &nbsp; @endif
+                                </td>
+                                <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                    @if($isFirstRoleRow)
+                                        <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+                                            @foreach($group['tcodes'] as $tcode)
+                                                <li style="margin-bottom: 2px;">{{ $tcode }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        &nbsp;
+                                    @endif
+                                </td>
+                                <td style="vertical-align: top; {{ $bpoBorderStyle }}">
+                                    @if($isFirstBpoRow) <strong>{{ $bpoName }}</strong> @else &nbsp; @endif
+                                </td>
+                                <td style="vertical-align: top;">-</td>
+                                <td style="vertical-align: top;">-</td>
+                                <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                    @if($isFirstRoleRow) {{ $group['status'] }} @else &nbsp; @endif
+                                </td>
+                                <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                    @if($isFirstRoleRow) {{ $group['change_type'] }} @else &nbsp; @endif
+                                </td>
+                                <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                    @if($isFirstRoleRow)
+                                        @if(count($group['changeDetails']) > 0)
+                                            <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+                                                @foreach($group['changeDetails'] as $detail)
+                                                    <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <span style="color: #999;">-</span>
+                                        @endif
+                                    @else
+                                        &nbsp;
+                                    @endif
+                                </td>
+                            </tr>
                         @else
-                            <span style="color: #999;">-</span>
+                            @foreach($units as $unitName => $owners)
+                                @php
+                                    $roleRowIndex++;
+                                    $bpoRowIndex++;
+                                    $isFirstRoleRow = ($roleRowIndex === 1);
+                                    $isLastRoleRow  = ($roleRowIndex === $totalRoleRows);
+                                    $roleBorderStyle = '';
+                                    if ($totalRoleRows > 1) {
+                                        if ($isFirstRoleRow)      $roleBorderStyle = 'border-bottom: none;';
+                                        elseif ($isLastRoleRow)   $roleBorderStyle = 'border-top: none;';
+                                        else                      $roleBorderStyle = 'border-top: none; border-bottom: none;';
+                                    }
+                                    $isFirstBpoRow = ($bpoRowIndex === 1);
+                                    $isLastBpoRow  = ($bpoRowIndex === $bpoTotalRows);
+                                    $bpoBorderStyle = '';
+                                    if ($bpoTotalRows > 1) {
+                                        if ($isFirstBpoRow)     $bpoBorderStyle = 'border-bottom: none;';
+                                        elseif ($isLastBpoRow)  $bpoBorderStyle = 'border-top: none;';
+                                        else                    $bpoBorderStyle = 'border-top: none; border-bottom: none;';
+                                    }
+                                @endphp
+                                <tr>
+                                    <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                        @if($isFirstRoleRow) {{ $group['role'] }} @else &nbsp; @endif
+                                    </td>
+                                    <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                        @if($isFirstRoleRow) {{ $group['description_role'] }} @else &nbsp; @endif
+                                    </td>
+                                    <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                        @if($isFirstRoleRow)
+                                            <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+                                                @foreach($group['tcodes'] as $tcode)
+                                                    <li style="margin-bottom: 2px;">{{ $tcode }}</li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            &nbsp;
+                                        @endif
+                                    </td>
+                                    <td style="vertical-align: top; {{ $bpoBorderStyle }}">
+                                        @if($isFirstBpoRow) <strong>{{ $bpoName }}</strong> @else &nbsp; @endif
+                                    </td>
+                                    <td style="vertical-align: top;"><em>{{ $unitName }}</em></td>
+                                    <td style="vertical-align: top;">
+                                        @if(count($owners) > 0)
+                                            <ul style="margin: 0; padding-left: 15px; list-style-type: square;">
+                                                @foreach($owners as $ownerName)
+                                                    <li>{{ $ownerName }}</li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                        @if($isFirstRoleRow) {{ $group['status'] }} @else &nbsp; @endif
+                                    </td>
+                                    <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                        @if($isFirstRoleRow) {{ $group['change_type'] }} @else &nbsp; @endif
+                                    </td>
+                                    <td style="vertical-align: top; {{ $roleBorderStyle }}">
+                                        @if($isFirstRoleRow)
+                                            @if(count($group['changeDetails']) > 0)
+                                                <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+                                                    @foreach($group['changeDetails'] as $detail)
+                                                        <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            @else
+                                                <span style="color: #999;">-</span>
+                                            @endif
+                                        @else
+                                            &nbsp;
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
                         @endif
-                    </td>
-                </tr>
+                    @endforeach
+                @endif
             @endforeach
         </tbody>
     </table>
