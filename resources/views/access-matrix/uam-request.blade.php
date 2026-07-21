@@ -261,7 +261,12 @@
                                 onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'approval']) }}'">
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;color:var(--text-muted);">{{ $req->no }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;font-weight:500;">{{ $req->application }}</td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->full_period }}</td>
+                                <td style="padding:1rem 1.25rem;vertical-align:middle;">
+                                    {{ $req->full_period }}
+                                    @if($req->is_latest ?? false)
+                                        <span style="background-color:#15803d;color:white;font-size:0.65rem;padding:0.15rem 0.4rem;border-radius:12px;margin-left:0.4rem;font-weight:700;display:inline-block;vertical-align:middle;">Latest</span>
+                                    @endif
+                                </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:600;color:var(--secondary);">
                                         {{ $req->module ?: 'N/A' }}

@@ -274,7 +274,12 @@
                                 onclick="window.location='{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request']) }}'">
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;color:var(--text-muted);">{{ $req->no }}</td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;font-weight:500;">{{ $req->application }}</td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">{{ $req->full_period }}</td>
+                                <td style="padding:1rem 1.25rem;vertical-align:middle;">
+                                    {{ $req->full_period }}
+                                    @if($req->is_latest ?? false)
+                                        <span style="background-color:#15803d;color:white;font-size:0.65rem;padding:0.15rem 0.4rem;border-radius:12px;margin-left:0.4rem;font-weight:700;display:inline-block;vertical-align:middle;">Latest</span>
+                                    @endif
+                                </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
                                     <span style="font-family:monospace;background:#f1f5f9;padding:.2rem .45rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);font-weight:600;color:var(--secondary);">
                                         {{ $req->module ?: 'N/A' }}
@@ -324,11 +329,16 @@
                                             </li>
                                             @if($req->status === 'Approved')
                                                 <li>
-                                                    <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
+                                                    <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}', '{{ htmlspecialchars($req->version ?? 'V1') }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
                                                         <i class="bi bi-files"></i> Modified
                                                     </button>
                                                 </li>
                                             @endif
+                                            <li>
+                                                <button type="button" class="dropdown-item" onclick="openVersionHistoryModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
+                                                    <i class="bi bi-clock-history"></i> Version History
+                                                </button>
+                                            </li>
                                             <li>
                                                 <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;padding:0;display:block;" onsubmit="return confirm('Delete this request and all its records? This cannot be undone.');">
                                                     @csrf
@@ -434,6 +444,10 @@
                                         <option value="Q3">Q3 (Third Period)</option>
                                     </select>
                                 </div>
+                                <div style="flex:1;">
+                                    <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Version <span class="text-danger">*</span></label>
+                                    <input type="text" name="version" class="form-control" value="V1" readonly style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);background-color: #f3f4f6;cursor: not-allowed;">
+                                </div>
                             </div>
 
                             {{-- File upload area --}}
@@ -509,52 +523,89 @@
                 </div>
                 <div class="modal-body" style="padding:1.75rem;">
                     <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                        Copying approved baseline for <strong id="copyBaselineAppName" style="color:var(--secondary);"></strong>.
+                        Are you sure you want to create a modified version for <strong id="copyBaselineAppName" style="color:var(--secondary);"></strong>?
                     </p>
-                    <div style="display:flex;gap:1rem;">
-                        <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">New Year <span class="text-danger">*</span></label>
-                            <input type="number" name="year" min="2026" max="9999" class="form-control" required placeholder="e.g. 2026" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
-                        </div>
-                        <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">New Quarter <span class="text-danger">*</span></label>
-                            <select name="period" class="form-select" required style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
-                                <option value="" disabled selected>-- Select --</option>
-                                <option value="Q1">Q1 (First Quarter)</option>
-                                <option value="Q2">Q2 (Second Quarter)</option>
-                                <option value="Q3">Q3 (Third Quarter)</option>
-                                <option value="Q4">Q4 (Fourth Quarter)</option>
-                            </select>
-                        </div>
-                        <div style="flex:1;">
-                            <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Version <span class="text-danger">*</span></label>
-                            <input type="text" name="version" list="versionOptions" class="form-control" required placeholder="e.g. V1, V2..." style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
-                            <datalist id="versionOptions">
-                                <option value="V1">
-                                <option value="V2">
-                                <option value="V3">
-                                <option value="V4">
-                                <option value="V5">
-                            </datalist>
-                        </div>
-                    </div>
+                    <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:0;">
+                        This will automatically duplicate the latest version and increment the version number to <strong id="copyBaselineNextVersion" style="color:var(--secondary);"></strong>. All previous versions will be preserved as read-only history.
+                    </p>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--border);padding:1.25rem 1.75rem;">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="background:#f1f5f9;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background:var(--primary);border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Copy Baseline</button>
+                    <button type="submit" class="btn btn-primary" style="background:var(--primary);border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Confirm Modification</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+{{-- Version History Modal --}}
+<div class="modal fade" id="versionHistoryModal" tabindex="-1" aria-labelledby="versionHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border:none;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
+            <div class="modal-header" style="border-bottom:1px solid var(--border);padding:1.5rem 1.75rem;">
+                <div style="display:flex;align-items:center;gap:.65rem;">
+                    <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-clock-history" style="color:var(--secondary);font-size:.95rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" id="versionHistoryModalLabel" style="font-size:1.05rem;font-weight:800;color:var(--secondary);margin:0;">Version History</h5>
+                        <div style="font-size:.75rem;color:var(--text-muted);">History for <strong id="versionHistoryAppName"></strong></div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:1.75rem;" id="versionHistoryContent">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
-    window.openCopyBaselineModal = function(id, appName) {
+    window.openCopyBaselineModal = function(id, appName, currentVersion) {
         document.getElementById('copyBaselineRequestId').value = id;
         document.getElementById('copyBaselineAppName').textContent = appName;
+        
+        let num = parseInt(currentVersion.replace(/\D/g, '')) || 1;
+        document.getElementById('copyBaselineNextVersion').textContent = 'V' + (num + 1);
+        
         new bootstrap.Modal(document.getElementById('copyBaselineModal')).show();
     };
+
+    window.openVersionHistoryModal = function(id, appName) {
+        document.getElementById('versionHistoryAppName').textContent = appName;
+        document.getElementById('versionHistoryContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+        new bootstrap.Modal(document.getElementById('versionHistoryModal')).show();
+        
+        fetch(`/access-matrix/request/${id}/history`)
+            .then(res => res.json())
+            .then(data => {
+                let html = '<div class="table-responsive"><table class="table table-hover mb-0" style="font-size:.85rem;">';
+                html += '<thead style="background:#fcfcfc;"><tr><th>Version</th><th>Status</th><th>Created</th><th>Modified</th><th>Requested By</th><th>Action</th></tr></thead><tbody>';
+                
+                data.forEach((item, index) => {
+                    let isLatest = index === 0;
+                    let badge = isLatest ? '<span class="badge bg-success ms-2">Latest</span>' : '';
+                    
+                    html += `<tr>
+                        <td style="font-weight:600;">${item.version} ${badge}</td>
+                        <td>${item.status}</td>
+                        <td>${item.created_at}</td>
+                        <td>${item.updated_at}</td>
+                        <td>${item.requester_name}</td>
+                        <td><a href="${item.view_url}" class="btn btn-sm btn-outline-primary py-0" style="font-size:.75rem;">View</a></td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                document.getElementById('versionHistoryContent').innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById('versionHistoryContent').innerHTML = '<div class="alert alert-danger">Failed to load history</div>';
+            });
+    };
+
     // ── Profile dropdown ──────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
         const btn     = document.getElementById('profileDropdownBtn');

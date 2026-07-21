@@ -392,7 +392,7 @@
                     </div>
 
                     {{-- Add Role button (top-right, only when editable) --}}
-                    @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])))
+                    @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion())))
                         <a href="{{ route('access-matrix.create', array_filter(['request_id' => $requestId ?? null])) }}"
                            id="addRoleBtn"
                            style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.8rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(11,46,109,.18);transition:all .18s;"
@@ -605,12 +605,18 @@
                                             <td style="padding:0;border:none;border-left:1px solid #e5e7eb;vertical-align:middle;text-align:center;">
                                                 <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 0;display:flex;justify-content:center;align-items:center;">
-                                                        @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])))
+                                                        @if(empty($isApproval) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion())
                                                             <div class="dropdown">
                                                                 <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration:none;">
                                                                     <i class="bi bi-three-dots-vertical"></i>
                                                                 </button>
                                                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:10px;font-size:0.8rem;">
+                                                                    <li>
+                                                                        <button type="button" class="dropdown-item" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 1rem;color:var(--primary);"
+                                                                                onclick="openAddTcodeModal('{{ $roleData->role }}')">
+                                                                            <i class="bi bi-plus-circle"></i> Add TCODE
+                                                                        </button>
+                                                                    </li>
                                                                     <li>
                                                                         <form action="{{ route('access-matrix.destroy-role', ['uamRequest' => $uamRequest->id, 'role' => $roleData->role]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this Role and ALL its associated TCODEs?');">
                                                                             @csrf
@@ -719,12 +725,12 @@
                                     TCODE review completed by {{ $uamRequest->requester_nik ?? 'Reviewer' }}. Please select your overall decision.
                                 </div>
                                 <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
-                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
-                                        <input type="radio" name="overall_decision" value="Approved" required style="accent-color:#22c55e;width:16px;height:16px;cursor:pointer;">
+                                    <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;margin-right:1rem;">
+                                        <input type="radio" name="overall_decision" value="Approved" required style="accent-color:#15803d;width:16px;height:16px;cursor:pointer;" onchange="validateFinalDecisionForm()">
                                         <span style="font-size:.85rem;color:#15803d;font-weight:700;">Overall Approve</span>
                                     </label>
                                     <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;">
-                                        <input type="radio" name="overall_decision" value="Return" required style="accent-color:#ef4444;width:16px;height:16px;cursor:pointer;">
+                                        <input type="radio" name="overall_decision" value="Return" required style="accent-color:#ef4444;width:16px;height:16px;cursor:pointer;" onchange="validateFinalDecisionForm()">
                                         <span style="font-size:.85rem;color:#c0392b;font-weight:700;">Overall Return</span>
                                     </label>
                                 </div>
@@ -733,26 +739,61 @@
                             <div style="flex:2;min-width:200px;display:flex;flex-direction:column;gap:.2rem;margin-right:1rem;">
                                 <label for="finalComment" style="font-size:.72rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.3rem;">
                                     Final Approver Comment
-                                    <span style="color:#ef4444;font-weight:500;font-size:.68rem;">— required, minimum 3 words</span>
+                                    <div style="position:relative;width:0;height:0;display:flex;align-items:center;">
+                                        <span id="finalCommentHint" style="color:#ef4444;font-weight:500;font-size:.68rem;position:absolute;left:0;white-space:nowrap;">— required, minimum 3 words</span>
+                                    </div>
                                 </label>
                                 <textarea name="approver_comment" id="finalComment" rows="2"
                                           placeholder="Add notes or approval/revision instructions…"
                                           style="flex:1;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.4rem .7rem;font-size:.8rem;color:var(--text);resize:none;transition:border-color .2s;outline:none;font-family:inherit;min-height:58px;max-height:90px;"
                                           onfocus="this.style.borderColor='var(--secondary)'"
                                           onblur="this.style.borderColor='var(--border)'"
+                                          oninput="validateFinalDecisionForm()"
                                           required></textarea>
                             </div>
 
                             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem;">
                                 <button type="submit" id="finalSubmitBtn"
-                                        style="display:inline-flex;align-items:center;gap:.35rem;background:#15803d;color:#fff;border:none;border-radius:8px;padding:.5rem 1.25rem;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.2);transition:all .18s;letter-spacing:.1px;"
-                                        onmouseenter="this.style.background='#166534';this.style.transform='translateY(-1px)';"
+                                        disabled
+                                        style="display:inline-flex;align-items:center;gap:.35rem;background:#15803d;color:#fff;border:none;border-radius:8px;padding:.5rem 1.25rem;font-size:.8rem;font-weight:700;cursor:not-allowed;white-space:nowrap;box-shadow:0 2px 6px rgba(21,128,61,.2);transition:all .18s;letter-spacing:.1px;opacity:.45;"
+                                        onmouseenter="if(!this.disabled){this.style.background='#166534';this.style.transform='translateY(-1px)';}"
                                         onmouseleave="this.style.background='#15803d';this.style.transform='none';">
                                     <i class="bi bi-send-fill" style="font-size:.7rem;"></i> Submit Final Decision
                                 </button>
                             </div>
                         </div>
                     </form>
+                    <script>
+                        function validateFinalDecisionForm() {
+                            const countW = typeof countWords === 'function' ? countWords : function(str) {
+                                return str.trim().split(/\s+/).filter(function(w){ return w.length > 0; }).length;
+                            };
+                            
+                            const radioChecked = document.querySelector('input[name="overall_decision"]:checked') !== null;
+                            const commentField = document.getElementById('finalComment');
+                            const commentHint = document.getElementById('finalCommentHint');
+                            const submitBtn = document.getElementById('finalSubmitBtn');
+                            
+                            const words = countW(commentField.value);
+                            const valid = radioChecked && words >= 3;
+                            
+                            submitBtn.disabled = !valid;
+                            submitBtn.style.opacity = valid ? '1' : '.45';
+                            submitBtn.style.cursor = valid ? 'pointer' : 'not-allowed';
+                            
+                            if (words >= 3) {
+                                commentHint.textContent = '— ✓ Valid';
+                                commentHint.style.color = '#15803d';
+                                commentField.style.borderColor = 'var(--border)';
+                            } else {
+                                commentHint.textContent = '— required, minimum 3 words (' + words + '/3)';
+                                commentHint.style.color = '#ef4444';
+                                commentField.style.borderColor = '#ef4444';
+                            }
+                        }
+                        
+                        document.addEventListener('DOMContentLoaded', validateFinalDecisionForm);
+                    </script>
                 </div>
                 @endif
 
@@ -817,7 +858,7 @@
                                     <span style="font-size:.75rem;font-weight:600;color:#4b5563;"><i class="bi bi-person-fill" style="margin-right:.2rem;"></i>{{ $history->approver_name ?: 'System' }}</span>
                                 </div>
                                 <div style="font-size:.7rem;color:#9ca3af;font-weight:500;">
-                                    {{ $history->created_at->format('d M Y, H:i') }}
+                                    {{ $history->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i') }}
                                 </div>
                             </div>
                             <div style="font-size:.82rem;color:#4b5563;line-height:1.5;white-space:pre-wrap;word-break:break-word;">{{ $history->comment ?: 'No comment provided.' }}</div>
@@ -828,7 +869,7 @@
         </div>
         @endif
         {{-- Submit Action (for Requester) --}}
-        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval))
+        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion() && empty($isApproval))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
                 <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
                     @csrf
@@ -878,7 +919,9 @@
                             <div style="flex:2;min-width:200px;display:flex;flex-direction:column;gap:.2rem;">
                                 <label for="approverComment" style="font-size:.72rem;font-weight:700;color:var(--secondary);display:flex;align-items:center;gap:.3rem;">
                                     General Comment
-                                    <span id="commentHint" style="color:#ef4444;font-weight:500;font-size:.68rem;">— required, minimum 3 words</span>
+                                    <div style="position:relative;width:0;height:0;display:flex;align-items:center;">
+                                        <span id="commentHint" style="color:#ef4444;font-weight:500;font-size:.68rem;position:absolute;left:0;white-space:nowrap;">— required, minimum 3 words</span>
+                                    </div>
                                 </label>
                                 <textarea name="approver_comment" id="approverComment" rows="2"
                                           placeholder="Add notes or approval/revision instructions…"
@@ -919,28 +962,27 @@
                 const uniqueNames = new Set([...allRadios].map(r => r.name));
                 const allSelected = uniqueNames.size > 0 && [...uniqueNames].every(name => document.querySelector(`input[name="${name}"]:checked`));
 
-                const comment          = document.getElementById('approverComment').value;
+                const commentField     = document.getElementById('approverComment');
+                const comment          = commentField.value;
                 const submitBtn        = document.getElementById('submitDecisionBtn');
                 const commentHint      = document.getElementById('commentHint');
                 const words            = countWords(comment);
 
-                // "Complete TCODE Review" enabled when all TCODEs decided + comment ≥ 3 words
+                // "Complete TCODE Review" enabled when all TCODEs decided + comment >= 3 words
                 const valid = allSelected && words >= 3;
                 submitBtn.disabled = !valid;
                 submitBtn.style.opacity = valid ? '1' : '.45';
                 submitBtn.style.cursor  = valid ? 'pointer' : 'not-allowed';
 
                 // Hint colour: green when satisfied, red otherwise
-                commentHint.style.color = words >= 3 ? '#15803d' : '#ef4444';
                 if (words >= 3) {
-                    if (allSelected) {
-                        commentHint.textContent = '— ✓ Ready to complete review';
-                    } else {
-                        commentHint.textContent = '— please make a decision for all TCODEs';
-                        commentHint.style.color = '#ef4444';
-                    }
+                    commentHint.textContent = '— ✓ Valid';
+                    commentHint.style.color = '#15803d';
+                    commentField.style.borderColor = 'var(--border)';
                 } else {
                     commentHint.textContent = '— required, minimum 3 words (' + words + '/' + 3 + ')';
+                    commentHint.style.color = '#ef4444';
+                    commentField.style.borderColor = '#ef4444';
                 }
             }
 
@@ -1044,7 +1086,7 @@
                             <div style="display:flex;align-items:center;gap:.5rem;">
                                 <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                                 {{-- Edit toggle --}}
-                                @if((!$uamRequest || in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) && empty($isApproval))
+                                @if((!$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && $uamRequest->isLatestVersion())) && empty($isApproval))
                                 <button id="editOwnersBtn" type="button" onclick="toggleEditOwners()"
                                     style="font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;border:1.5px solid #166534;background:#fff;color:#166534;cursor:pointer;transition:all .15s;">
                                     <i class="bi bi-pencil-fill me-1"></i>Edit
@@ -1092,6 +1134,62 @@
                 <button type="button" onclick="closeAccessModal()"
                         style="padding:.5rem 1.5rem;background:var(--secondary);color:#fff;border:none;border-radius:9px;font-size:.85rem;font-weight:700;cursor:pointer;transition:filter var(--transition);letter-spacing:.1px;"
                         onmouseenter="this.style.filter='brightness(1.1)'" onmouseleave="this.style.filter=''">Close</button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Add TCODE Modal --}}
+    <div class="modal fade" id="addTcodeModal" tabindex="-1" aria-labelledby="addTcodeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border:none;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.1);">
+                <form id="addTcodeForm" method="POST" action="">
+                    @csrf
+                    <div class="modal-header" style="background:#f8f9fa;border-bottom:1px solid #e5e7eb;border-radius:12px 12px 0 0;padding:1rem 1.5rem;">
+                        <h5 class="modal-title" id="addTcodeModalLabel" style="font-weight:700;color:var(--secondary);font-size:1.05rem;">
+                            <i class="bi bi-plus-circle me-2"></i>Add TCODE
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" style="padding:1.5rem;">
+                        <div class="mb-3">
+                            <label for="addTcodeRole" class="form-label fw-bold">Role</label>
+                            <input type="text" id="addTcodeRole" class="form-control" readonly style="background:#f3f4f6;font-family:monospace;font-weight:600;">
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-6">
+                                <label for="addTcodeBpo" class="form-label fw-bold">BPO</label>
+                                <select id="addTcodeBpo" name="bpo" class="form-select" required>
+                                    <option value="">-- Select BPO --</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="addTcodeUnit" class="form-label fw-bold">Unit</label>
+                                <select id="addTcodeUnit" name="unit" class="form-select" required disabled>
+                                    <option value="">-- Select BPO first --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-6">
+                                <label for="addTcodeAo" class="form-label fw-bold">User Access Matrix (AO)</label>
+                                <select id="addTcodeAo" name="access_owner" class="form-select" required disabled>
+                                    <option value="">-- Select Unit first --</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label for="addTcodeCode" class="form-label fw-bold">TCODE</label>
+                                <input type="text" id="addTcodeCode" name="tcode" class="form-control" placeholder="e.g. SU01" required>
+                                <small class="text-muted" style="font-size:0.75rem;">Comma separated for multiple</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="background:#f8f9fa;border-top:1px solid #e5e7eb;border-radius:0 0 12px 12px;">
+                        <button type="button" class="btn btn-light border" data-bs-dismiss="modal" style="font-weight:600;">Cancel</button>
+                        <button type="submit" class="btn-primary-custom" style="padding:.5rem 1.5rem;font-weight:700;">
+                            <i class="bi bi-save me-1"></i> Save TCODE
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -1543,6 +1641,142 @@
             validateDecisionForm();
         }
     });
+
+    // ── Add TCODE Modal Logic ───────────────────────────────────────────────
+    let addTcodeGlobalMatrix = {};
+    let addTcodeBpos = [];
+
+    // Assuming global matrix is fetched via same mechanism
+    if (reqId) {
+        fetch(`/access-matrix/request/${reqId}/matrix-map`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    addTcodeGlobalMatrix = data.matrix || {};
+                    // Build unified BPO list
+                    const bposSet = new Set();
+                    Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
+                        Object.keys(bpoMap).forEach(b => bposSet.add(b));
+                    });
+                    addTcodeBpos = Array.from(bposSet).sort();
+                }
+            })
+            .catch(err => console.error("Error fetching matrix map:", err));
+    }
+
+    const addTcodeModalEl = document.getElementById('addTcodeModal');
+    let addTcodeModal = null;
+
+    if (addTcodeModalEl) {
+        addTcodeModal = new bootstrap.Modal(addTcodeModalEl);
+    }
+
+    window.openAddTcodeModal = function(role) {
+        if (!addTcodeModal) return;
+        document.getElementById('addTcodeRole').value = role;
+        
+        // Update form action
+        const form = document.getElementById('addTcodeForm');
+        form.action = `/access-matrix/sap/role/${reqId}/${role}/tcode`;
+
+        // Reset dropdowns
+        const bpoSelect = document.getElementById('addTcodeBpo');
+        const unitSelect = document.getElementById('addTcodeUnit');
+        const aoSelect = document.getElementById('addTcodeAo');
+        const tcodeInp = document.getElementById('addTcodeCode');
+
+        tcodeInp.value = '';
+        unitSelect.innerHTML = '<option value="">-- Select BPO first --</option>';
+        unitSelect.disabled = true;
+        aoSelect.innerHTML = '<option value="">-- Select Unit first --</option>';
+        aoSelect.disabled = true;
+
+        // Populate BPO
+        bpoSelect.innerHTML = '<option value="">-- Select BPO --</option>';
+        addTcodeBpos.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = b;
+            bpoSelect.appendChild(opt);
+        });
+
+        addTcodeModal.show();
+    };
+
+    const tcodeBpoSelect = document.getElementById('addTcodeBpo');
+    const tcodeUnitSelect = document.getElementById('addTcodeUnit');
+    const tcodeAoSelect = document.getElementById('addTcodeAo');
+
+    if (tcodeBpoSelect) {
+        tcodeBpoSelect.addEventListener('change', function() {
+            const selectedBpo = this.value;
+            tcodeUnitSelect.innerHTML = '<option value="">-- Select Unit --</option>';
+            tcodeAoSelect.innerHTML = '<option value="">-- Select Unit first --</option>';
+            tcodeAoSelect.disabled = true;
+
+            if (!selectedBpo) {
+                tcodeUnitSelect.innerHTML = '<option value="">-- Select BPO first --</option>';
+                tcodeUnitSelect.disabled = true;
+                return;
+            }
+
+            const unitsSet = new Set();
+            Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
+                if (bpoMap[selectedBpo]) {
+                    Object.keys(bpoMap[selectedBpo]).forEach(u => unitsSet.add(u));
+                }
+            });
+
+            const units = Array.from(unitsSet).sort();
+            if (units.length === 0) {
+                tcodeUnitSelect.innerHTML = '<option value="">-- No Units found --</option>';
+                tcodeUnitSelect.disabled = true;
+            } else {
+                tcodeUnitSelect.disabled = false;
+                units.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u;
+                    opt.textContent = u;
+                    tcodeUnitSelect.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    if (tcodeUnitSelect) {
+        tcodeUnitSelect.addEventListener('change', function() {
+            const selectedBpo = tcodeBpoSelect.value;
+            const selectedUnit = this.value;
+            tcodeAoSelect.innerHTML = '<option value="">-- Select Access Owner --</option>';
+
+            if (!selectedUnit) {
+                tcodeAoSelect.innerHTML = '<option value="">-- Select Unit first --</option>';
+                tcodeAoSelect.disabled = true;
+                return;
+            }
+
+            const aosSet = new Set();
+            Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
+                if (bpoMap[selectedBpo] && bpoMap[selectedBpo][selectedUnit]) {
+                    bpoMap[selectedBpo][selectedUnit].forEach(a => aosSet.add(a));
+                }
+            });
+
+            const aos = Array.from(aosSet).sort();
+            if (aos.length === 0) {
+                tcodeAoSelect.innerHTML = '<option value="">-- No Access Owners found --</option>';
+                tcodeAoSelect.disabled = true;
+            } else {
+                tcodeAoSelect.disabled = false;
+                aos.forEach(a => {
+                    const opt = document.createElement('option');
+                    opt.value = a;
+                    opt.textContent = a;
+                    tcodeAoSelect.appendChild(opt);
+                });
+            }
+        });
+    }
 </script>
 @endpush
 

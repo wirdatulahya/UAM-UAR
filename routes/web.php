@@ -70,6 +70,10 @@ Route::middleware('auth')->group(function () {
         ->name('access-matrix.download-excel');
     Route::get('/access-matrix/request/{uamRequest}/download-pdf', [AccessMatrixController::class, 'downloadPdf'])
         ->name('access-matrix.download-pdf');
+    Route::get('/access-matrix/request/{uamRequest}/history', [AccessMatrixController::class, 'versionHistory'])
+        ->name('access-matrix.history');
+    Route::get('/access-matrix/request/{uamRequest}/matrix-map', [AccessMatrixController::class, 'getMatrixMap'])
+        ->name('access-matrix.matrix-map');
 
     Route::post('/access-matrix/approval/{uamRequest}/status', [AccessMatrixController::class, 'updateRequestStatus'])
         ->name('access-matrix.update-status');
@@ -107,6 +111,9 @@ Route::middleware('auth')->group(function () {
 
         Route::delete('/role/{uamRequest}/{role}', [AccessMatrixController::class, 'destroyRole'])
             ->name('access-matrix.destroy-role');
+
+        Route::post('/role/{uamRequest}/{role}/tcode', [AccessMatrixController::class, 'storeTcode'])
+            ->name('access-matrix.store-tcode');
 
         Route::get('/{uamRecord}/edit', [AccessMatrixController::class, 'edit'])
             ->name('access-matrix.edit');

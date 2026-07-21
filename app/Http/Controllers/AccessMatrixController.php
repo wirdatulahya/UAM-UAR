@@ -66,6 +66,11 @@ class AccessMatrixController extends Controller
         $filterPeriod      = trim($request->input('period', ''));
         $search            = trim($request->input('search', ''));
 
+        $latestApprovedIds = UamRequest::where('status', 'Approved')
+            ->selectRaw('MAX(id) as id')
+            ->groupBy('group_id')
+            ->pluck('id')
+            ->toArray();
         $query = UamRequest::with('requester')->orderBy('created_at', 'desc');
 
         if ($filterApplication !== '') {
@@ -84,8 +89,9 @@ class AccessMatrixController extends Controller
             });
         }
 
-        $requests = $query->get()->map(function ($req, $i) {
+        $requests = $query->get()->map(function ($req, $i) use ($latestApprovedIds) {
             $req->no = $i + 1;
+            $req->is_latest = in_array($req->id, $latestApprovedIds);
             return $req;
         });
 
@@ -108,7 +114,12 @@ class AccessMatrixController extends Controller
         $filterPeriod      = trim($request->input('period', ''));
         $search            = trim($request->input('search', ''));
 
-        // Only show requests that are 'Review' (Under Review) for Stage 1
+        $latestApprovedIds = UamRequest::where('status', 'Approved')
+            ->selectRaw('MAX(id) as id')
+            ->groupBy('group_id')
+            ->pluck('id')
+            ->toArray();
+        // Only show requests that are 'Review', 'Stage 2', 'Approved', 'Return' for Stage 1
         $query = UamRequest::with('requester')->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->orderBy('created_at', 'desc');
 
         if ($filterApplication !== '') {
@@ -127,12 +138,13 @@ class AccessMatrixController extends Controller
             });
         }
 
-        $requests = $query->get()->map(function ($req, $i) {
+        $requests = $query->get()->map(function ($req, $i) use ($latestApprovedIds) {
             $req->no = $i + 1;
+            $req->is_latest = in_array($req->id, $latestApprovedIds);
             return $req;
         });
 
-        // Distinct option lists for filter dropdowns (only from Review)
+        // Distinct option lists for filter dropdowns (only from valid statuses)
         $availableApplications = UamRequest::whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('application')->pluck('application');
         $availableYears        = UamRequest::whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderByDesc('year')->pluck('year');
         $availablePeriods      = UamRequest::whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('period')->pluck('period');
@@ -151,6 +163,11 @@ class AccessMatrixController extends Controller
         $filterPeriod      = trim($request->input('period', ''));
         $search            = trim($request->input('search', ''));
 
+        $latestApprovedIds = UamRequest::where('status', 'Approved')
+            ->selectRaw('MAX(id) as id')
+            ->groupBy('group_id')
+            ->pluck('id')
+            ->toArray();
         // Show requests that are 'Review' (Waiting for Accept) and 'Stage 2' (Pending Final Approval)
         $query = UamRequest::with('requester')->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->orderBy('created_at', 'desc');
 
@@ -170,8 +187,9 @@ class AccessMatrixController extends Controller
             });
         }
 
-        $requests = $query->get()->map(function ($req, $i) {
+        $requests = $query->get()->map(function ($req, $i) use ($latestApprovedIds) {
             $req->no = $i + 1;
+            $req->is_latest = in_array($req->id, $latestApprovedIds);
             return $req;
         });
 
@@ -185,6 +203,35 @@ class AccessMatrixController extends Controller
             'filterApplication', 'filterYear', 'filterPeriod', 'search',
             'availableApplications', 'availableYears', 'availablePeriods'
         ));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // VERSION HISTORY (AJAX) — Return all versions for a request chain
+    // ────────────────────────────────────────────────────────────────────────
+    public function versionHistory(UamRequest $uamRequest)
+    {
+        $history = collect([$uamRequest]);
+        
+        if ($uamRequest->group_id) {
+            $history = UamRequest::with('requester', 'approvalHistories')
+                ->where('group_id', $uamRequest->group_id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
+
+        $formatted = $history->map(function($req) {
+            return [
+                'id' => $req->id,
+                'version' => $req->version ?? 'V1',
+                'status' => $req->status,
+                'created_at' => $req->created_at->format('d M Y, H:i'),
+                'updated_at' => $req->updated_at->format('d M Y, H:i'),
+                'requester_name' => $req->requester ? $req->requester->name : 'Unknown',
+                'view_url' => route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request'])
+            ];
+        });
+
+        return response()->json($formatted);
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -416,32 +463,21 @@ class AccessMatrixController extends Controller
     {
         $request->validate([
             'request_id'  => ['required', 'integer', 'exists:uam_requests,id'],
-            'year'        => ['required', 'integer', 'min:2026', 'max:9999'],
-            'period'      => ['required', 'string', 'in:Q1,Q2,Q3,Q4'],
-            'version'     => ['required', 'string', 'max:50'],
         ]);
 
         $baseline = UamRequest::find($request->input('request_id'));
-        $year     = $request->input('year');
-        $period   = $request->input('period');
-        $version  = $request->input('version');
 
         if ($baseline->status !== 'Approved') {
             return back()->withErrors(['request_id' => 'The selected baseline request is not approved.']);
         }
 
-        $application = $baseline->application;
+        // Auto-increment version
+        $currentVersionNum = (int) str_replace('V', '', $baseline->version ?? 'V1');
+        $newVersion = 'V' . ($currentVersionNum + 1);
 
-        // Check if a request already exists for this application, year, period, and version
-        $exists = UamRequest::where('application', $application)
-            ->where('year', $year)
-            ->where('period', $period)
-            ->where('version', $version)
-            ->exists();
-            
-        if ($exists) {
-            return back()->withErrors(['version' => "A request for {$application} {$period} {$year} - {$version} already exists."]);
-        }
+        $application = $baseline->application;
+        $year        = $baseline->year;
+        $period      = $baseline->period;
 
         // Auto-generate batch name
         $batchName = 'UAM_' . now()->format('Ymd') . '_Copy_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $application);
@@ -450,11 +486,13 @@ class AccessMatrixController extends Controller
         try {
             // Create new request
             $newRequest = UamRequest::create([
+                'parent_id'        => $baseline->id,
+                'group_id'         => $baseline->group_id ?? (string) \Illuminate\Support\Str::uuid(),
                 'application'      => $application,
                 'module'           => $baseline->module,
                 'year'             => $year,
                 'period'           => $period,
-                'version'          => $version,
+                'version'          => $newVersion,
                 'batch_name'       => $batchName,
                 'file_name'        => 'Copied from ' . $baseline->batch_name,
                 'status'           => 'Draft',
@@ -851,6 +889,7 @@ class AccessMatrixController extends Controller
         $userId  = Auth::id();
         $now     = now();
         $inserts = [];
+        $globalMatrix = [];
         foreach (array_slice($raw, $headerRowIdx + 1) as $row) {
             $row      = array_values((array)$row);
             $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
@@ -890,6 +929,19 @@ class AccessMatrixController extends Controller
                     if (!in_array($ownerName, $matrixData[$u][$b], true)) {
                         $matrixData[$u][$b][] = $ownerName;
                     }
+
+                    // Build global matrix map based on TCODE -> BPO -> Unit -> Access Owner
+                    $tcodes = array_map('trim', explode(',', $record['tcode']));
+                    foreach ($tcodes as $tc) {
+                        if ($tc === '') continue;
+                        if (!isset($globalMatrix[$tc])) $globalMatrix[$tc] = [];
+                        if (!isset($globalMatrix[$tc][$b])) $globalMatrix[$tc][$b] = [];
+                        if (!isset($globalMatrix[$tc][$b][$u])) $globalMatrix[$tc][$b][$u] = [];
+                        
+                        if (!in_array($ownerName, $globalMatrix[$tc][$b][$u], true)) {
+                            $globalMatrix[$tc][$b][$u][] = $ownerName;
+                        }
+                    }
                 }
             }
 
@@ -919,11 +971,14 @@ class AccessMatrixController extends Controller
             'module'        => $module,
             'year'          => $year,
             'period'        => $period,
+            'version'       => 'V1',
+            'group_id'      => (string) \Illuminate\Support\Str::uuid(),
             'batch_name'    => $batchName,
             'file_name'     => $fileName,
             'status'        => 'Draft',
             'ao'            => $aoName,
             'requester_nik' => $extractedNik,
+            'global_matrix' => empty($globalMatrix) ? null : $globalMatrix,
             'record_count'  => count($inserts),
             'requested_by'  => $userId,
         ]);
@@ -941,8 +996,9 @@ class AccessMatrixController extends Controller
         Log::info('UAM import: successful', [
             'request_id'  => $uamRequest->id,
             'batch_name'  => $batchName,
-            'file'        => $fileName,
-            'records'     => count($inserts),
+            'ao'            => $aoName,
+            'global_matrix' => empty($globalMatrix) ? null : $globalMatrix,
+            'record_count'  => count($inserts),
         ]);
 
         return redirect()
@@ -1124,6 +1180,89 @@ class AccessMatrixController extends Controller
         return redirect()
             ->route('access-matrix.sap', ['request_id' => $uamRequest->id])
             ->with('success', "All records for role \"{$role}\" have been deleted.");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STORE TCODE — Add a new TCODE to an existing role
+    // ─────────────────────────────────────────────────────────────────────────
+    public function storeTcode(Request $request, UamRequest $uamRequest, $role)
+    {
+        // Must be editable
+        if (!in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) {
+            return redirect()->back()->withErrors(['error' => 'Cannot add TCODE when request is not editable.']);
+        }
+
+        $validated = $request->validate([
+            'bpo' => 'required|string',
+            'unit' => 'required|string',
+            'access_owner' => 'required|string',
+            'tcode' => 'required|string',
+        ]);
+
+        // Get existing role details
+        $existingRecord = UamRecord::where('request_id', $uamRequest->id)
+            ->where('role', $role)
+            ->first();
+
+        if (!$existingRecord) {
+            return redirect()->back()->withErrors(['error' => 'Role not found in this request.']);
+        }
+
+        $bpo = trim($validated['bpo']);
+        $unit = trim($validated['unit']);
+        $owner = trim($validated['access_owner']);
+        $tcodesInput = array_map('trim', explode(',', $validated['tcode']));
+
+        $globalMatrix = is_array($uamRequest->global_matrix) ? $uamRequest->global_matrix : [];
+        $inserts = [];
+        $now = now();
+        $userId = Auth::id();
+
+        foreach ($tcodesInput as $tc) {
+            if ($tc === '') continue;
+
+            // Validate against global matrix
+            $isValid = false;
+            if (isset($globalMatrix[$tc][$bpo][$unit]) && in_array($owner, $globalMatrix[$tc][$bpo][$unit])) {
+                $isValid = true;
+            }
+
+            if (!$isValid) {
+                return redirect()->back()->withErrors(['tcode' => "TCODE '{$tc}' is not valid for the selected BPO, Unit, and Access Owner combination."])->withInput();
+            }
+
+            // Prepare matrix_data
+            $matrixData = [
+                $unit => [
+                    $bpo => [$owner]
+                ]
+            ];
+
+            $inserts[] = [
+                'request_id' => $uamRequest->id,
+                'role' => $role,
+                'description_role' => $existingRecord->description_role,
+                'tcode' => $tc,
+                'bpo' => $bpo,
+                'unit' => $unit,
+                'access_owner' => null, // keeping existing pattern
+                'matrix_data' => json_encode($matrixData),
+                'module' => $existingRecord->module,
+                'period' => $existingRecord->period,
+                'imported_by' => $userId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if (!empty($inserts)) {
+            UamRecord::insert($inserts);
+            $uamRequest->increment('record_count', count($inserts));
+        }
+
+        return redirect()
+            ->route('access-matrix.sap', ['request_id' => $uamRequest->id, 'search' => $role])
+            ->with('success', 'New TCODE(s) added successfully to role ' . $role);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1590,5 +1729,16 @@ class AccessMatrixController extends Controller
 
         $fileName = 'UAM_Export_' . $uamRequest->period . '_' . $uamRequest->year . '.pdf';
         return $pdf->download($fileName);
+    }
+
+    /**
+     * Get the global matrix map for a UAM Request to populate dynamic dropdowns.
+     */
+    public function getMatrixMap(UamRequest $uamRequest)
+    {
+        return response()->json([
+            'success' => true,
+            'matrix' => $uamRequest->global_matrix ?? [],
+        ]);
     }
 }

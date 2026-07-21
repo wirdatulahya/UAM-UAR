@@ -229,10 +229,9 @@
                             {{-- BPO — LEFT --}}
                             <div class="col-12 col-sm-6">
                                 <label for="bpo" class="form-label">BPO</label>
-                                <input type="text" id="bpo" name="bpo"
-                                       class="form-control @error('bpo') is-invalid @enderror"
-                                       value="{{ old('bpo', $uamRecord->bpo) }}"
-                                       placeholder="Business Process Owner">
+                                <select id="bpo" name="bpo" class="form-select @error('bpo') is-invalid @enderror" data-selected="{{ old('bpo', $uamRecord->bpo) }}">
+                                    <option value="">-- Type a TCODE first --</option>
+                                </select>
                                 @error('bpo')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -241,23 +240,22 @@
                             {{-- UNIT — RIGHT --}}
                             <div class="col-12 col-sm-6">
                                 <label for="unit" class="form-label">UNIT</label>
-                                <input type="text" id="unit" name="unit"
-                                       class="form-control @error('unit') is-invalid @enderror"
-                                       value="{{ old('unit', $uamRecord->unit) }}"
-                                       placeholder="Unit name">
+                                <select id="unit" name="unit" class="form-select @error('unit') is-invalid @enderror" data-selected="{{ old('unit', $uamRecord->unit) }}">
+                                    <option value="">-- Select BPO first --</option>
+                                </select>
                                 @error('unit')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
+                        <div class="row g-3 mb-3">
                             {{-- Access Owner --}}
                             <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">User Access Matrix</label>
-                                <input type="text" id="access_owner" name="access_owner"
-                                       class="form-control @error('access_owner') is-invalid @enderror"
-                                       value="{{ old('access_owner', $uamRecord->access_owner) }}"
-                                       placeholder="Who grants access (AO)">
+                                <label for="access_owner" class="form-label">User Access Matrix (AO)</label>
+                                <select id="access_owner" name="access_owner" class="form-select @error('access_owner') is-invalid @enderror" data-selected="{{ old('access_owner', $uamRecord->access_owner) }}">
+                                    <option value="">-- Select Unit first --</option>
+                                </select>
                                 @error('access_owner')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -327,6 +325,112 @@
         btn.disabled  = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving…';
     });
+
+    // ── Dynamic Dropdowns logic ──────────────────────────────────────
+    let globalMatrix = {};
+    const requestId = '{{ $uamRecord->request_id ?? "" }}';
+
+    if (requestId) {
+        fetch(`/access-matrix/request/${requestId}/matrix-map`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    globalMatrix = data.matrix || {};
+                    refreshDropdowns();
+                }
+            })
+            .catch(err => console.error("Error fetching matrix map:", err));
+    }
+
+    const tcodeEl = document.getElementById('tcode');
+    const bpoSelect = document.getElementById('bpo');
+    const unitSelect = document.getElementById('unit');
+    const aoSelect = document.getElementById('access_owner');
+
+    tcodeEl.addEventListener('input', refreshDropdowns);
+    bpoSelect.addEventListener('change', refreshDropdowns);
+    unitSelect.addEventListener('change', refreshDropdowns);
+
+    function refreshDropdowns(e) {
+        const tc = tcodeEl.value.trim();
+
+        // Get selected values or initial data-selected attribute if currently empty
+        const selectedBpo = bpoSelect.value || bpoSelect.dataset.selected;
+        const selectedUnit = unitSelect.value || unitSelect.dataset.selected;
+        const selectedAo = aoSelect.value || aoSelect.dataset.selected;
+
+        if (!tc) {
+            setOptions(bpoSelect, [], '-- Type a TCODE first --');
+            setOptions(unitSelect, [], '-- Select BPO first --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        const map = globalMatrix[tc] || {};
+        const validBpos = Object.keys(map);
+
+        if (validBpos.length === 0) {
+            setOptions(bpoSelect, [], '-- No BPOs found for TCODE --');
+            setOptions(unitSelect, [], '-- Select BPO first --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        setOptions(bpoSelect, validBpos, '-- Select BPO --', selectedBpo);
+
+        // Clear data-selected after initial set
+        bpoSelect.removeAttribute('data-selected');
+
+        if (!bpoSelect.value) {
+            setOptions(unitSelect, [], '-- Select BPO first --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        const validUnits = Object.keys(map[bpoSelect.value] || {});
+        if (validUnits.length === 0) {
+            setOptions(unitSelect, [], '-- No Units found --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        setOptions(unitSelect, validUnits, '-- Select Unit --', selectedUnit);
+        unitSelect.removeAttribute('data-selected');
+
+        if (!unitSelect.value) {
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        const validAos = map[bpoSelect.value][unitSelect.value] || [];
+        if (validAos.length === 0) {
+            setOptions(aoSelect, [], '-- No Access Owners found --');
+            return;
+        }
+
+        setOptions(aoSelect, validAos, '-- Select Access Owner --', selectedAo);
+        aoSelect.removeAttribute('data-selected');
+    }
+
+    function setOptions(selectEl, optionsArray, placeholder, selectedValue = null) {
+        selectEl.innerHTML = `<option value="">${placeholder}</option>`;
+        let valueFound = false;
+        optionsArray.sort().forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === selectedValue) {
+                option.selected = true;
+                valueFound = true;
+            }
+            selectEl.appendChild(option);
+        });
+        if (!valueFound && optionsArray.length > 0) {
+            selectEl.value = "";
+        }
+        selectEl.disabled = optionsArray.length === 0;
+    }
+
 </script>
 @endpush
 

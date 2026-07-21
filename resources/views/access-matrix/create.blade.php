@@ -253,10 +253,9 @@
                             {{-- BPO — LEFT --}}
                             <div class="col-12 col-sm-6">
                                 <label for="bpo" class="form-label">BPO</label>
-                                <input type="text" id="bpo" name="bpo"
-                                       class="form-control @error('bpo') is-invalid @enderror"
-                                       value="{{ old('bpo') }}"
-                                       placeholder="Business Process Owner">
+                                <select id="bpo" name="bpo" class="form-select @error('bpo') is-invalid @enderror">
+                                    <option value="">-- Type a TCODE first --</option>
+                                </select>
                                 @error('bpo')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -265,23 +264,22 @@
                             {{-- UNIT — RIGHT --}}
                             <div class="col-12 col-sm-6">
                                 <label for="unit" class="form-label">UNIT</label>
-                                <input type="text" id="unit" name="unit"
-                                       class="form-control @error('unit') is-invalid @enderror"
-                                       value="{{ old('unit') }}"
-                                       placeholder="Unit name">
+                                <select id="unit" name="unit" class="form-select @error('unit') is-invalid @enderror">
+                                    <option value="">-- Select BPO first --</option>
+                                </select>
                                 @error('unit')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
 
+                        <div class="row g-3 mb-3">
                             {{-- Access Owner --}}
                             <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">User Access Matrix</label>
-                                <input type="text" id="access_owner" name="access_owner"
-                                       class="form-control @error('access_owner') is-invalid @enderror"
-                                       value="{{ old('access_owner') }}"
-                                       placeholder="Who grants access (AO)">
+                                <label for="access_owner" class="form-label">User Access Matrix (AO)</label>
+                                <select id="access_owner" name="access_owner" class="form-select @error('access_owner') is-invalid @enderror">
+                                    <option value="">-- Select Unit first --</option>
+                                </select>
                                 @error('access_owner')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -378,6 +376,130 @@
 
     // Run once on load to set initial state
     syncTcodeButtons();
+
+    // ── Dynamic Dropdowns logic ──────────────────────────────────────
+    let globalMatrix = {};
+    const requestId = '{{ $requestId ?? ($uamRequest->id ?? "") }}';
+
+    if (requestId) {
+        fetch(`/access-matrix/request/${requestId}/matrix-map`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    globalMatrix = data.matrix || {};
+                    refreshDropdowns();
+                }
+            })
+            .catch(err => console.error("Error fetching matrix map:", err));
+    }
+
+    const tcodeList = document.getElementById('tcodeList');
+    const bpoSelect = document.getElementById('bpo');
+    const unitSelect = document.getElementById('unit');
+    const aoSelect = document.getElementById('access_owner');
+
+    tcodeList.addEventListener('input', function(e) {
+        if (e.target.tagName === 'INPUT') refreshDropdowns();
+    });
+
+    bpoSelect.addEventListener('change', refreshDropdowns);
+    unitSelect.addEventListener('change', refreshDropdowns);
+
+    function refreshDropdowns(e) {
+        const tcodes = Array.from(document.querySelectorAll('input[name="tcode[]"]'))
+                            .map(i => i.value.trim())
+                            .filter(v => v !== '');
+
+        const selectedBpo = bpoSelect.value;
+        const selectedUnit = unitSelect.value;
+        const selectedAo = aoSelect.value;
+
+        if (tcodes.length === 0) {
+            setOptions(bpoSelect, [], '-- Type a TCODE first --');
+            setOptions(unitSelect, [], '-- Select BPO first --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        // Determine valid BPOs (intersection across all tcodes)
+        let validBpos = null;
+        for (let tc of tcodes) {
+            const map = globalMatrix[tc] || {};
+            const bpos = Object.keys(map);
+            if (validBpos === null) validBpos = bpos;
+            else validBpos = validBpos.filter(b => bpos.includes(b));
+        }
+
+        if (!validBpos || validBpos.length === 0) {
+            setOptions(bpoSelect, [], '-- No BPOs found for TCODE --');
+            setOptions(unitSelect, [], '-- Select BPO first --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        setOptions(bpoSelect, validBpos, '-- Select BPO --', selectedBpo);
+
+        // If a BPO is selected, determine valid Units
+        if (!bpoSelect.value) {
+            setOptions(unitSelect, [], '-- Select BPO first --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        let validUnits = null;
+        for (let tc of tcodes) {
+            const units = Object.keys(globalMatrix[tc][bpoSelect.value] || {});
+            if (validUnits === null) validUnits = units;
+            else validUnits = validUnits.filter(u => units.includes(u));
+        }
+
+        if (!validUnits || validUnits.length === 0) {
+            setOptions(unitSelect, [], '-- No Units found --');
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        setOptions(unitSelect, validUnits, '-- Select Unit --', selectedUnit);
+
+        // If a Unit is selected, determine valid AOs
+        if (!unitSelect.value) {
+            setOptions(aoSelect, [], '-- Select Unit first --');
+            return;
+        }
+
+        let validAos = null;
+        for (let tc of tcodes) {
+            const aos = globalMatrix[tc][bpoSelect.value][unitSelect.value] || [];
+            if (validAos === null) validAos = aos;
+            else validAos = validAos.filter(a => aos.includes(a));
+        }
+
+        if (!validAos || validAos.length === 0) {
+            setOptions(aoSelect, [], '-- No Access Owners found --');
+            return;
+        }
+
+        setOptions(aoSelect, validAos, '-- Select Access Owner --', selectedAo);
+    }
+
+    function setOptions(selectEl, optionsArray, placeholder, selectedValue = null) {
+        selectEl.innerHTML = `<option value="">${placeholder}</option>`;
+        let valueFound = false;
+        optionsArray.sort().forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt;
+            option.textContent = opt;
+            if (opt === selectedValue) {
+                option.selected = true;
+                valueFound = true;
+            }
+            selectEl.appendChild(option);
+        });
+        if (!valueFound && optionsArray.length > 0) {
+            selectEl.value = "";
+        }
+        selectEl.disabled = optionsArray.length === 0;
+    }
 </script>
 @endpush
 
