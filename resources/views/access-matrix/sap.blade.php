@@ -618,7 +618,7 @@
                                                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:10px;font-size:0.8rem;">
                                                                     <li>
                                                                         <button type="button" class="dropdown-item" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 1rem;color:var(--primary);"
-                                                                                onclick="openAddTcodeModal('{{ $roleData->role }}')">
+                                                                                onclick="openAddTcodeModal('{{ $roleData->role }}', '{{ addslashes($firstRec->bpo ?? '') }}', '{{ addslashes($firstRec->unit ?? '') }}', '{{ addslashes($firstRec->access_owner ?? '') }}')">
                                                                             <i class="bi bi-plus-circle"></i> Add TCODE
                                                                         </button>
                                                                     </li>
@@ -1694,7 +1694,7 @@
         addTcodeModal = new bootstrap.Modal(addTcodeModalEl);
     }
 
-    window.openAddTcodeModal = function(role) {
+    window.openAddTcodeModal = function(role, bpo = '', unit = '', ao = '') {
         if (!addTcodeModal) return;
         document.getElementById('addTcodeRole').value = role;
         
@@ -1708,9 +1708,6 @@
         const aoInp = document.getElementById('addTcodeAo');
         const tcodeInp = document.getElementById('addTcodeCode');
 
-        bpoInp.value = '';
-        unitInp.value = '';
-        aoInp.value = '';
         tcodeInp.value = '';
 
         // Datalists
@@ -1728,6 +1725,15 @@
             opt.value = b;
             bpoList.appendChild(opt);
         });
+
+        // Set pre-filled values and trigger cascading datalist population
+        bpoInp.value = bpo;
+        if (bpo) bpoInp.dispatchEvent(new Event('input'));
+        
+        unitInp.value = unit;
+        if (unit) unitInp.dispatchEvent(new Event('input'));
+        
+        aoInp.value = ao;
 
         addTcodeModal.show();
     };
