@@ -618,7 +618,7 @@
                                                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:10px;font-size:0.8rem;">
                                                                     <li>
                                                                         <button type="button" class="dropdown-item" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 1rem;color:var(--primary);"
-                                                                                onclick="openAddTcodeModal('{{ $roleData->role }}', '{{ addslashes($firstRec->bpo ?? '') }}', '{{ addslashes($firstRec->unit ?? '') }}', '{{ addslashes($firstRec->access_owner ?? '') }}')">
+                                                                                onclick="openAddTcodeModal('{{ $roleData->role }}')">
                                                                             <i class="bi bi-plus-circle"></i> Add TCODE
                                                                         </button>
                                                                     </li>
@@ -1164,50 +1164,10 @@
                             <label for="addTcodeRole" class="form-label fw-bold">Role</label>
                             <input type="text" id="addTcodeRole" class="form-control" readonly style="background:#f3f4f6;font-family:monospace;font-weight:600;">
                         </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-12 col-md-6">
-                                <label for="addTcodeBpo" class="form-label fw-bold">BPO</label>
-                                <div style="position:relative;">
-                                    <select id="addTcodeBpo" name="bpo" required
-                                        style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
-                                        onfocus="this.style.borderColor='var(--secondary)'"
-                                        onblur="this.style.borderColor='var(--border)'">
-                                        <option value="">-- select BPO --</option>
-                                    </select>
-                                    <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <label for="addTcodeUnit" class="form-label fw-bold">Unit</label>
-                                <div style="position:relative;">
-                                    <select id="addTcodeUnit" name="unit" required
-                                        style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
-                                        onfocus="this.style.borderColor='var(--secondary)'"
-                                        onblur="this.style.borderColor='var(--border)'">
-                                        <option value="">-- select BPO first --</option>
-                                    </select>
-                                    <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-12 col-md-6">
-                                <label for="addTcodeAo" class="form-label fw-bold">User Access Matrix</label>
-                                <div style="position:relative;">
-                                    <select id="addTcodeAo" name="access_owner" required
-                                        style="width:100%;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:.85rem;font-weight:600;color:var(--secondary);background:#fff;appearance:none;cursor:pointer;transition:border-color var(--transition);outline:none;"
-                                        onfocus="this.style.borderColor='var(--secondary)'"
-                                        onblur="this.style.borderColor='var(--border)'">
-                                        <option value="">-- select Unit first --</option>
-                                    </select>
-                                    <i class="bi bi-chevron-down" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-muted);font-size:.75rem;"></i>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <label for="addTcodeCode" class="form-label fw-bold">TCODE</label>
-                                <input type="text" id="addTcodeCode" name="tcode" class="form-control" placeholder="e.g. SU01" required>
-                                <small class="text-muted" style="font-size:0.75rem;">Comma separated for multiple</small>
-                            </div>
+                        <div class="mb-3">
+                            <label for="addTcodeCode" class="form-label fw-bold">TCODE</label>
+                            <input type="text" id="addTcodeCode" name="tcode" class="form-control" placeholder="e.g. SU01" required>
+                            <small class="text-muted" style="font-size:0.75rem;">Comma separated for multiple</small>
                         </div>
                     </div>
                     <div class="modal-footer" style="background:#f8f9fa;border-top:1px solid #e5e7eb;border-radius:0 0 12px 12px;">
@@ -1715,7 +1675,7 @@
         addTcodeModal = new bootstrap.Modal(addTcodeModalEl);
     }
 
-    window.openAddTcodeModal = function(role, bpo = '', unit = '', ao = '') {
+    window.openAddTcodeModal = function(role) {
         if (!addTcodeModal) return;
         document.getElementById('addTcodeRole').value = role;
         
@@ -1723,103 +1683,12 @@
         const form = document.getElementById('addTcodeForm');
         form.action = `/access-matrix/sap/role/${addTcodeReqId}/${role}/tcode`;
 
-        // Reset inputs
-        const bpoInp = document.getElementById('addTcodeBpo');
-        const unitInp = document.getElementById('addTcodeUnit');
-        const aoInp = document.getElementById('addTcodeAo');
+        // Reset input
         const tcodeInp = document.getElementById('addTcodeCode');
-
         tcodeInp.value = '';
-
-        // Datalists -> Replace with Select elements options
-        unitInp.innerHTML = '<option value="">-- select BPO first --</option>';
-        aoInp.innerHTML = '<option value="">-- select Unit first --</option>';
-
-        // Populate BPO select
-        bpoInp.innerHTML = '<option value="">-- select BPO --</option>';
-        addTcodeBpos.forEach(b => {
-            const opt = document.createElement('option');
-            opt.value = b;
-            opt.textContent = b;
-            bpoInp.appendChild(opt);
-        });
-
-        // Set pre-filled values and trigger cascading dropdowns
-        bpoInp.value = bpo;
-        if (bpo) bpoInp.dispatchEvent(new Event('change'));
-        
-        unitInp.value = unit;
-        if (unit) unitInp.dispatchEvent(new Event('change'));
-        
-        aoInp.value = ao;
 
         addTcodeModal.show();
     };
-
-    const tcodeBpoInp = document.getElementById('addTcodeBpo');
-    const tcodeUnitInp = document.getElementById('addTcodeUnit');
-    const tcodeAoInp = document.getElementById('addTcodeAo');
-
-    if (tcodeBpoInp) {
-        tcodeBpoInp.addEventListener('change', function() {
-            const selectedBpo = this.value;
-            const unitInp = document.getElementById('addTcodeUnit');
-            const aoInp = document.getElementById('addTcodeAo');
-            
-            unitInp.innerHTML = '<option value="">-- select Unit --</option>';
-            aoInp.innerHTML = '<option value="">-- select Unit first --</option>';
-
-            if (!selectedBpo) {
-                unitInp.innerHTML = '<option value="">-- select BPO first --</option>';
-                return;
-            }
-
-            const unitsSet = new Set();
-            Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
-                if (bpoMap[selectedBpo]) {
-                    Object.keys(bpoMap[selectedBpo]).forEach(u => unitsSet.add(u));
-                }
-            });
-
-            const units = Array.from(unitsSet).sort();
-            units.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u;
-                opt.textContent = u;
-                unitInp.appendChild(opt);
-            });
-        });
-    }
-
-    if (tcodeUnitInp) {
-        tcodeUnitInp.addEventListener('change', function() {
-            const selectedBpo = tcodeBpoInp.value;
-            const selectedUnit = this.value;
-            const aoInp = document.getElementById('addTcodeAo');
-            
-            aoInp.innerHTML = '<option value="">-- select Access Owner --</option>';
-
-            if (!selectedUnit || !selectedBpo) {
-                aoInp.innerHTML = '<option value="">-- select Unit first --</option>';
-                return;
-            }
-
-            const aosSet = new Set();
-            Object.values(addTcodeGlobalMatrix).forEach(bpoMap => {
-                if (bpoMap[selectedBpo] && bpoMap[selectedBpo][selectedUnit]) {
-                    bpoMap[selectedBpo][selectedUnit].forEach(a => aosSet.add(a));
-                }
-            });
-
-            const aos = Array.from(aosSet).sort();
-            aos.forEach(a => {
-                const opt = document.createElement('option');
-                opt.value = a;
-                opt.textContent = a;
-                aoInp.appendChild(opt);
-            });
-        });
-    }
 </script>
 @endpush
 

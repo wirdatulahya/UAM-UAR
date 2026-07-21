@@ -1211,9 +1211,6 @@ class AccessMatrixController extends Controller
         }
 
         $validated = $request->validate([
-            'bpo' => 'required|string',
-            'unit' => 'required|string',
-            'access_owner' => 'required|string',
             'tcode' => 'required|string',
         ]);
 
@@ -1226,9 +1223,9 @@ class AccessMatrixController extends Controller
             return redirect()->back()->withErrors(['error' => 'Role not found in this request.']);
         }
 
-        $bpo = trim($validated['bpo']);
-        $unit = trim($validated['unit']);
-        $owner = trim($validated['access_owner']);
+        $bpo = trim($existingRecord->bpo ?? '');
+        $unit = trim($existingRecord->unit ?? '');
+        $owner = trim($existingRecord->access_owner ?? '');
         $tcodesInput = array_map('trim', explode(',', $validated['tcode']));
 
         $globalMatrix = is_array($uamRequest->global_matrix) ? $uamRequest->global_matrix : [];
