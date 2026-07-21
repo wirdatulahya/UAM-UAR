@@ -343,7 +343,7 @@ class AccessMatrixController extends Controller
         $label = $overallStatus === 'Approved' ? 'approved' : 'returned for revision';
 
         return redirect()
-            ->route('access-matrix.approval.index')
+            ->route('access-matrix.approval.sap')
             ->with('success', "Request \"{$uamRequest->module}\" has been {$label} successfully.");
     }
 
