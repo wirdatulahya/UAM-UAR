@@ -1267,6 +1267,7 @@ class AccessMatrixController extends Controller
                 'matrix_data' => json_encode($matrixData),
                 'module' => $existingRecord->module,
                 'period' => $existingRecord->period,
+                'change_type' => 'Added',
                 'imported_by' => $userId,
                 'created_at' => $now,
                 'updated_at' => $now,
