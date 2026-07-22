@@ -1860,41 +1860,42 @@ class AccessMatrixController extends Controller
 
         // Data for signature cells
         $requesterName = $requester    ? $requester->name              : ($uamRequest->requester_name ?? '-');
-        $requesterNik  = $requester    ? ($requester->username ?? '-') : '-';
-        $requesterPos  = $requester    ? ($requester->position ?? '-') : '-';
+        $requesterNik  = $requester    ? ($requester->nik ?? $requester->username ?? '-') : '-';
+        $requesterPos  = $requester    ? ($requester->position ?? $requester->job_title ?? '-') : '-';
         
         $submitDateObj = $submitHistory ? $submitHistory->created_at : $uamRequest->created_at;
         $submittedDate = $submitDateObj ? \Carbon\Carbon::parse($submitDateObj)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-';
 
         $acceptName    = $acceptUser   ? $acceptUser->name              : ($acceptHistory  ? $acceptHistory->approver_name  : '-');
-        $acceptNik     = $acceptUser   ? ($acceptUser->username ?? '-') : '-';
-        $acceptPos     = $acceptUser   ? ($acceptUser->position ?? '-') : '-';
+        $acceptNik     = $acceptUser   ? ($acceptUser->nik ?? $acceptUser->username ?? '-') : '-';
+        $acceptPos     = $acceptUser   ? ($acceptUser->position ?? $acceptUser->job_title ?? '-') : '-';
         $acceptedDate  = $acceptHistory ? \Carbon\Carbon::parse($acceptHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-';
 
         $approveName   = $approveUser  ? $approveUser->name             : ($approveHistory ? $approveHistory->approver_name : '-');
-        $approveNik    = $approveUser  ? ($approveUser->username ?? '-'): '-';
-        $approvePos    = $approveUser  ? ($approveUser->position ?? '-'): '-';
+        $approveNik    = $approveUser  ? ($approveUser->nik ?? $approveUser->username ?? '-'): '-';
+        $approvePos    = $approveUser  ? ($approveUser->position ?? $approveUser->job_title ?? '-'): '-';
         $approvedDate  = $approveHistory ? \Carbon\Carbon::parse($approveHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-';
 
         // Styles
         $sigLabelStyle = [
-            'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
-            'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F497D']],
+            'font'      => ['bold' => true, 'color' => ['rgb' => '666666'], 'size' => 9],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F5F5F5']],
             'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
         $sigNameStyle = [
-            'font'      => ['bold' => true],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'font'      => ['bold' => true, 'size' => 11, 'color' => ['rgb' => '222222']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
             'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
         $sigInfoStyle = [
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'font'      => ['color' => ['rgb' => '555555']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
             'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
         $sigDateStyle = [
-            'font'      => ['italic' => true, 'size' => 8, 'color' => ['rgb' => '555555']],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'font'      => ['size' => 9, 'color' => ['rgb' => '777777']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
             'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
 
@@ -1902,9 +1903,9 @@ class AccessMatrixController extends Controller
         $sigRow = $row + 2;
 
         // Row 0: Labels
-        $sheet->setCellValue('A' . $sigRow, 'Requested By');
-        $sheet->setCellValue('B' . $sigRow, 'Accepted By');
-        $sheet->setCellValue('C' . $sigRow, 'Approved By');
+        $sheet->setCellValue('A' . $sigRow, 'REQUESTED BY');
+        $sheet->setCellValue('B' . $sigRow, 'ACCEPTED BY');
+        $sheet->setCellValue('C' . $sigRow, 'APPROVED BY');
         foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . $sigRow)->applyFromArray($sigLabelStyle); }
         $sheet->getRowDimension($sigRow)->setRowHeight(20);
 

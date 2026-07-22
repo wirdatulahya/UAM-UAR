@@ -365,58 +365,63 @@
             $submitHistory = $uamRequest->approvalHistories->where('status', 'Submitted')->first();
             $submitDateObj = $submitHistory ? $submitHistory->created_at : $uamRequest->created_at;
         @endphp
-        <table style="width: 100%; border: none; font-size: 11px;">
+        <table style="width: 100%; border: none; font-size: 11px; table-layout: fixed;">
             <tr>
-                <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
-                    <div style="margin-bottom: 60px; font-weight: bold;">Requested By</div>
+                <!-- Requested By -->
+                <td style="border: none; width: 33.33%; text-align: left; vertical-align: top; padding-right: 15px;">
+                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Requested By</div>
                     @if($requester)
-                        <div style="font-weight: bold;">{{ $requester->name }}</div>
-                        <div style="color: #444;">{{ $requester->job_title ?? '-' }}</div>
-                        <div style="color: #444;">{{ $requester->position ?? '-' }}</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $requester->name }}</div>
+                        <div style="color: #555; margin-bottom: 2px;">{{ $requester->nik ?? $requester->username ?? '-' }}</div>
+                        <div style="color: #555; margin-bottom: 6px;">{{ $requester->position ?? $requester->job_title ?? '-' }}</div>
                     @else
-                        <div style="font-weight: bold;">{{ $uamRequest->requester_name ?? '-' }}</div>
-                        <div style="color: #444;">-</div>
-                        <div style="color: #444;">-</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $uamRequest->requester_name ?? '-' }}</div>
+                        <div style="color: #555; margin-bottom: 2px;">-</div>
+                        <div style="color: #555; margin-bottom: 6px;">-</div>
                     @endif
-                    <div style="color: #555; font-size: 9px; margin-top: 3px;">
+                    <div style="color: #777; font-size: 9px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">
                         Submitted: {{ $submitDateObj ? \Carbon\Carbon::parse($submitDateObj)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
                     </div>
                 </td>
-                <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
-                    <div style="margin-bottom: 60px; font-weight: bold;">Accepted By</div>
+
+                <!-- Accepted By -->
+                <td style="border: none; width: 33.33%; text-align: left; vertical-align: top; padding-right: 15px; padding-left: 15px;">
+                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Accepted By</div>
                     @if($acceptUser)
-                        <div style="font-weight: bold;">{{ $acceptUser->name }}</div>
-                        <div style="color: #444;">{{ $acceptUser->job_title ?? '-' }}</div>
-                        <div style="color: #444;">{{ $acceptUser->position ?? '-' }}</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $acceptUser->name }}</div>
+                        <div style="color: #555; margin-bottom: 2px;">{{ $acceptUser->nik ?? $acceptUser->username ?? '-' }}</div>
+                        <div style="color: #555; margin-bottom: 6px;">{{ $acceptUser->position ?? $acceptUser->job_title ?? '-' }}</div>
                     @elseif($acceptHistory)
-                        <div style="font-weight: bold;">{{ $acceptHistory->approver_name }}</div>
-                        <div style="color: #444;">-</div>
-                        <div style="color: #444;">-</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $acceptHistory->approver_name }}</div>
+                        <div style="color: #555; margin-bottom: 2px;">-</div>
+                        <div style="color: #555; margin-bottom: 6px;">-</div>
                     @else
-                        <div style="font-weight: bold;">-</div>
-                        <div style="color: #444;">-</div>
-                        <div style="color: #444;">-</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #bbb; margin-bottom: 3px;">-</div>
+                        <div style="color: #bbb; margin-bottom: 2px;">-</div>
+                        <div style="color: #bbb; margin-bottom: 6px;">-</div>
                     @endif
-                    <div style="color: #555; font-size: 9px; margin-top: 3px;">
+                    <div style="color: #777; font-size: 9px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">
                         Accepted: {{ $acceptHistory ? \Carbon\Carbon::parse($acceptHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
                     </div>
                 </td>
-                <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
-                    <div style="margin-bottom: 60px; font-weight: bold;">Approved By</div>
+
+                <!-- Approved By -->
+                <td style="border: none; width: 33.33%; text-align: left; vertical-align: top; padding-left: 15px;">
+                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Approved By</div>
                     @if($approveUser)
-                        <div style="font-weight: bold;">{{ $approveUser->name }}</div>
-                        <div style="color: #444;">{{ $approveUser->job_title ?? '-' }}</div>
-                        <div style="color: #444;">{{ $approveUser->position ?? '-' }}</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $approveUser->name }}</div>
+                        <div style="color: #555; margin-bottom: 2px;">{{ $approveUser->nik ?? $approveUser->username ?? '-' }}</div>
+                        <div style="color: #555; margin-bottom: 6px;">{{ $approveUser->position ?? $approveUser->job_title ?? '-' }}</div>
                     @elseif($approveHistory)
-                        <div style="font-weight: bold;">{{ $approveHistory->approver_name }}</div>
-                        <div style="color: #444;">-</div>
-                        <div style="color: #444;">-</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $approveHistory->approver_name }}</div>
+                        <div style="color: #555; margin-bottom: 2px;">-</div>
+                        <div style="color: #555; margin-bottom: 6px;">-</div>
                     @else
-                        <div style="font-weight: bold;">-</div>
-                        <div style="color: #444;">-</div>
-                        <div style="color: #444;">-</div>
+                        <div style="font-weight: bold; font-size: 12px; color: #bbb; margin-bottom: 3px;">-</div>
+                        <div style="color: #bbb; margin-bottom: 2px;">-</div>
+                        <div style="color: #bbb; margin-bottom: 6px;">-</div>
                     @endif
-                    <div style="color: #555; font-size: 9px; margin-top: 3px;">
+                    <div style="color: #777; font-size: 9px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">
                         Approved: {{ $approveHistory ? \Carbon\Carbon::parse($approveHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
                     </div>
                 </td>
