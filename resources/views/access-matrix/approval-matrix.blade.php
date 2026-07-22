@@ -246,26 +246,33 @@
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;text-align:center;" onclick="event.stopPropagation();">
-                                    @if($req->status === 'Stage 2')
-                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'stage2']) }}"
-                                       class="btn btn-sm"
-                                       style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;transition:filter var(--transition);"
-                                       onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
-                                       <i class="bi bi-box-arrow-in-up-right me-1"></i> Review
-                                    </a>
-                                    @elseif($req->status === 'Review')
-                                    <button class="btn btn-sm" disabled
-                                       style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:#9ca3af;background:#f3f4f6;border:none;border-radius:6px;cursor:not-allowed;">
-                                       <i class="bi bi-lock-fill me-1"></i> Locked
-                                    </button>
-                                    @else
-                                    <a href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'stage2']) }}"
-                                       class="btn btn-sm"
-                                       style="padding:.3rem .7rem;font-size:.78rem;font-weight:600;color:var(--secondary);background:var(--secondary-light);border:none;border-radius:6px;transition:filter var(--transition);"
-                                       onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
-                                       <i class="bi bi-eye-fill me-1"></i> View
-                                    </a>
-                                    @endif
+                                    <div class="dropdown" onclick="event.stopPropagation();">
+                                        <button class="btn btn-sm btn-link text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding:0;">
+                                            <i class="bi bi-three-dots-vertical" style="font-size:1.1rem;"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" style="border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:var(--border);">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'stage2']) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;">
+                                                    <i class="bi bi-eye"></i> View Records
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('access-matrix.download-excel', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;">
+                                                    <i class="bi bi-file-earmark-excel"></i> Download Excel
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('access-matrix.download-pdf', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;">
+                                                    <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" onclick="openVersionHistoryModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
+                                                    <i class="bi bi-clock-history"></i> Version History
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </td>
                             </tr>
                             @empty
@@ -289,9 +296,63 @@
     </main>
 </div>
 
-{{-- Create UAM Modal --}}
+{{-- Version History Modal --}}
+<div class="modal fade" id="versionHistoryModal" tabindex="-1" aria-labelledby="versionHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border:none;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
+            <div class="modal-header" style="border-bottom:1px solid var(--border);padding:1.5rem 1.75rem;">
+                <div style="display:flex;align-items:center;gap:.65rem;">
+                    <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-clock-history" style="color:var(--secondary);font-size:.95rem;"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title" id="versionHistoryModalLabel" style="font-size:1.05rem;font-weight:800;color:var(--secondary);margin:0;">Version History</h5>
+                        <div style="font-size:.75rem;color:var(--text-muted);">History for <strong id="versionHistoryAppName"></strong></div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:1.75rem;" id="versionHistoryContent">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
+    window.openVersionHistoryModal = function(id, appName) {
+        document.getElementById('versionHistoryAppName').textContent = appName;
+        document.getElementById('versionHistoryContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
+        new bootstrap.Modal(document.getElementById('versionHistoryModal')).show();
+        
+        fetch(`/access-matrix/request/${id}/history`)
+            .then(res => res.json())
+            .then(data => {
+                let html = '<div class="table-responsive"><table class="table table-hover mb-0" style="font-size:.85rem;">';
+                html += '<thead style="background:#fcfcfc;"><tr><th>Version</th><th>Status</th><th>Created</th><th>Modified</th><th>Requested By</th><th>Action</th></tr></thead><tbody>';
+                
+                data.forEach((item, index) => {
+                    let isLatest = index === 0;
+                    let badge = isLatest ? '<span class="badge bg-success ms-2">Latest</span>' : '';
+                    
+                    html += `<tr>
+                        <td style="font-weight:600;">${item.version} ${badge}</td>
+                        <td>${item.status}</td>
+                        <td>${item.created_at}</td>
+                        <td>${item.updated_at}</td>
+                        <td>${item.requester_name}</td>
+                        <td><a href="${item.view_url}" class="btn btn-sm btn-outline-primary py-0" style="font-size:.75rem;">View</a></td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                document.getElementById('versionHistoryContent').innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById('versionHistoryContent').innerHTML = '<div class="alert alert-danger">Failed to load history</div>';
+            });
+    };
 </script>
 @endpush
 @endsection

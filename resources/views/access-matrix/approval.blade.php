@@ -261,18 +261,12 @@
                                                     <i class="bi bi-file-earmark-pdf"></i> Download PDF
                                                 </a>
                                             </li>
-                                            @if($req->status === 'Approved')
-                                                <li>
-                                                    <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}', '{{ htmlspecialchars($req->version ?? 'V1') }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
-                                                        <i class="bi bi-files"></i> Modified
-                                                    </button>
-                                                </li>
-                                            @endif
                                             <li>
                                                 <button type="button" class="dropdown-item" onclick="openVersionHistoryModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
                                                     <i class="bi bi-clock-history"></i> Version History
                                                 </button>
                                             </li>
+                                            @if(in_array($req->status, ['Draft', 'Returned', 'Return', 'Need Revision']))
                                             <li>
                                                 <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;padding:0;display:block;" onsubmit="return confirm('Delete this request and all its records? This cannot be undone.');">
                                                     @csrf
@@ -283,6 +277,7 @@
                                                     </button>
                                                 </form>
                                             </li>
+                                            @endif
                                         </ul>
                                     </div>
                                 </td>
