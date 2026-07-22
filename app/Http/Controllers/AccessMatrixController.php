@@ -239,8 +239,8 @@ class AccessMatrixController extends Controller
                 'id' => $req->id,
                 'version' => $req->version ?? 'V1',
                 'status' => $req->status,
-                'created_at' => $req->created_at->format('d M Y, H:i'),
-                'updated_at' => $req->updated_at->format('d M Y, H:i'),
+                'created_at' => $req->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i'),
+                'updated_at' => $req->updated_at->timezone('Asia/Jakarta')->format('d M Y, H:i'),
                 'requester_name' => $req->requester ? $req->requester->name : 'Unknown',
                 'accepted_by' => $acceptedBy,
                 'approved_by' => $approvedBy,
@@ -782,12 +782,14 @@ class AccessMatrixController extends Controller
         }
 
         // ── 3b. Extract Metadata automatically from the top rows ──────────────────
-        $aoName = null;
         $extractedModul = null;
         $extractedApplication = null;
         $extractedPeriod = null;
         $extractedYear = null;
-        $extractedNik = null;
+        
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        $extractedNik = $currentUser ? $currentUser->username : null;
+        $aoName = null;
         
         // --- Dynamic Search in top rows (up to header) ---
         for ($i = 0; $i < $headerRowIdx; $i++) {
@@ -834,15 +836,6 @@ class AccessMatrixController extends Controller
                     }
                 }
 
-                // AO
-                if (!$aoName) {
-                    if (preg_match('/(ao|access owner|nama ao|nama access owner)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(ao|access owner|nama ao|nama access owner)\s*[:\-]\s*(.+)$/i', $str, $m)) {
-                        $aoName = trim($m[2]);
-                    } elseif (str_contains($lower, 'ao') || str_contains($lower, 'access owner') || str_contains($lower, 'nama ao')) {
-                        $aoName = $getValue();
-                    }
-                }
-
                 // Period / Bulan
                 if (!$extractedPeriod) {
                     if (preg_match('/(period|periode|bulan|month)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(period|periode|bulan|month)\s*[:\-]\s*(.+)$/i', $str, $m)) {
@@ -858,15 +851,6 @@ class AccessMatrixController extends Controller
                         $extractedYear = trim($m[2]);
                     } elseif (str_contains($lower, 'year') || str_contains($lower, 'tahun')) {
                         $extractedYear = $getValue();
-                    }
-                }
-
-                // NIK / Requester
-                if (!$extractedNik) {
-                    if (preg_match('/(nik|requester|requestor|pemohon)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(nik|requester|requestor|pemohon)\s*[:\-]\s*(.+)$/i', $str, $m)) {
-                        $extractedNik = trim($m[2]);
-                    } elseif (str_contains($lower, 'nik') || str_contains($lower, 'requester') || str_contains($lower, 'requestor') || str_contains($lower, 'pemohon')) {
-                        $extractedNik = $getValue();
                     }
                 }
             }
@@ -1529,6 +1513,15 @@ class AccessMatrixController extends Controller
         // Move the request to Review status so the approver can act on it
         $uamRequest->update(['status' => 'Review']);
 
+        // Log the submission in approval history
+        \App\Models\UamApprovalHistory::create([
+            'uam_request_id' => $uamRequest->id,
+            'status'         => 'Submitted',
+            'approver_name'  => \Illuminate\Support\Facades\Auth::user()->name ?? 'System',
+            'user_id'        => \Illuminate\Support\Facades\Auth::id(),
+            'comment'        => 'Request submitted for review',
+        ]);
+
         // Notify Managers
         $managers = \App\Models\User::where('role', 'manager')->get();
         \Illuminate\Support\Facades\Notification::send($managers, new \App\Notifications\UamRequestStatusUpdated(
@@ -1561,20 +1554,20 @@ class AccessMatrixController extends Controller
         
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        
+        $coord = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::class;
+
         // 1. Gather all unique BPO -> Unit -> Owners for headers
         $hierarchy = [];
         foreach ($records as $record) {
             $matrix = is_array($record->matrix_data) ? $record->matrix_data : [];
             if (empty($matrix)) {
-                $bpo = trim($record->bpo ?: 'Unknown BPO');
-                $unit = trim($record->unit ?: 'Unknown Unit');
+                $bpo   = trim($record->bpo ?: 'Unknown BPO');
+                $unit  = trim($record->unit ?: 'Unknown Unit');
                 $owner = trim($record->access_owner ?: 'Unknown Owner');
                 if (!empty($owner) && $owner !== 'Unknown Owner') {
                     $matrix = [$unit => [$bpo => [$owner]]];
                 }
             }
-
             foreach ($matrix as $unit => $bpos) {
                 foreach ($bpos as $bpo => $owners) {
                     if (!isset($hierarchy[$bpo])) $hierarchy[$bpo] = [];
@@ -1587,73 +1580,157 @@ class AccessMatrixController extends Controller
                 }
             }
         }
-        
-        // Setup Fixed Headers
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . 1, 'Role');
-        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . 3);
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . 1, 'Description Role');
-        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . 3);
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . 1, 'TCODE');
-        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . 3);
-        
+
+        // ─── ROW LAYOUT ───────────────────────────────────────────────────
+        // Row 1 : "USER ACCESS MATRIX" title (spans whole sheet)
+        // Row 2 : BPO names (dynamic)
+        // Row 3 : Unit names (dynamic)
+        // Row 4 : Role / Description Role / TCODE / Owner names (rotated) / Status / Change Type
+        // Row 5+: Data
+        // ─────────────────────────────────────────────────────────────────
+
+        // Fixed left-side column headers spanning rows 2-4
+        $sheet->setCellValue('A2', 'Role');
+        $sheet->mergeCells('A2:A4');
+        $sheet->setCellValue('B2', 'Description Role');
+        $sheet->mergeCells('B2:B4');
+        $sheet->setCellValue('C2', 'TCODE');
+        $sheet->mergeCells('C2:C4');
+
         // 2. Generate Dynamic Headers
         $currentColIndex = 4;
-        $ownerColumns = []; // $ownerColumns[$bpo][$unit][$owner] = $colIndex
-        
+        $ownerColumns    = [];
+
         foreach ($hierarchy as $bpo => $units) {
             $bpoStartCol = $currentColIndex;
             foreach ($units as $unit => $owners) {
                 $unitStartCol = $currentColIndex;
                 foreach ($owners as $owner) {
-                    // Row 3: Owner
-                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($currentColIndex) . 3, $owner);
+                    // Row 4: Owner name (will be rotated 90°)
+                    $sheet->setCellValue($coord::stringFromColumnIndex($currentColIndex) . '4', $owner);
                     $ownerColumns[$bpo][$unit][$owner] = $currentColIndex;
                     $currentColIndex++;
                 }
                 $unitEndCol = $currentColIndex - 1;
-                // Row 2: Unit
+                // Row 3: Unit name
                 if ($unitEndCol >= $unitStartCol) {
-                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($unitStartCol) . 2, $unit);
+                    $sheet->setCellValue($coord::stringFromColumnIndex($unitStartCol) . '3', $unit);
                     if ($unitEndCol > $unitStartCol) {
-                        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($unitStartCol) . 2 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($unitEndCol) . 2);
+                        $sheet->mergeCells($coord::stringFromColumnIndex($unitStartCol) . '3:' . $coord::stringFromColumnIndex($unitEndCol) . '3');
                     }
                 }
             }
             $bpoEndCol = $currentColIndex - 1;
-            // Row 1: BPO
+            // Row 2: BPO name
             if ($bpoEndCol >= $bpoStartCol) {
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($bpoStartCol) . 1, $bpo);
+                $sheet->setCellValue($coord::stringFromColumnIndex($bpoStartCol) . '2', $bpo);
                 if ($bpoEndCol > $bpoStartCol) {
-                    $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($bpoStartCol) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($bpoEndCol) . 1);
+                    $sheet->mergeCells($coord::stringFromColumnIndex($bpoStartCol) . '2:' . $coord::stringFromColumnIndex($bpoEndCol) . '2');
                 }
             }
         }
-        
-        // If there are no owners in the request, make sure we have at least standard columns
+
+        // Fallback: if no owners found, add a placeholder column
         if ($currentColIndex == 4) {
-             // Just add a dummy column so it doesn't break
-             $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . 1, 'Access Owner');
-             $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(4) . 3);
-             $currentColIndex++;
+            $sheet->setCellValue($coord::stringFromColumnIndex(4) . '2', 'Access Owner');
+            $sheet->mergeCells($coord::stringFromColumnIndex(4) . '2:' . $coord::stringFromColumnIndex(4) . '4');
+            $currentColIndex++;
         }
-        
-        // Status and Change Type at the end
-        $endColIndex = $currentColIndex;
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . 1, 'Status');
-        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . 3);
-        $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . 1, 'Change Type');
-        $sheet->mergeCells(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . 1 . ':' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . 3);
-        
-        // 3. Insert Data
-        $row = 4;
+
+        // Status, Change Type, and Change Details columns at the end
+        $statusColIndex        = $currentColIndex;
+        $changeTypeColIndex    = $currentColIndex + 1;
+        $changeDetailsColIndex = $currentColIndex + 2;
+        $maxColIndex           = $changeDetailsColIndex;
+        $maxColStr             = $coord::stringFromColumnIndex($maxColIndex);
+
+        $sheet->setCellValue($coord::stringFromColumnIndex($statusColIndex) . '2', 'Status');
+        $sheet->mergeCells($coord::stringFromColumnIndex($statusColIndex) . '2:' . $coord::stringFromColumnIndex($statusColIndex) . '4');
+        $sheet->setCellValue($coord::stringFromColumnIndex($changeTypeColIndex) . '2', 'Change Type');
+        $sheet->mergeCells($coord::stringFromColumnIndex($changeTypeColIndex) . '2:' . $coord::stringFromColumnIndex($changeTypeColIndex) . '4');
+        $sheet->setCellValue($coord::stringFromColumnIndex($changeDetailsColIndex) . '2', 'Change Details');
+        $sheet->mergeCells($coord::stringFromColumnIndex($changeDetailsColIndex) . '2:' . $coord::stringFromColumnIndex($changeDetailsColIndex) . '4');
+
+        // ─── Title row (Row 1) ────────────────────────────────────────────
+        $title = 'USER ACCESS MATRIX - ' . strtoupper($uamRequest->application) . ' (' . $uamRequest->full_period . ')';
+        $sheet->setCellValue('A1', $title);
+        $sheet->mergeCells('A1:' . $maxColStr . '1');
+        $sheet->getStyle('A1')->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 13, 'color' => ['rgb' => 'FFFFFF']],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+            'fill' => [
+                'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F497D'],
+            ],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(28);
+
+        // ─── Compute Change Details (same logic as PDF) ───────────────────
+        $changeDetailsMap = [];
+        if (!empty($uamRequest->version)) {
+            $baselineRequest = UamRequest::where('application', $uamRequest->application)
+                ->where('year', $uamRequest->year)
+                ->where('period', $uamRequest->period)
+                ->where('id', '<', $uamRequest->id)
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($baselineRequest) {
+                $baselineRecords = UamRecord::where('request_id', $baselineRequest->id)->get()->keyBy('role');
+
+                foreach ($records as $record) {
+                    $details = [];
+                    if ($record->change_type === 'Added') {
+                        if ($baselineRecords->has($record->role)) {
+                            $details[] = "New TCODE Added: {$record->tcode}";
+                        } else {
+                            $details[] = "New Role Added: {$record->role}";
+                        }
+                    } elseif ($record->change_type === 'Modified' && $baselineRecords->has($record->role)) {
+                        $baseRecord    = $baselineRecords[$record->role];
+                        $baseTcodes    = array_filter(array_map('trim', explode(',', $baseRecord->tcode)));
+                        $currTcodes    = array_filter(array_map('trim', explode(',', $record->tcode)));
+                        $addedTcodes   = array_diff($currTcodes, $baseTcodes);
+                        $removedTcodes = array_diff($baseTcodes, $currTcodes);
+                        foreach ($addedTcodes   as $add) { $details[] = "TCODE Added: {$add}"; }
+                        foreach ($removedTcodes as $rem) { $details[] = "TCODE Removed: {$rem}"; }
+                        if (trim($record->bpo)  !== trim($baseRecord->bpo))  { $details[] = 'BPO Changed'; }
+                        if (trim($record->unit) !== trim($baseRecord->unit)) { $details[] = 'Unit Changed'; }
+                        $getOwners = function($matrix) {
+                            $owners = [];
+                            if (is_array($matrix)) {
+                                foreach ($matrix as $bpos) {
+                                    foreach ($bpos as $ownerList) {
+                                        foreach ($ownerList as $o) {
+                                            $oName = trim($o);
+                                            if ($oName !== '' && !in_array($oName, $owners)) { $owners[] = $oName; }
+                                        }
+                                    }
+                                }
+                            }
+                            return $owners;
+                        };
+                        foreach (array_diff($getOwners($record->matrix_data), $getOwners($baseRecord->matrix_data)) as $a) { $details[] = "Added Access Owner: {$a}"; }
+                        foreach (array_diff($getOwners($baseRecord->matrix_data), $getOwners($record->matrix_data)) as $r) { $details[] = "Removed Access Owner: {$r}"; }
+                    }
+                    $changeDetailsMap[$record->id] = $details;
+                }
+            }
+        }
+
+        // 3. Insert Data rows (from row 5)
+        $row = 5;
         foreach ($records as $record) {
             $tcodes = preg_split('/[\s,]+/', $record->tcode, -1, PREG_SPLIT_NO_EMPTY);
             if (empty($tcodes)) $tcodes = [''];
-            
+
             $matrix = is_array($record->matrix_data) ? $record->matrix_data : [];
             if (empty($matrix)) {
-                $bpo = trim($record->bpo ?: 'Unknown BPO');
-                $unit = trim($record->unit ?: 'Unknown Unit');
+                $bpo   = trim($record->bpo ?: 'Unknown BPO');
+                $unit  = trim($record->unit ?: 'Unknown Unit');
                 $owner = trim($record->access_owner ?: 'Unknown Owner');
                 if (!empty($owner) && $owner !== 'Unknown Owner') {
                     $matrix = [$unit => [$bpo => [$owner]]];
@@ -1661,101 +1738,207 @@ class AccessMatrixController extends Controller
             }
 
             foreach ($tcodes as $tcode) {
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(1) . $row, $record->role);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(2) . $row, $record->description_role);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3) . $row, $tcode);
-                
+                $sheet->setCellValue('A' . $row, $record->role);
+                $sheet->setCellValue('B' . $row, $record->description_role);
+                $sheet->setCellValue('C' . $row, $tcode);
+
                 // Mark '1' for granted access
                 foreach ($matrix as $unit => $bpos) {
                     foreach ($bpos as $bpo => $owners) {
                         foreach ($owners as $owner) {
                             if (isset($ownerColumns[$bpo][$unit][$owner])) {
                                 $col = $ownerColumns[$bpo][$unit][$owner];
-                                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row, '1');
+                                $sheet->setCellValue($coord::stringFromColumnIndex($col) . $row, '1');
                             }
                         }
                     }
                 }
-                
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex) . $row, $record->status);
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1) . $row, $record->change_type);
+
+                $sheet->setCellValue($coord::stringFromColumnIndex($statusColIndex)        . $row, $record->status);
+                $sheet->setCellValue($coord::stringFromColumnIndex($changeTypeColIndex)    . $row, $record->change_type);
+                $changeDetails = isset($changeDetailsMap[$record->id]) ? implode("\n", $changeDetailsMap[$record->id]) : '';
+                $sheet->setCellValue($coord::stringFromColumnIndex($changeDetailsColIndex) . $row, $changeDetails);
                 $row++;
             }
         }
-        
+
         // 4. Styling & Formatting
-        $maxColStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex + 1);
-        $headerRange = "A1:{$maxColStr}3";
-        
+
+        // Header rows 2-4
+        $headerRange = "A2:{$maxColStr}4";
         $sheet->getStyle($headerRange)->applyFromArray([
-            'font' => ['bold' => true],
+            'font'      => ['bold' => true],
             'alignment' => [
                 'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
-                'wrapText' => true,
+                'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                'wrapText'   => true,
+            ],
+            'fill' => [
+                'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'D6E4F7'],
             ],
             'borders' => [
-                'allBorders' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                ],
+                'allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
             ],
         ]);
-        
-        // Data borders & alignment
-        if ($row > 4) {
-            $dataRange = "A4:{$maxColStr}" . ($row - 1);
+
+        // Distinct color for Status header
+        $sheet->getStyle($coord::stringFromColumnIndex($statusColIndex) . '2:' . $coord::stringFromColumnIndex($statusColIndex) . '4')->applyFromArray([
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFF2CC']],
+        ]);
+        // Distinct color for Change Type header
+        $sheet->getStyle($coord::stringFromColumnIndex($changeTypeColIndex) . '2:' . $coord::stringFromColumnIndex($changeTypeColIndex) . '4')->applyFromArray([
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FCE4D6']],
+        ]);
+        // Distinct color for Change Details header
+        $sheet->getStyle($coord::stringFromColumnIndex($changeDetailsColIndex) . '2:' . $coord::stringFromColumnIndex($changeDetailsColIndex) . '4')->applyFromArray([
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E2EFDA']],
+        ]);
+
+        // Data rows borders & alignment
+        if ($row > 5) {
+            $dataRange = "A5:{$maxColStr}" . ($row - 1);
             $sheet->getStyle($dataRange)->applyFromArray([
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    ],
-                ],
-                'alignment' => [
-                    'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
-                    'wrapText' => true,
-                ]
+                'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+                'alignment' => ['vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER, 'wrapText' => true],
             ]);
-            
-            // Center align the matrix columns (D to EndColIndex - 1)
-            if ($endColIndex > 4) {
+
+            // Center align matrix columns (D to statusCol - 1)
+            if ($statusColIndex > 4) {
                 $matrixStart = 'D';
-                $matrixEnd = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($endColIndex - 1);
-                $sheet->getStyle("{$matrixStart}4:{$matrixEnd}" . ($row - 1))->applyFromArray([
-                    'alignment' => [
-                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                    ]
+                $matrixEnd   = $coord::stringFromColumnIndex($statusColIndex - 1);
+                $sheet->getStyle("{$matrixStart}5:{$matrixEnd}" . ($row - 1))->applyFromArray([
+                    'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
                 ]);
-                
-                // Rotate Access Owner headers 90 degrees
-                $sheet->getStyle("{$matrixStart}3:{$matrixEnd}3")->applyFromArray([
-                    'alignment' => [
-                        'textRotation' => 90,
-                    ]
+                // Rotate owner header names 90°
+                $sheet->getStyle("{$matrixStart}4:{$matrixEnd}4")->applyFromArray([
+                    'alignment' => ['textRotation' => 90],
                 ]);
             }
+
+            // Alternate row shading
+            for ($r = 5; $r < $row; $r++) {
+                if ($r % 2 === 0) {
+                    $sheet->getStyle("A{$r}:{$maxColStr}{$r}")->applyFromArray([
+                        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F0F5FF']],
+                    ]);
+                }
+            }
+
+            // Center align Status & Change Type data
+            $sheet->getStyle($coord::stringFromColumnIndex($statusColIndex)     . '5:' . $coord::stringFromColumnIndex($statusColIndex)     . ($row - 1))->applyFromArray(['alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]]);
+            $sheet->getStyle($coord::stringFromColumnIndex($changeTypeColIndex) . '5:' . $coord::stringFromColumnIndex($changeTypeColIndex) . ($row - 1))->applyFromArray(['alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]]);
         }
-        
-        // FreezePane
-        $sheet->freezePane('A4');
-        
-        // Auto-size columns and set fixed width for matrix
-        for ($c = 1; $c <= $endColIndex + 1; $c++) {
-            $colStr = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c);
-            if ($c >= 4 && $c < $endColIndex) {
-                // Access Owner column: narrow fixed width
+
+        // FreezePane below header
+        $sheet->freezePane('A5');
+
+        // Column widths
+        for ($c = 1; $c <= $maxColIndex; $c++) {
+            $colStr = $coord::stringFromColumnIndex($c);
+            if ($c >= 4 && $c < $statusColIndex) {
                 $sheet->getColumnDimension($colStr)->setAutoSize(false);
                 $sheet->getColumnDimension($colStr)->setWidth(4);
+            } elseif ($c === $changeDetailsColIndex) {
+                $sheet->getColumnDimension($colStr)->setAutoSize(false);
+                $sheet->getColumnDimension($colStr)->setWidth(35);
             } else {
                 $sheet->getColumnDimension($colStr)->setAutoSize(true);
             }
         }
+
+        // ─── 5. Signature Section (compact: label → Nama → NIK → Posisi → Date) ───
+        $uamRequest->load(['requester', 'approvalHistories.user']);
+
+        $requester      = $uamRequest->requester;
+        $acceptHistory  = $uamRequest->approvalHistories->where('status', 'Stage 2')->first();
+        $acceptUser     = $acceptHistory  ? $acceptHistory->user  : null;
+        $approveHistory = $uamRequest->approvalHistories->whereIn('status', ['Approved', 'Return'])->first();
+        $approveUser    = $approveHistory ? $approveHistory->user : null;
+
+        $submitHistory = $uamRequest->approvalHistories->where('status', 'Submitted')->first();
+
+        // Data for signature cells
+        $requesterName = $requester    ? $requester->name              : ($uamRequest->requester_name ?? '-');
+        $requesterNik  = $requester    ? ($requester->username ?? '-') : '-';
+        $requesterPos  = $requester    ? ($requester->position ?? '-') : '-';
         
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $submitDateObj = $submitHistory ? $submitHistory->created_at : $uamRequest->created_at;
+        $submittedDate = $submitDateObj ? \Carbon\Carbon::parse($submitDateObj)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-';
+
+        $acceptName    = $acceptUser   ? $acceptUser->name              : ($acceptHistory  ? $acceptHistory->approver_name  : '-');
+        $acceptNik     = $acceptUser   ? ($acceptUser->username ?? '-') : '-';
+        $acceptPos     = $acceptUser   ? ($acceptUser->position ?? '-') : '-';
+        $acceptedDate  = $acceptHistory ? \Carbon\Carbon::parse($acceptHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-';
+
+        $approveName   = $approveUser  ? $approveUser->name             : ($approveHistory ? $approveHistory->approver_name : '-');
+        $approveNik    = $approveUser  ? ($approveUser->username ?? '-'): '-';
+        $approvePos    = $approveUser  ? ($approveUser->position ?? '-'): '-';
+        $approvedDate  = $approveHistory ? \Carbon\Carbon::parse($approveHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-';
+
+        // Styles
+        $sigLabelStyle = [
+            'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F497D']],
+            'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sigNameStyle = [
+            'font'      => ['bold' => true],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sigInfoStyle = [
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sigDateStyle = [
+            'font'      => ['italic' => true, 'size' => 8, 'color' => ['rgb' => '555555']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+
+        // 2 blank rows gap, then compact 5-row signature block
+        $sigRow = $row + 2;
+
+        // Row 0: Labels
+        $sheet->setCellValue('A' . $sigRow, 'Requested By');
+        $sheet->setCellValue('B' . $sigRow, 'Accepted By');
+        $sheet->setCellValue('C' . $sigRow, 'Approved By');
+        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . $sigRow)->applyFromArray($sigLabelStyle); }
+        $sheet->getRowDimension($sigRow)->setRowHeight(20);
+
+        // Row 1: Nama
+        $sheet->setCellValue('A' . ($sigRow + 1), $requesterName);
+        $sheet->setCellValue('B' . ($sigRow + 1), $acceptName);
+        $sheet->setCellValue('C' . ($sigRow + 1), $approveName);
+        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 1))->applyFromArray($sigNameStyle); }
+
+        // Row 2: NIK
+        $sheet->setCellValue('A' . ($sigRow + 2), $requesterNik);
+        $sheet->setCellValue('B' . ($sigRow + 2), $acceptNik);
+        $sheet->setCellValue('C' . ($sigRow + 2), $approveNik);
+        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 2))->applyFromArray($sigInfoStyle); }
+
+        // Row 3: Posisi
+        $sheet->setCellValue('A' . ($sigRow + 3), $requesterPos);
+        $sheet->setCellValue('B' . ($sigRow + 3), $acceptPos);
+        $sheet->setCellValue('C' . ($sigRow + 3), $approvePos);
+        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 3))->applyFromArray($sigInfoStyle); }
+
+        // Row 4: Date
+        $sheet->setCellValue('A' . ($sigRow + 4), 'Submitted: ' . $submittedDate);
+        $sheet->setCellValue('B' . ($sigRow + 4), 'Accepted: '  . $acceptedDate);
+        $sheet->setCellValue('C' . ($sigRow + 4), 'Approved: '  . $approvedDate);
+        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 4))->applyFromArray($sigDateStyle); }
+
+        // ─── Writer & Download ─────────────────────────────────────────────
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $fileName = "UAM_{$uamRequest->application}_{$uamRequest->module}_{$uamRequest->period}_{$uamRequest->year}_{$uamRequest->version}.xlsx";
-        
+
         $tempFile = tempnam(sys_get_temp_dir(), 'uam');
         $writer->save($tempFile);
-        
+
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 

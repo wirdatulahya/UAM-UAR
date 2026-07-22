@@ -149,7 +149,6 @@
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Period</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Modul</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Requested By</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">AO</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Status</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);text-align:center;">Action</th>
                             </tr>
@@ -169,10 +168,7 @@
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                    {{ $req->requester_nik ?: 'N/A' }}
-                                </td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                    {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
+                                    {{ $req->requester->name ?? 'N/A' }}
                                 </td>
                                 <td style="padding:.9rem 1.25rem;vertical-align:middle;" onclick="event.stopPropagation();">
                                     @php
@@ -200,7 +196,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
+                                <td colspan="7" style="padding:3.5rem 1rem;text-align:center;">
                                     <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
                                         <i class="bi bi-inbox" style="font-size:1.6rem;color:var(--secondary);"></i>
                                     </div>

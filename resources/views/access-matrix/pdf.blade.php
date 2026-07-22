@@ -355,11 +355,15 @@
 
     <div style="margin-top: 40px; page-break-inside: avoid;">
         @php
+            $uamRequest->load(['requester', 'approvalHistories.user']);
             $requester = $uamRequest->requester;
             $acceptHistory = $uamRequest->approvalHistories->where('status', 'Stage 2')->first();
             $acceptUser = $acceptHistory ? $acceptHistory->user : null;
             $approveHistory = $uamRequest->approvalHistories->whereIn('status', ['Approved', 'Return'])->first();
             $approveUser = $approveHistory ? $approveHistory->user : null;
+            
+            $submitHistory = $uamRequest->approvalHistories->where('status', 'Submitted')->first();
+            $submitDateObj = $submitHistory ? $submitHistory->created_at : $uamRequest->created_at;
         @endphp
         <table style="width: 100%; border: none; font-size: 11px;">
             <tr>
@@ -375,7 +379,7 @@
                         <div style="color: #444;">-</div>
                     @endif
                     <div style="color: #555; font-size: 9px; margin-top: 3px;">
-                        Submitted: {{ $uamRequest->created_at ? \Carbon\Carbon::parse($uamRequest->created_at)->format('d M Y, H:i') . ' WIB' : '-' }}
+                        Submitted: {{ $submitDateObj ? \Carbon\Carbon::parse($submitDateObj)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
                     </div>
                 </td>
                 <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
@@ -394,7 +398,7 @@
                         <div style="color: #444;">-</div>
                     @endif
                     <div style="color: #555; font-size: 9px; margin-top: 3px;">
-                        Accepted: {{ $acceptHistory ? \Carbon\Carbon::parse($acceptHistory->created_at)->format('d M Y, H:i') . ' WIB' : '-' }}
+                        Accepted: {{ $acceptHistory ? \Carbon\Carbon::parse($acceptHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
                     </div>
                 </td>
                 <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
@@ -413,7 +417,7 @@
                         <div style="color: #444;">-</div>
                     @endif
                     <div style="color: #555; font-size: 9px; margin-top: 3px;">
-                        Approved: {{ $approveHistory ? \Carbon\Carbon::parse($approveHistory->created_at)->format('d M Y, H:i') . ' WIB' : '-' }}
+                        Approved: {{ $approveHistory ? \Carbon\Carbon::parse($approveHistory->created_at)->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
                     </div>
                 </td>
             </tr>

@@ -149,7 +149,6 @@
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Period</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Modul</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Requested By</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">AO</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Status</th>
                                 <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);text-align:center;">Action</th>
                             </tr>
@@ -174,10 +173,7 @@
                                     </span>
                                 </td>
                                 <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                    {{ $req->requester_nik ?: 'N/A' }}
-                                </td>
-                                <td style="padding:1rem 1.25rem;vertical-align:middle;">
-                                    {{ ltrim($req->ao, " \t\n\r\0\x0B:-") ?: 'N/A' }}
+                                    {{ $req->requester->name ?? 'N/A' }}
                                 </td>
                                 <td style="padding:.9rem 1.25rem;vertical-align:middle;" onclick="event.stopPropagation();">
                                     @php
@@ -206,6 +202,7 @@
                                                     <i class="bi bi-eye"></i> View Records
                                                 </a>
                                             </li>
+                                            @if($req->status !== 'Draft')
                                             <li>
                                                 <a class="dropdown-item" href="{{ route('access-matrix.download-excel', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;">
                                                     <i class="bi bi-file-earmark-excel"></i> Download Excel
@@ -216,6 +213,7 @@
                                                     <i class="bi bi-file-earmark-pdf"></i> Download PDF
                                                 </a>
                                             </li>
+                                            @endif
                                             <li>
                                                 <button type="button" class="dropdown-item" onclick="openVersionHistoryModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
                                                     <i class="bi bi-clock-history"></i> Version History
@@ -238,7 +236,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" style="padding:3.5rem 1rem;text-align:center;">
+                                <td colspan="7" style="padding:3.5rem 1rem;text-align:center;">
                                     <div style="width:64px;height:64px;background:var(--secondary-light);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
                                         <i class="bi bi-inbox" style="font-size:1.6rem;color:var(--secondary);"></i>
                                     </div>
@@ -293,8 +291,10 @@
                 let html = '<div class="table-responsive"><table class="table table-hover mb-0" style="font-size:.85rem;">';
                 html += '<thead style="background:#fcfcfc;"><tr><th>Version</th><th>Status</th><th>Created</th><th>Modified</th><th>Requested By</th><th>Accepted By</th><th>Approved By</th></tr></thead><tbody>';
                 
+                const latestNonDraftIndex = data.findIndex(item => item.status !== 'Draft');
+
                 data.forEach((item, index) => {
-                    let isLatest = index === 0;
+                    let isLatest = index === latestNonDraftIndex && latestNonDraftIndex !== -1;
                     let badge = isLatest ? '<span class="badge bg-success ms-2">Latest</span>' : '';
                     
                     html += `<tr style="cursor:pointer;" onclick="window.location.href='${item.view_url}'">

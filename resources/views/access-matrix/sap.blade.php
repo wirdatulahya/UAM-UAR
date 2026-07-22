@@ -622,7 +622,7 @@
                                     <i class="bi bi-clipboard2-check" style="font-size:.9rem;"></i> Final Approval Decision
                                 </div>
                                 <div style="font-size:.72rem;color:var(--text-muted);line-height:1.4;margin-bottom:.6rem;" id="stage2Summary">
-                                    TCODE review completed by {{ $uamRequest->requester_nik ?? 'Reviewer' }}. Please select your overall decision.
+                                    TCODE review completed by {{ $uamRequest->requester->name ?? 'Reviewer' }}. Please select your overall decision.
                                 </div>
                                 <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
                                     <label style="display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;margin-right:1rem;">
