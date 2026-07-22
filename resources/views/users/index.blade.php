@@ -57,8 +57,8 @@
                 <h1 style="font-size:1.4rem;font-weight:700;color:var(--text);margin-bottom:.3rem;letter-spacing:-.01em;">User Management</h1>
                 <p style="color:var(--text-muted);font-size:.85rem;margin:0;">Manage user accounts, roles, and access.</p>
             </div>
-            <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createUserModal">
-                <i class="bi bi-person-plus-fill"></i> Add New User
+            <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createUserModal" style="width: auto; padding-left: 1.5rem; padding-right: 1.5rem; flex-shrink: 0;">
+                <i class="bi bi-person-plus-fill me-1"></i> Add New User
             </button>
         </div>
 
@@ -264,7 +264,7 @@
 
                 </div>
                 <div class="modal-footer" style="border-top:1.5px solid var(--border);padding:1rem 1.5rem;">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-weight:600;border:1.5px solid var(--border);">Cancel</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" style="font-weight:600;border:1.5px solid var(--primary);">Cancel</button>
                     <button type="submit" class="btn btn-primary-custom" style="font-weight:600;"><i class="bi bi-save me-1"></i> Save User</button>
                 </div>
             </form>
@@ -314,7 +314,7 @@
 
                 </div>
                 <div class="modal-footer" style="border-top:1.5px solid var(--border);padding:1rem 1.5rem;">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-weight:600;border:1.5px solid var(--border);">Cancel</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" style="font-weight:600;border:1.5px solid var(--primary);">Cancel</button>
                     <button type="submit" class="btn btn-primary-custom" style="font-weight:600;"><i class="bi bi-save me-1"></i> Save Changes</button>
                 </div>
             </form>
@@ -352,7 +352,7 @@
 
                 </div>
                 <div class="modal-footer" style="border-top:1.5px solid var(--border);padding:1rem 1.5rem;">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-weight:600;border:1.5px solid var(--border);">Cancel</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" style="font-weight:600;border:1.5px solid var(--primary);">Cancel</button>
                     <button type="submit" class="btn btn-primary-custom" style="font-weight:600;"><i class="bi bi-check-lg me-1"></i> Reset Password</button>
                 </div>
             </form>

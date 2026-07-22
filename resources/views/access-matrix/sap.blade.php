@@ -1015,8 +1015,8 @@
                         </div>
                         {{-- Save / Cancel row (shown in edit mode) --}}
                         <div id="saveOwnerRow" style="display:none;padding:.6rem 1rem;border-top:1px solid #bbf7d0;background:#f0fdf4;display:none;justify-content:flex-end;gap:.5rem;">
-                            <button type="button" onclick="cancelEditOwners()"
-                                style="padding:.35rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:600;color:var(--text-muted);background:#fff;cursor:pointer;">Cancel</button>
+                            <button type="button" class="btn btn-outline-danger" onclick="cancelEditOwners()"
+                                style="padding:.35rem .9rem;border-radius:8px;font-size:.82rem;font-weight:600;background:#fff;cursor:pointer;">Cancel</button>
                             <button type="button" onclick="saveOwners()"
                                 style="padding:.35rem 1rem;background:#166534;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;">
                                 <i class="bi bi-check-lg me-1"></i>Save
@@ -1066,7 +1066,7 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="background:#f8f9fa;border-top:1px solid #e5e7eb;border-radius:0 0 12px 12px;">
-                        <button type="button" class="btn btn-light border" data-bs-dismiss="modal" style="font-weight:600;">Cancel</button>
+                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" style="font-weight:600;border:1.5px solid var(--primary);">Cancel</button>
                         <button type="submit" class="btn-primary-custom" style="padding:.5rem 1.5rem;font-weight:700;">
                             <i class="bi bi-save me-1"></i> Save TCODE
                         </button>

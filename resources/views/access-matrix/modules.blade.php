@@ -135,8 +135,9 @@
                         <span style="font-size:.7rem;color:var(--text-muted);">
                             <i class="bi bi-clock-history me-1"></i> {{ $lastUpdated ? 'Updated ' . $lastUpdated->diffForHumans() : 'No updates' }}
                         </span>
-
-
+                    </div>
+                </a>
+            </div>
         </div>
     </main>
 

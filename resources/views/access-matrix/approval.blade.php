@@ -464,8 +464,8 @@
                     </p>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--border);padding:1.25rem 1.75rem;">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="background:#f1f5f9;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background:var(--primary);border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Confirm Modification</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" style="border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;border:1.5px solid var(--primary);">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background:var(--secondary);border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;">Confirm Modification</button>
                 </div>
             </form>
         </div>

@@ -12,27 +12,8 @@
                 <i class="bi bi-shield-lock-fill"></i>
             </div>
             <h1>AccessHub</h1>
-            <p>PT Telkom Infrastruktur Indonesia</p>
         </div>
 
-        <div class="auth-panel-features animate-in animate-in-delay-2">
-            <div class="feature-item">
-                <i class="bi bi-person-badge-fill"></i>
-                <span>User Access Management</span>
-            </div>
-            <div class="feature-item">
-                <i class="bi bi-clipboard2-check-fill"></i>
-                <span>Periodic Access Review Workflow</span>
-            </div>
-            <div class="feature-item">
-                <i class="bi bi-graph-up-arrow"></i>
-                <span>Monitoring &amp; Reporting</span>
-            </div>
-            <div class="feature-item">
-                <i class="bi bi-shield-check-fill"></i>
-                <span>Secure Role-Based Access Control</span>
-            </div>
-        </div>
     </div>
 
     
@@ -139,11 +120,7 @@
                     </button>
                 </div>
 
-                {{-- Register link --}}
-                <p class="text-center mt-3 mb-0 animate-in animate-in-delay-4" style="font-size:.84rem; color:var(--text-muted);">
-                    Don't have an account?
-                    <a href="{{ route('register') }}" class="auth-link">Create one</a>
-                </p>
+
             </form>
 
         </div>

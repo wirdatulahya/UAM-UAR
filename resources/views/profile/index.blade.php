@@ -257,7 +257,7 @@
                                         <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Confirm New Password</label>
                                         <input type="password" name="password_confirmation" class="form-control" placeholder="••••••••">
                                     </div>
-                                    <button type="submit" class="btn btn-outline-danger w-100" style="font-weight:600;font-size:.85rem;border-radius:var(--input-radius);">Update Password</button>
+                                    <button type="submit" class="btn btn-primary-custom w-100" style="font-weight:600;font-size:.85rem;border-radius:var(--input-radius);">Update Password</button>
                                 </form>
 
                                 <hr class="my-4">

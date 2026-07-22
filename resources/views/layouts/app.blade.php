@@ -106,6 +106,12 @@
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 1.25rem;
             box-shadow: 0 8px 24px rgba(227,30,36,.4);
+            transition: transform 0.35s ease-in-out, box-shadow 0.35s ease-in-out;
+        }
+
+        .auth-panel-logo .brand-badge:hover {
+            transform: translateY(-10px) scale(1.06);
+            box-shadow: 0 20px 40px rgba(227,30,36,.55);
         }
 
         .auth-panel-logo .brand-badge i {
@@ -119,6 +125,13 @@
             color: #fff;
             letter-spacing: -0.3px;
             margin-bottom: .35rem;
+            display: inline-block;
+            transition: transform 0.35s ease-in-out, text-shadow 0.35s ease-in-out;
+        }
+
+        .auth-panel-logo h1:hover {
+            transform: translateY(-10px) scale(1.06);
+            text-shadow: 0 20px 40px rgba(227,30,36,.55);
         }
 
         .auth-panel-logo p {
@@ -249,7 +262,7 @@
            Buttons
         ────────────────────────────────────── */
         .btn-primary-custom {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
             color: #fff;
             border: none;
             border-radius: var(--input-radius);
@@ -265,10 +278,34 @@
         .btn-primary-custom:hover {
             filter: brightness(1.08);
             transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(227,30,36,.35);
+            box-shadow: 0 6px 20px rgba(11, 46, 109, .35);
         }
 
         .btn-primary-custom:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger-custom {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            border: none;
+            border-radius: var(--input-radius);
+            padding: .72rem 1.5rem;
+            font-weight: 700;
+            font-size: .95rem;
+            width: 100%;
+            letter-spacing: .2px;
+            transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+            cursor: pointer;
+        }
+
+        .btn-danger-custom:hover {
+            filter: brightness(1.08);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(227, 30, 36, .35);
+        }
+
+        .btn-danger-custom:active {
             transform: translateY(0);
         }
 
