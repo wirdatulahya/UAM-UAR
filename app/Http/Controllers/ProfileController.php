@@ -40,11 +40,11 @@ class ProfileController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'nik' => ['nullable', 'string', 'max:255'],
-            'department' => ['nullable', 'string', 'max:255'],
-            'division' => ['nullable', 'string', 'max:255'],
-            'position' => ['nullable', 'string', 'max:255'],
-            'phone_number' => ['nullable', 'string', 'max:20'],
+            'nik' => ['required', 'string', 'max:255'],
+            'department' => ['required', 'string', 'max:255'],
+            'division' => ['required', 'string', 'max:255'],
+            'position' => ['required', 'string', 'max:255'],
+            'phone_number' => ['required', 'string', 'max:20'],
         ]);
 
         $user = Auth::user();
@@ -59,6 +59,7 @@ class ProfileController extends Controller
         ];
 
         $user->update($updates);
+        $user->checkOnboardingStatus();
 
         return redirect()->back()->with('success', 'Profile updated successfully.');
     }
@@ -75,7 +76,9 @@ class ProfileController extends Controller
 
         $user = Auth::user();
         $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        $user->password_changed_at = now();
         $user->save();
+        $user->checkOnboardingStatus();
 
         return redirect()->back()->with('success', 'Password updated successfully.');
     }

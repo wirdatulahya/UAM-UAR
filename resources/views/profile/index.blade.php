@@ -59,6 +59,30 @@
                         <i class="bi bi-exclamation-circle-fill me-2"></i> Please fix the errors below.
                     </div>
                 @endif
+                
+                @if(!Auth::user()->is_profile_completed)
+                    <div class="alert animate-in mb-4" style="background:#fff3cd; border-left:4px solid #ffc107; color:#856404; padding:1rem 1.25rem; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                            <h5 style="margin:0; font-weight:700;">Action Required: Complete Your Profile</h5>
+                        </div>
+                        <p style="margin:0; font-size:.9rem; line-height:1.5;">
+                            Profile completion is required before accessing the system. Please fill out your <strong>Employee ID (NIK), Phone Number, Department, Division/Organization, and Position/Job Title</strong>.
+                        </p>
+                    </div>
+                @endif
+                
+                @if(Auth::user()->requires_onboarding && Auth::user()->is_profile_completed)
+                    <div class="alert animate-in mb-4" style="background:#fff3cd; border-left:4px solid #ffc107; color:#856404; padding:1rem 1.25rem; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-info-circle-fill text-warning fs-5"></i>
+                            <h5 style="margin:0; font-weight:700;">Action Required: Change Password</h5>
+                        </div>
+                        <p style="margin:0; font-size:.9rem; line-height:1.5;">
+                            Please change your temporary password in the Security Settings section below to unlock full access.
+                        </p>
+                    </div>
+                @endif
 
                 <div class="row g-4">
                     {{-- Left Column: Profile & Organization Info --}}
@@ -80,7 +104,7 @@
                                         @endif
                                     </div>
                                     <div class="flex-grow-1">
-                                        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.8rem;">Upload a new profile picture. JPG, PNG, WEBP. Max 2MB.</p>
+                                        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.8rem;">Upload a new profile picture. JPG, PNG, WEBP. Max 2MB (Optional).</p>
                                         <div class="d-flex flex-column flex-sm-row gap-2">
                                             <input type="file" name="profile_photo" id="profile_photo" accept="image/*" class="form-control" style="font-size:.82rem;padding:.4rem .75rem;max-width:250px;" required>
                                             <button type="submit" class="btn btn-primary-custom" style="font-size:.82rem;padding:.4rem 1rem;width:auto;">Update Photo</button>
@@ -105,13 +129,13 @@
                                 <div class="card-body p-4">
                                     <div class="row g-3">
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Full Name</label>
-                                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', Auth::user()->name) }}">
+                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Full Name <span class="text-danger">*</span></label>
+                                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', Auth::user()->name) }}" required>
                                             @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Employee ID (NIK)</label>
-                                            <input type="text" name="nik" class="form-control @error('nik') is-invalid @enderror" value="{{ old('nik', Auth::user()->nik ?? Auth::user()->username) }}">
+                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Employee ID (NIK) <span class="text-danger">*</span></label>
+                                            <input type="text" name="nik" class="form-control @error('nik') is-invalid @enderror" value="{{ old('nik', Auth::user()->nik ?? Auth::user()->username) }}" required>
                                             @error('nik') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-12 col-md-6">
@@ -119,8 +143,8 @@
                                             <input type="email" class="form-control bg-light" value="{{ Auth::user()->email }}" readonly>
                                         </div>
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Phone Number</label>
-                                            <input type="text" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror" value="{{ old('phone_number', Auth::user()->phone_number) }}" placeholder="+62...">
+                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Phone Number <span class="text-danger">*</span></label>
+                                            <input type="text" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror" value="{{ old('phone_number', Auth::user()->phone_number) }}" placeholder="+62..." required>
                                             @error('phone_number')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -137,18 +161,18 @@
                                 <div class="card-body p-4">
                                     <div class="row g-3">
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Department</label>
-                                            <input type="text" name="department" class="form-control @error('department') is-invalid @enderror" value="{{ old('department', Auth::user()->department) }}">
+                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Department <span class="text-danger">*</span></label>
+                                            <input type="text" name="department" class="form-control @error('department') is-invalid @enderror" value="{{ old('department', Auth::user()->department) }}" required>
                                             @error('department') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Division / Organization</label>
-                                            <input type="text" name="division" class="form-control @error('division') is-invalid @enderror" value="{{ old('division', Auth::user()->division) }}">
+                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Division / Organization <span class="text-danger">*</span></label>
+                                            <input type="text" name="division" class="form-control @error('division') is-invalid @enderror" value="{{ old('division', Auth::user()->division) }}" required>
                                             @error('division') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-12 col-md-6">
-                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Position / Job Title</label>
-                                            <input type="text" name="position" class="form-control @error('position') is-invalid @enderror" value="{{ old('position', Auth::user()->position ?? Auth::user()->job_title) }}">
+                                            <label class="form-label text-muted text-uppercase" style="font-size:.7rem;">Position / Job Title <span class="text-danger">*</span></label>
+                                            <input type="text" name="position" class="form-control @error('position') is-invalid @enderror" value="{{ old('position', Auth::user()->position ?? Auth::user()->job_title) }}" required>
                                             @error('position') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-12 col-md-6">

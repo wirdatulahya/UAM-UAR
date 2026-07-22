@@ -1,5 +1,6 @@
 <aside class="sidebar d-none d-lg-block" style="width:230px;flex-shrink:0;">
 
+    @if(!Auth::user()->requires_onboarding)
     <div class="sidebar-section-label">Main</div>
     <a href="{{ route('dashboard') }}" class="sidebar-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
         <i class="bi bi-grid-fill"></i>
@@ -41,11 +42,11 @@
 
     @if(Auth::user()->isAdmin())
     <div class="sidebar-section-label mt-4" style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;padding:0 1.25rem;margin-bottom:.75rem;">Administration</div>
-    <a href="#" class="sidebar-nav-item" aria-disabled="true">
+    <a href="{{ route('users.index') }}" class="sidebar-nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
         <i class="bi bi-people-fill"></i>
         User Management
-        <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
     </a>
+    @endif
     @endif
 
 </aside>

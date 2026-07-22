@@ -4,6 +4,7 @@
         $notifications = Auth::user()->notifications()->take(5)->get();
     @endphp
 
+    @if(!Auth::user()->requires_onboarding)
     {{-- Notification Bell --}}
     <div class="dropdown" id="notificationDropdownWrapper">
         <button type="button" class="position-relative" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;padding:0;transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">
@@ -54,6 +55,7 @@
     
     {{-- Divider --}}
     <div style="width:1px;height:24px;background:var(--border);"></div>
+    @endif
 
     {{-- Profile Dropdown --}}
     <div class="dropdown" id="profileDropdownWrapper">

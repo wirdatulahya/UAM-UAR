@@ -36,8 +36,21 @@ class LoginController extends Controller
             'password'   => $request->password,
         ];
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (Auth::validate($credentials)) {
+            $user = \App\Models\User::where($loginField, $request->login)->first();
+
+            if ($user && $user->account_status === 'Inactive') {
+                return back()
+                    ->withInput($request->only('login'))
+                    ->withErrors([
+                        'login' => 'Your account has been deactivated. Please contact the system administrator.',
+                    ]);
+            }
+
+            Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
+
+            $user->update(['last_login_at' => now()]);
 
             return redirect()->intended(route('dashboard'));
         }
@@ -45,7 +58,7 @@ class LoginController extends Controller
         return back()
             ->withInput($request->only('login'))
             ->withErrors([
-                'login' => 'The credentials you entered are incorrect. Please try again.',
+                'login' => 'Invalid username or password. Please check your credentials and try again.',
             ]);
     }
 

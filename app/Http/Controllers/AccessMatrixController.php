@@ -689,7 +689,7 @@ class AccessMatrixController extends Controller
             ]);
         }
 
-        // ── 3. Find Unit, BPO, and Access Owner Headers ──────────────────────
+        // ── 3. Find Unit, BPO, and Application Owner Headers ──────────────────────
         $tcodeColIdx = array_search('tcode', $colMap);
 
         $unitRowIdx = -1;
@@ -760,7 +760,7 @@ class AccessMatrixController extends Controller
         if ($tcodeColIdx !== false) {
             $headerRow = array_values((array)$raw[$headerRowIdx]);
             
-            // First, fill in empty Access Owner names from the left to handle merged headers
+            // First, fill in empty Application Owner names from the left to handle merged headers
             $currAo = '';
             for ($c = $startIdx; $c < count($headerRow); $c++) {
                 $val = trim((string)($headerRow[$c] ?? ''));
@@ -877,7 +877,7 @@ class AccessMatrixController extends Controller
             $row5 = array_values((array)$raw[4]);
             if (isset($row5[1]) && trim((string)$row5[1]) !== '') {
                 $val = preg_replace('/^[\s:\-=]+/', '', trim((string)$row5[1]));
-                $aoName = preg_replace('/^(ao|access owner)\s*[:\-]?\s*/i', '', $val);
+                $aoName = preg_replace('/^(ao|access owner|application owner)\s*[:\-]?\s*/i', '', $val);
             }
         }
 
@@ -1003,7 +1003,7 @@ class AccessMatrixController extends Controller
                     if (!isset($matrixData[$u][$b])) $matrixData[$u][$b] = [];
                     $matrixData[$u][$b][] = $ownerName;
 
-                    // Build global matrix map based on TCODE -> BPO -> Unit -> Access Owner
+                    // Build global matrix map based on TCODE -> BPO -> Unit -> Application Owner
                     $tcodes = array_map('trim', explode(',', $record['tcode']));
                     foreach ($tcodes as $tc) {
                         if ($tc === '') continue;
@@ -1163,7 +1163,7 @@ class AccessMatrixController extends Controller
             UamRecord::create(array_merge($base, ['tcode' => $tcode]));
         }
 
-        $redirectParams = ['search' => $validated['role']];
+        $redirectParams = [];
         if ($requestId) {
             $redirectParams['request_id'] = $requestId;
         }
@@ -1208,7 +1208,7 @@ class AccessMatrixController extends Controller
 
         $uamRecord->update($validated);
 
-        $redirectParams = ['search' => $uamRecord->role];
+        $redirectParams = [];
         if ($uamRecord->request_id) {
             $redirectParams['request_id'] = $uamRecord->request_id;
         }
@@ -1239,30 +1239,45 @@ class AccessMatrixController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     // DESTROY ROLE — Delete all records for a specific role
     // ─────────────────────────────────────────────────────────────────────────
-    public function destroyRole(UamRequest $uamRequest, $role)
+    public function destroyRole(Request $request, $role)
     {
-        // Must be editable
-        if (!in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) {
-            return redirect()->back()->withErrors(['error' => 'Cannot delete role when request is not editable.']);
+        $requestId = $request->input('request_id');
+        $uamRequest = $requestId ? UamRequest::find($requestId) : null;
+
+        if ($uamRequest) {
+            // Must be editable
+            if (!in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) {
+                return redirect()->back()->withErrors(['error' => 'Cannot delete role when request is not editable.']);
+            }
+            UamRecord::where('request_id', $uamRequest->id)
+                ->where('role', $role)
+                ->delete();
+            return redirect()
+                ->route('access-matrix.sap', ['request_id' => $uamRequest->id])
+                ->with('success', "All records for role \"{$role}\" have been deleted.");
+        } else {
+            UamRecord::whereNull('request_id')
+                ->where('role', $role)
+                ->delete();
+            return redirect()
+                ->route('access-matrix.sap')
+                ->with('success', "All records for role \"{$role}\" have been deleted from Baseline.");
         }
-
-        UamRecord::where('request_id', $uamRequest->id)
-            ->where('role', $role)
-            ->delete();
-
-        return redirect()
-            ->route('access-matrix.sap', ['request_id' => $uamRequest->id])
-            ->with('success', "All records for role \"{$role}\" have been deleted.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // STORE TCODE — Add a new TCODE to an existing role
     // ─────────────────────────────────────────────────────────────────────────
-    public function storeTcode(Request $request, UamRequest $uamRequest, $role)
+    public function storeTcode(Request $request, $role)
     {
-        // Must be editable
-        if (!in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) {
-            return redirect()->back()->withErrors(['error' => 'Cannot add TCODE when request is not editable.']);
+        $requestId = $request->input('request_id');
+        $uamRequest = $requestId ? UamRequest::find($requestId) : null;
+
+        if ($uamRequest) {
+            // Must be editable
+            if (!in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return'])) {
+                return redirect()->back()->withErrors(['error' => 'Cannot add TCODE when request is not editable.']);
+            }
         }
 
         $validated = $request->validate([
@@ -1270,17 +1285,19 @@ class AccessMatrixController extends Controller
         ]);
 
         // Get existing role details
-        $existingRecord = UamRecord::where('request_id', $uamRequest->id)
-            ->where('role', $role)
-            ->first();
+        $existingRecordQuery = UamRecord::where('role', $role);
+        if ($uamRequest) {
+            $existingRecordQuery->where('request_id', $uamRequest->id);
+        } else {
+            $existingRecordQuery->whereNull('request_id');
+        }
+        $existingRecord = $existingRecordQuery->first();
 
         if (!$existingRecord) {
-            return redirect()->back()->withErrors(['error' => 'Role not found in this request.']);
+            return redirect()->back()->withErrors(['error' => 'Role not found.']);
         }
 
         $tcodesInput = array_map('trim', explode(',', $validated['tcode']));
-
-        $globalMatrix = is_array($uamRequest->global_matrix) ? $uamRequest->global_matrix : [];
         $inserts = [];
         $now = now();
         $userId = Auth::id();
@@ -1289,17 +1306,20 @@ class AccessMatrixController extends Controller
             if ($tc === '') continue;
 
             // Validate duplicate TCODE within the same role
-            $exists = UamRecord::where('request_id', $uamRequest->id)
-                ->where('role', $role)
-                ->where('tcode', $tc)
-                ->exists();
+            $existsQuery = UamRecord::where('role', $role)->where('tcode', $tc);
+            if ($uamRequest) {
+                $existsQuery->where('request_id', $uamRequest->id);
+            } else {
+                $existsQuery->whereNull('request_id');
+            }
+            $exists = $existsQuery->exists();
 
             if ($exists) {
                 return redirect()->back()->withErrors(['tcode' => "TCODE '{$tc}' already exists for role '{$role}'."])->withInput();
             }
 
             $inserts[] = [
-                'request_id' => $uamRequest->id,
+                'request_id' => $uamRequest ? $uamRequest->id : null,
                 'role' => $role,
                 'description_role' => $existingRecord->description_role,
                 'tcode' => $tc,
@@ -1318,11 +1338,13 @@ class AccessMatrixController extends Controller
 
         if (!empty($inserts)) {
             UamRecord::insert($inserts);
-            $uamRequest->increment('record_count', count($inserts));
+            if ($uamRequest) {
+                $uamRequest->increment('record_count', count($inserts));
+            }
         }
 
         return redirect()
-            ->route('access-matrix.sap', ['request_id' => $uamRequest->id, 'search' => $role])
+            ->route('access-matrix.sap', $uamRequest ? ['request_id' => $uamRequest->id] : [])
             ->with('success', 'New TCODE(s) added successfully to role ' . $role);
     }
 
@@ -1632,7 +1654,7 @@ class AccessMatrixController extends Controller
 
         // Fallback: if no owners found, add a placeholder column
         if ($currentColIndex == 4) {
-            $sheet->setCellValue($coord::stringFromColumnIndex(4) . '2', 'Access Owner');
+            $sheet->setCellValue($coord::stringFromColumnIndex(4) . '2', 'Application Owner');
             $sheet->mergeCells($coord::stringFromColumnIndex(4) . '2:' . $coord::stringFromColumnIndex(4) . '4');
             $currentColIndex++;
         }
@@ -1713,8 +1735,8 @@ class AccessMatrixController extends Controller
                             }
                             return $owners;
                         };
-                        foreach (array_diff($getOwners($record->matrix_data), $getOwners($baseRecord->matrix_data)) as $a) { $details[] = "Added Access Owner: {$a}"; }
-                        foreach (array_diff($getOwners($baseRecord->matrix_data), $getOwners($record->matrix_data)) as $r) { $details[] = "Removed Access Owner: {$r}"; }
+                        foreach (array_diff($getOwners($record->matrix_data), $getOwners($baseRecord->matrix_data)) as $a) { $details[] = "Added Application Owner: {$a}"; }
+                        foreach (array_diff($getOwners($baseRecord->matrix_data), $getOwners($record->matrix_data)) as $r) { $details[] = "Removed Application Owner: {$r}"; }
                     }
                     $changeDetailsMap[$record->id] = $details;
                 }
@@ -2017,10 +2039,10 @@ class AccessMatrixController extends Controller
                         $removed = array_diff($baseOwners, $currOwners);
 
                         foreach ($added as $a) {
-                            $details[] = "Added Access Owner: {$a}";
+                            $details[] = "Added Application Owner: {$a}";
                         }
                         foreach ($removed as $r) {
-                            $details[] = "Removed Access Owner: {$r}";
+                            $details[] = "Removed Application Owner: {$r}";
                         }
                     }
                     $changeDetailsMap[$record->id] = $details;

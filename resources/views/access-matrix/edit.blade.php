@@ -179,7 +179,7 @@
                         </div>
 
                         <div class="row g-3 mb-3">
-                            {{-- Access Owner --}}
+                            {{-- Application Owner --}}
                             <div class="col-12 col-sm-6">
                                 <label for="access_owner" class="form-label">User Access Matrix (AO)</label>
                                 <select id="access_owner" name="access_owner" class="form-select @error('access_owner') is-invalid @enderror" data-selected="{{ old('access_owner', $uamRecord->access_owner) }}">
@@ -324,11 +324,11 @@
 
         const validAos = map[bpoSelect.value][unitSelect.value] || [];
         if (validAos.length === 0) {
-            setOptions(aoSelect, [], '-- No Access Owners found --');
+            setOptions(aoSelect, [], '-- No Application Owners found --');
             return;
         }
 
-        setOptions(aoSelect, validAos, '-- Select Access Owner --', selectedAo);
+        setOptions(aoSelect, validAos, '-- Select Application Owner --', selectedAo);
         aoSelect.removeAttribute('data-selected');
     }
 

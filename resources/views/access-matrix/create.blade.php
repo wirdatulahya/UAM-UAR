@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Add UAM Record')
+@section('title', 'Add Role')
 
 @section('content')
 
@@ -31,14 +31,14 @@
             ['label' => 'Dashboard', 'url' => route('dashboard')],
             ['label' => 'Request Access Matrix', 'url' => route('access-matrix.request.index')],
             ['label' => 'UAM SAP', 'url' => route('access-matrix.request.sap')],
-            ['label' => 'Add Record'],
+            ['label' => 'Add Role'],
         ]" />
 
         {{-- Page Header --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in">
             <div>
                 <h1 style="font-size:1.35rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                    <i class="bi bi-plus-circle-fill me-2" style="color:var(--primary);"></i>Add New UAM Record
+                    <i class="bi bi-plus-circle-fill me-2" style="color:var(--primary);"></i>Add New Role
                 </h1>
                 <p style="font-size:.82rem;color:var(--text-muted);margin:0;">Create a new User Access Matrix entry</p>
             </div>
@@ -201,10 +201,10 @@
                         </div>
 
                         <div class="row g-3 mb-3">
-                            {{-- Access Owner --}}
+                            {{-- Application Owner --}}
                             <div class="col-12 col-sm-6">
                                 <label for="access_owner" class="form-label">User Access Matrix</label>
-                                <input list="ao-options" id="access_owner" name="access_owner" class="form-control @error('access_owner') is-invalid @enderror" placeholder="Select or type Access Owner" autocomplete="off" value="{{ old('access_owner') }}">
+                                <input list="ao-options" id="access_owner" name="access_owner" class="form-control @error('access_owner') is-invalid @enderror" placeholder="Select or type Application Owner" autocomplete="off" value="{{ old('access_owner') }}">
                                 <datalist id="ao-options"></datalist>
                                 @error('access_owner')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -215,9 +215,9 @@
                         <div class="d-flex align-items-center gap-3">
                             <button type="submit" id="saveBtn" class="btn-primary-custom"
                                     style="width:auto;padding:.65rem 2rem;font-size:.9rem;display:inline-flex;align-items:center;gap:.5rem;">
-                                <i class="bi bi-check-lg"></i> Save Record
+                                <i class="bi bi-check-lg"></i> Save Role
                             </button>
-                             <a href="{{ route('access-matrix.sap') }}"
+                             <a href="{{ route('access-matrix.sap', array_filter(['request_id' => $requestId ?? null])) }}"
                                style="font-size:.85rem;color:var(--text-muted);text-decoration:none;font-weight:500;transition:color var(--transition);"
                                onmouseenter="this.style.color='var(--primary)'"
                                onmouseleave="this.style.color='var(--text-muted)'">

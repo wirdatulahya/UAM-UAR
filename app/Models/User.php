@@ -33,6 +33,9 @@ class User extends Authenticatable
         'department',
         'division',
         'account_status',
+        'last_login_at',
+        'requires_onboarding',
+        'password_changed_at',
     ];
 
     public function isAdmin(): bool
@@ -53,6 +56,25 @@ class User extends Authenticatable
     public function isAo(): bool
     {
         return $this->role === 'ao';
+    }
+
+    public function checkOnboardingStatus(): void
+    {
+        $isProfileComplete = !empty($this->nik) && 
+                             !empty($this->department) && 
+                             !empty($this->division) && 
+                             !empty($this->position) && 
+                             !empty($this->phone_number);
+                             
+        $this->is_profile_completed = $isProfileComplete;
+
+        if ($this->requires_onboarding) {
+            if ($isProfileComplete && !empty($this->password_changed_at)) {
+                $this->requires_onboarding = false;
+            }
+        }
+        
+        $this->save();
     }
 
     /**

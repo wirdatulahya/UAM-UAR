@@ -58,8 +58,8 @@ Route::middleware('auth')->group(function () {
             Route::delete('/clear', [AccessMatrixController::class, 'clear'])->name('access-matrix.clear');
             Route::get('/create', [AccessMatrixController::class, 'create'])->name('access-matrix.create');
             Route::post('/', [AccessMatrixController::class, 'store'])->name('access-matrix.store');
-            Route::delete('/role/{uamRequest}/{role}', [AccessMatrixController::class, 'destroyRole'])->name('access-matrix.destroy-role');
-            Route::post('/role/{uamRequest}/{role}/tcode', [AccessMatrixController::class, 'storeTcode'])->name('access-matrix.store-tcode');
+            Route::delete('/role/{role}', [AccessMatrixController::class, 'destroyRole'])->name('access-matrix.destroy-role');
+            Route::post('/role/{role}/tcode', [AccessMatrixController::class, 'storeTcode'])->name('access-matrix.store-tcode');
             Route::get('/{uamRecord}/edit', [AccessMatrixController::class, 'edit'])->name('access-matrix.edit');
             Route::put('/{uamRecord}', [AccessMatrixController::class, 'update'])->name('access-matrix.update');
             Route::delete('/{uamRecord}', [AccessMatrixController::class, 'destroy'])->name('access-matrix.destroy');
@@ -104,6 +104,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/mark-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all');
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Management (Admin Only)
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/users', [\App\Http\Controllers\UserController::class, 'index'])->name('users.index');
+        Route::post('/users', [\App\Http\Controllers\UserController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}', [\App\Http\Controllers\UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [\App\Http\Controllers\UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{user}/reset-password', [\App\Http\Controllers\UserController::class, 'resetPassword'])->name('users.reset-password');
+        Route::post('/users/{user}/toggle-status', [\App\Http\Controllers\UserController::class, 'toggleStatus'])->name('users.toggle-status');
+    });
 
     /*
     |--------------------------------------------------------------------------

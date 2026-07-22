@@ -401,7 +401,7 @@
                                     Supports <strong>.xlsx</strong>, <strong>.xls</strong>, and <strong>.csv</strong> &nbsp;·&nbsp; Max 10 MB
                                 </p>
                                 <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                                    Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNIT</code>, <code>BPO</code>, <code>Access Owner</code>
+                                    Expected columns: <code>Role</code>, <code>Description Role</code>, <code>TCODE</code>, <code>UNIT</code>, <code>BPO</code>, <code>Application Owner</code>
                                 </p>
             
                                 <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" style="display:none;">

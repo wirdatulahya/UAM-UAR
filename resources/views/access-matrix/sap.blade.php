@@ -238,7 +238,7 @@
                             <i class="bi bi-search me-1"></i> Search
                         </button>
                         @if($search)
-                            <a href="{{ route('access-matrix.sap') }}"
+                            <a href="{{ route('access-matrix.sap', array_filter(['request_id' => $requestId ?? null])) }}"
                                style="display:inline-flex;align-items:center;gap:.3rem;padding:.65rem .9rem;border-radius:10px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;white-space:nowrap;transition:all var(--transition);"
                                onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
@@ -336,9 +336,9 @@
                                     // A role is considered newly added if its first record is 'Added'
                                     $isNewRole = $firstRec && isset($firstRec->change_type) && $firstRec->change_type === 'Added';
                                 @endphp
-                                <tr style="border-bottom:1px solid var(--border);transition:background var(--transition); {{ $isNewRole ? 'background:#ECFDF3; border-left:4px solid #22c55e;' : '' }}"
-                                    onmouseenter="this.style.background='{{ $isNewRole ? '#dcfce7' : 'var(--secondary-light)' }}'"
-                                    onmouseleave="this.style.background='{{ $isNewRole ? '#ECFDF3' : '' }}'">
+                                <tr style="border-bottom:1px solid var(--border);transition:background var(--transition);"
+                                    onmouseenter="this.style.background='var(--secondary-light)'"
+                                    onmouseleave="this.style.background=''">
                                     <td style="padding:.7rem 1rem;color:var(--text-muted);font-size:.78rem;white-space:nowrap;vertical-align:middle;overflow:hidden;">
                                         <span>{{ $roles->firstItem() + $i }}</span>
                                     </td>
@@ -375,9 +375,9 @@
                                     @php
                                         $isNewRec = isset($rec->change_type) && $rec->change_type === 'Added';
                                     @endphp
-                                        <tr class="subrow-{{ $rowId }}" style="display:none; border-bottom:1px solid transparent; background: {{ $isNewRec ? '#ECFDF3' : '#f1f5f9' }}; transition:background var(--transition), border-color 300ms ease-in-out; {{ $isNewRec ? 'border-left:4px solid #22c55e;' : '' }}"
-                                            onmouseenter="this.style.background='{{ $isNewRec ? '#dcfce7' : 'var(--secondary-light)' }}'"
-                                            onmouseleave="this.style.background='{{ $isNewRec ? '#ECFDF3' : '#f1f5f9' }}'">
+                                        <tr class="subrow-{{ $rowId }}" style="display:none; border-bottom:1px solid transparent; background: #f1f5f9; transition:background var(--transition), border-color 300ms ease-in-out;"
+                                            onmouseenter="this.style.background='var(--secondary-light)'"
+                                            onmouseleave="this.style.background='#f1f5f9'">
                                             
                                             {{-- # column --}}
                                             <td style="padding:0;border:none;vertical-align:middle;">
@@ -412,9 +412,10 @@
                                                         <span style="font-family:monospace;background:#eff6ff;padding:.2rem .5rem;border-radius:4px;font-size:.78rem;border:1px solid #bfdbfe;font-weight:700;color:#1d4ed8;display:inline-block;">
                                                             {{ $rec->tcode ?: '—' }}
                                                         </span>
-                                                        @if(isset($rec->change_type) && $rec->change_type !== 'Unchanged' && $rec->change_type !== 'Added')
+                                                        @if(isset($rec->change_type) && $rec->change_type !== 'Unchanged')
                                                             @php
                                                                 $badgeColors = [
+                                                                    'Added'    => ['bg' => '#dcfce7', 'text' => '#166534', 'border' => '#bbf7d0'],
                                                                     'Modified' => ['bg' => '#fef9c3', 'text' => '#854d0e', 'border' => '#fef08a'],
                                                                     'Deleted'  => ['bg' => '#fee2e2', 'text' => '#991b1b', 'border' => '#fecaca'],
                                                                 ];
@@ -495,8 +496,6 @@
                                                                 </span>
                                                                 @endif
                                                             @endif
-
-
                                                         </div>
                                                     </div>
                                                 </div>
@@ -505,7 +504,7 @@
                                             <td style="padding:0;border:none;border-left:1px solid #e5e7eb;vertical-align:middle;text-align:center;">
                                                 <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 0;display:flex;justify-content:center;align-items:center;">
-                                                        @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && empty($isApproval) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
+                                                        @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && empty($isApproval) && (!isset($uamRequest) || !$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))))
                                                             <div class="dropdown">
                                                                 <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration:none;">
                                                                     <i class="bi bi-three-dots-vertical"></i>
@@ -518,9 +517,10 @@
                                                                         </button>
                                                                     </li>
                                                                     <li>
-                                                                        <form action="{{ route('access-matrix.destroy-role', ['uamRequest' => $uamRequest->id, 'role' => $roleData->role]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this Role and ALL its associated TCODEs?');">
+                                                                        <form action="{{ route('access-matrix.destroy-role', ['role' => $roleData->role]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this Role and ALL its associated TCODEs?');">
                                                                             @csrf
                                                                             @method('DELETE')
+                                                                            <input type="hidden" name="request_id" value="{{ $uamRequest ? $uamRequest->id : '' }}">
                                                                             <button type="submit" class="dropdown-item text-danger" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 1rem;">
                                                                                 <i class="bi bi-trash"></i> Delete Role
                                                                             </button>
@@ -556,7 +556,7 @@
                                             <a href="{{ route('access-matrix.create') }}"
                                                class="btn-primary-custom"
                                                style="width:auto;padding:.5rem 1.25rem;font-size:.82rem;display:inline-flex;align-items:center;gap:.4rem;border-radius:8px;text-decoration:none;">
-                                                <i class="bi bi-plus-lg"></i> Add New Record
+                                                <i class="bi bi-plus-lg"></i> Add New Role
                                             </a>
                                         @else
                                             {{-- Initial state: no data at all --}}
@@ -565,7 +565,7 @@
                                             </div>
                                             <h3 style="font-size:1rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;">No records available</h3>
                                             <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:.75rem;">
-                                                There are currently no records for this request. Use <strong>Add Record</strong> to get started, or go back to <a href="{{ $moduleRoute }}" style="color:var(--secondary);">{{ $moduleName }}</a>.
+                                                There are currently no records for this request. Use <strong>Add Role</strong> to get started, or go back to <a href="{{ $moduleRoute }}" style="color:var(--secondary);">{{ $moduleName }}</a>.
                                             </p>
                                         @endif
                                     </td>
@@ -940,7 +940,7 @@
                     </div>
                     <h4 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.3rem;" id="modalErrorTitle">No access data found</h4>
                     <p style="font-size:.82rem;color:var(--text-muted);margin:0;max-width:320px;margin-inline:auto;" id="modalErrorMsg">
-                        No access owners or matrix data is registered for this role and TCode.
+                        No application owners or matrix data is registered for this role and TCode.
                     </p>
                 </div>
 
@@ -980,7 +980,7 @@
                         </div>
                     </div>
 
-                    {{-- Access Owners panel --}}
+                    {{-- Application Owners panel --}}
                     <div style="border:1.5px solid #bbf7d0;border-radius:14px;overflow:hidden;margin-bottom:1.25rem;">
                         <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 1rem;background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
                             <div style="display:flex;align-items:center;gap:.45rem;">
@@ -1354,7 +1354,7 @@
                 _currentRecordIds = data.record_ids || [];
 
                 if (_hierarchy.length === 0) {
-                    showModalError("No access data found", "No access owners or matrix data is registered for this role and TCode.");
+                    showModalError("No access data found", "No application owners or matrix data is registered for this role and TCode.");
                     return;
                 }
 
@@ -1380,7 +1380,7 @@
                 document.getElementById('modalOwnerScroll').scrollTop = 0;
 
             } else {
-                showModalError("No access data found", data.error || "No access owners or matrix data is registered for this role and TCode.");
+                showModalError("No access data found", data.error || "No application owners or matrix data is registered for this role and TCode.");
             }
         } catch (e) {
             clearTimeout(timeoutId);
@@ -1559,7 +1559,17 @@
         
         // Update form action
         const form = document.getElementById('addTcodeForm');
-        form.action = `/access-matrix/sap/role/${addTcodeReqId}/${role}/tcode`;
+        // Ensure request_id is correctly set as a hidden input
+        let reqInput = form.querySelector('input[name="request_id"]');
+        if (!reqInput) {
+            reqInput = document.createElement('input');
+            reqInput.type = 'hidden';
+            reqInput.name = 'request_id';
+            form.appendChild(reqInput);
+        }
+        reqInput.value = addTcodeReqId;
+
+        form.action = `/access-matrix/sap/role/${role}/tcode`;
 
         // Reset input
         const tcodeInp = document.getElementById('addTcodeCode');

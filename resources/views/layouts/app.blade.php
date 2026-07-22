@@ -485,5 +485,33 @@
     <x-toast />
 
     @stack('scripts')
+
+    @if(Auth::check() && Auth::user()->requires_onboarding && !request()->routeIs('profile.*'))
+        <!-- Mandatory Onboarding Modal -->
+        <div class="modal fade" id="onboardingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                    <div class="modal-body text-center" style="padding: 3rem 2rem;">
+                        <div style="width: 70px; height: 70px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1.5rem;">
+                            <i class="bi bi-person-badge-fill"></i>
+                        </div>
+                        <h4 style="font-weight: 700; color: var(--text); margin-bottom: 1rem;">Welcome to AccessHub!</h4>
+                        <p style="color: var(--text-muted); font-size: .95rem; margin-bottom: 2rem; line-height: 1.5;">
+                            Before you can access the system, you must complete your profile information and change your temporary password.
+                        </p>
+                        <a href="{{ route('profile.index') }}" class="btn btn-primary" style="background: var(--primary); border: none; padding: .75rem 2rem; border-radius: 10px; font-weight: 600; font-size: .95rem;">
+                            <i class="bi bi-arrow-right-circle-fill me-2"></i> Complete Setup
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var onboardingModal = new bootstrap.Modal(document.getElementById('onboardingModal'));
+                onboardingModal.show();
+            });
+        </script>
+    @endif
 </body>
 </html>
