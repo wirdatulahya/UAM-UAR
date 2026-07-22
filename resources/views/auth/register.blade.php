@@ -182,7 +182,7 @@
                 </div>
 
                 {{-- Confirm Password --}}
-                <div class="mb-4 animate-in animate-in-delay-5">
+                <div class="mb-3 animate-in animate-in-delay-5">
                     <label for="password_confirmation" class="form-label">Confirm Password</label>
                     <div class="input-group">
                         <span class="input-group-text" style="border-radius:var(--input-radius) 0 0 var(--input-radius);border:1.5px solid var(--border);border-right:0;background:#fff;color:var(--text-muted);">
@@ -204,6 +204,26 @@
                         </button>
                     </div>
                     <div id="confirmMatchMsg" style="font-size:.75rem;margin-top:.3rem;display:none;"></div>
+                </div>
+
+                {{-- Role Selection (Development Only) --}}
+                <div class="mb-4 animate-in animate-in-delay-5">
+                    <label for="role" class="form-label">Select Role <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Dev Only</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="border-radius:var(--input-radius) 0 0 var(--input-radius);border:1.5px solid var(--border);border-right:0;background:#fff;color:var(--text-muted);">
+                            <i class="bi bi-person-badge"></i>
+                        </span>
+                        <select class="form-select @error('role') is-invalid @enderror" id="role" name="role" style="border-radius: 0 var(--input-radius) var(--input-radius) 0; border-left: 0;">
+                            <option value="" disabled selected>Choose a role...</option>
+                            <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Administrator</option>
+                            <option value="pic_ao" {{ old('role') === 'pic_ao' ? 'selected' : '' }}>PIC AO</option>
+                            <option value="manager" {{ old('role') === 'manager' ? 'selected' : '' }}>Manager</option>
+                            <option value="ao" {{ old('role') === 'ao' ? 'selected' : '' }}>Final Approver (AO)</option>
+                        </select>
+                        @error('role')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
                 {{-- Submit --}}

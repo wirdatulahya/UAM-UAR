@@ -25,7 +25,30 @@ class User extends Authenticatable
         'email',
         'password',
         'profile_photo_path',
+        'role',
+        'job_title',
+        'position',
     ];
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isPicAo(): bool
+    {
+        return $this->role === 'pic_ao';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function isAo(): bool
+    {
+        return $this->role === 'ao';
+    }
 
     /**
      * The attributes that should be hidden for serialization.

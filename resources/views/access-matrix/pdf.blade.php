@@ -16,6 +16,10 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            border-bottom: 1px solid #999;
+        }
+        tr {
+            page-break-inside: avoid;
         }
         th, td {
             border: 1px solid #999;
@@ -348,6 +352,73 @@
             @endforeach
         </tbody>
     </table>
+
+    <div style="margin-top: 40px; page-break-inside: avoid;">
+        @php
+            $requester = $uamRequest->requester;
+            $acceptHistory = $uamRequest->approvalHistories->where('status', 'Stage 2')->first();
+            $acceptUser = $acceptHistory ? $acceptHistory->user : null;
+            $approveHistory = $uamRequest->approvalHistories->whereIn('status', ['Approved', 'Return'])->first();
+            $approveUser = $approveHistory ? $approveHistory->user : null;
+        @endphp
+        <table style="width: 100%; border: none; font-size: 11px;">
+            <tr>
+                <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
+                    <div style="margin-bottom: 60px; font-weight: bold;">Requested By</div>
+                    @if($requester)
+                        <div style="font-weight: bold;">{{ $requester->name }}</div>
+                        <div style="color: #444;">{{ $requester->job_title ?? '-' }}</div>
+                        <div style="color: #444;">{{ $requester->position ?? '-' }}</div>
+                    @else
+                        <div style="font-weight: bold;">{{ $uamRequest->requester_name ?? '-' }}</div>
+                        <div style="color: #444;">-</div>
+                        <div style="color: #444;">-</div>
+                    @endif
+                    <div style="color: #555; font-size: 9px; margin-top: 3px;">
+                        Submitted: {{ $uamRequest->created_at ? \Carbon\Carbon::parse($uamRequest->created_at)->format('d M Y, H:i') . ' WIB' : '-' }}
+                    </div>
+                </td>
+                <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
+                    <div style="margin-bottom: 60px; font-weight: bold;">Accepted By</div>
+                    @if($acceptUser)
+                        <div style="font-weight: bold;">{{ $acceptUser->name }}</div>
+                        <div style="color: #444;">{{ $acceptUser->job_title ?? '-' }}</div>
+                        <div style="color: #444;">{{ $acceptUser->position ?? '-' }}</div>
+                    @elseif($acceptHistory)
+                        <div style="font-weight: bold;">{{ $acceptHistory->approver_name }}</div>
+                        <div style="color: #444;">-</div>
+                        <div style="color: #444;">-</div>
+                    @else
+                        <div style="font-weight: bold;">-</div>
+                        <div style="color: #444;">-</div>
+                        <div style="color: #444;">-</div>
+                    @endif
+                    <div style="color: #555; font-size: 9px; margin-top: 3px;">
+                        Accepted: {{ $acceptHistory ? \Carbon\Carbon::parse($acceptHistory->created_at)->format('d M Y, H:i') . ' WIB' : '-' }}
+                    </div>
+                </td>
+                <td style="border: none; width: 33.33%; text-align: center; vertical-align: top;">
+                    <div style="margin-bottom: 60px; font-weight: bold;">Approved By</div>
+                    @if($approveUser)
+                        <div style="font-weight: bold;">{{ $approveUser->name }}</div>
+                        <div style="color: #444;">{{ $approveUser->job_title ?? '-' }}</div>
+                        <div style="color: #444;">{{ $approveUser->position ?? '-' }}</div>
+                    @elseif($approveHistory)
+                        <div style="font-weight: bold;">{{ $approveHistory->approver_name }}</div>
+                        <div style="color: #444;">-</div>
+                        <div style="color: #444;">-</div>
+                    @else
+                        <div style="font-weight: bold;">-</div>
+                        <div style="color: #444;">-</div>
+                        <div style="color: #444;">-</div>
+                    @endif
+                    <div style="color: #555; font-size: 9px; margin-top: 3px;">
+                        Approved: {{ $approveHistory ? \Carbon\Carbon::parse($approveHistory->created_at)->format('d M Y, H:i') . ' WIB' : '-' }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
 </body>
 </html>

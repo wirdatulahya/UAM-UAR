@@ -5,8 +5,8 @@
     @endphp
 
     {{-- Notification Bell --}}
-    <div class="position-relative" id="notificationDropdownWrapper">
-        <button type="button" id="notificationDropdownBtn" class="position-relative" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;padding:0;transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">
+    <div class="dropdown" id="notificationDropdownWrapper">
+        <button type="button" class="position-relative" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;padding:0;transition:color var(--transition);" onmouseenter="this.style.color='var(--secondary)'" onmouseleave="this.style.color='var(--text-muted)'">
             <i class="bi bi-bell"></i>
             @if($unreadCount > 0)
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.55rem;padding:.2rem .4rem;margin-top:5px;margin-left:-5px;">
@@ -16,7 +16,7 @@
         </button>
 
         {{-- Notification Dropdown Menu --}}
-        <div id="notificationDropdownMenu" style="display:none;position:absolute;right:0;top:calc(100% + 12px);width:320px;background:#fff;border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(11,46,109,.13);z-index:200;overflow:hidden;">
+        <div class="dropdown-menu dropdown-menu-end p-0 border-0 shadow" style="width:320px;border-radius:14px;z-index:200;overflow:hidden;margin-top:12px;">
             <div style="padding:1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--secondary-light);">
                 <div style="font-size:.85rem;font-weight:700;color:var(--secondary);">Notifications</div>
                 @if($unreadCount > 0)
@@ -29,7 +29,7 @@
 
             <div style="max-height:300px;overflow-y:auto;">
                 @forelse($notifications as $notification)
-                    <a href="{{ $notification->data['url'] ?? '#' }}" class="d-flex align-items-start gap-3 p-3 notification-item" style="text-decoration:none;border-bottom:1px solid var(--border);background:{{ $notification->read_at ? '#fff' : '#f8f9fa' }};transition:background .2s;" data-id="{{ $notification->id }}" onclick="markNotificationAsRead('{{ $notification->id }}')">
+                    <a href="{{ $notification->data['url'] ?? '#' }}" class="d-flex align-items-start gap-3 p-3 notification-item dropdown-item text-wrap" style="text-decoration:none;border-bottom:1px solid var(--border);background:{{ $notification->read_at ? '#fff' : '#f8f9fa' }};transition:background .2s;white-space:normal;" data-id="{{ $notification->id }}" onclick="markNotificationAsRead('{{ $notification->id }}')">
                         <div style="width:36px;height:36px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                             <i class="bi {{ $notification->data['icon'] ?? 'bi-bell-fill' }}" style="color:var(--primary);font-size:1rem;"></i>
                         </div>
@@ -56,8 +56,8 @@
     <div style="width:1px;height:24px;background:var(--border);"></div>
 
     {{-- Profile Dropdown --}}
-    <div class="position-relative" id="profileDropdownWrapper">
-        <button id="profileDropdownBtn" type="button"
+    <div class="dropdown" id="profileDropdownWrapper">
+        <button type="button" data-bs-toggle="dropdown" aria-expanded="false"
             style="background:none;border:none;padding:0;display:flex;align-items:center;gap:.65rem;cursor:pointer;transition:opacity var(--transition);" onmouseenter="this.style.opacity='0.8'" onmouseleave="this.style.opacity='1'">
             <div style="width:36px;height:36px;background:var(--secondary);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
                 @if(Auth::user()->profile_photo_path)
@@ -68,13 +68,12 @@
             </div>
             <div class="d-none d-sm-flex align-items-center gap-2">
                 <span style="font-size:.85rem;font-weight:700;color:var(--secondary);text-transform:uppercase;">{{ Auth::user()->name }}</span>
-                <i class="bi bi-chevron-down" id="profileChevron" style="font-size:.7rem;color:var(--text-muted);transition:transform var(--transition);"></i>
+                <i class="bi bi-chevron-down" style="font-size:.7rem;color:var(--text-muted);"></i>
             </div>
         </button>
 
         {{-- Dropdown Menu --}}
-        <div id="profileDropdownMenu"
-            style="display:none;position:absolute;right:0;top:calc(100% + 12px);width:200px;background:#fff;border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(11,46,109,.13);z-index:200;overflow:hidden;">
+        <div class="dropdown-menu dropdown-menu-end p-0 border-0 shadow" style="width:200px;border-radius:14px;z-index:200;overflow:hidden;margin-top:12px;">
 
             {{-- User Info Header --}}
             <div style="padding:.85rem 1rem .75rem;border-bottom:1px solid var(--border);background:var(--secondary-light);">
@@ -83,14 +82,14 @@
             </div>
 
             {{-- Profile (active) --}}
-            <a href="{{ route('profile.index') }}"
-                style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--secondary);background:var(--secondary-light);text-decoration:none;">
+            <a href="{{ route('profile.index') }}" class="dropdown-item"
+                style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--secondary);background:var(--secondary-light);">
                 <i class="bi bi-person" style="font-size:1.05rem;"></i> My Profile
             </a>
 
             {{-- Change Password --}}
-            <a href="{{ route('password.change') }}"
-                style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text-muted);text-decoration:none;transition:background var(--transition);"
+            <a href="{{ route('password.change') }}" class="dropdown-item"
+                style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text-muted);transition:background var(--transition);"
                 onmouseenter="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';"
                 onmouseleave="this.style.background='none';this.style.color='var(--text-muted)';">
                 <i class="bi bi-key" style="font-size:1.05rem;"></i> Change Password
@@ -99,7 +98,7 @@
             {{-- Logout --}}
             <form id="logoutForm" action="{{ route('logout') }}" method="POST" style="margin:0;">
                 @csrf
-                <button id="logoutBtn" type="submit"
+                <button id="logoutBtn" type="submit" class="dropdown-item"
                     style="width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--border);padding:.72rem 1rem;font-size:.85rem;font-weight:600;color:#dc3545;display:flex;align-items:center;gap:.65rem;cursor:pointer;transition:background var(--transition);"
                     onmouseenter="this.style.background='#fff5f5';"
                     onmouseleave="this.style.background='none';">
@@ -116,42 +115,7 @@
         window.profileDropdownInitialized = true;
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Profile Dropdown
-            const profileBtn  = document.getElementById('profileDropdownBtn');
-            const profileMenu = document.getElementById('profileDropdownMenu');
-            const chevron     = document.getElementById('profileChevron');
-            const logoutForm  = document.getElementById('logoutForm');
-
-            // Notification Dropdown
-            const notifBtn  = document.getElementById('notificationDropdownBtn');
-            const notifMenu = document.getElementById('notificationDropdownMenu');
-
-            if (profileBtn && profileMenu) {
-                profileBtn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const isOpen = profileMenu.style.display === 'block';
-                    profileMenu.style.display = isOpen ? 'none' : 'block';
-                    if (notifMenu) notifMenu.style.display = 'none'; // Close other
-                    if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
-                });
-            }
-
-            if (notifBtn && notifMenu) {
-                notifBtn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const isOpen = notifMenu.style.display === 'block';
-                    notifMenu.style.display = isOpen ? 'none' : 'block';
-                    if (profileMenu) profileMenu.style.display = 'none'; // Close other
-                    if (chevron) chevron.style.transform = '';
-                });
-            }
-
-            document.addEventListener('click', function () {
-                if (profileMenu) profileMenu.style.display = 'none';
-                if (notifMenu) notifMenu.style.display = 'none';
-                if (chevron) chevron.style.transform = '';
-            });
-
+            const logoutForm = document.getElementById('logoutForm');
             if (logoutForm) {
                 logoutForm.addEventListener('submit', function () {
                     const btn = document.getElementById('logoutBtn');

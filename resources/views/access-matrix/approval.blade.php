@@ -266,6 +266,13 @@
                                                     <i class="bi bi-clock-history"></i> Version History
                                                 </button>
                                             </li>
+                                            @if(in_array($req->status, ['Return', 'Need Revision', 'Approved']))
+                                            <li>
+                                                <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}', '{{ htmlspecialchars($req->version ?: 'V1') }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--primary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
+                                                    <i class="bi bi-pencil-square"></i> Modified
+                                                </button>
+                                            </li>
+                                            @endif
                                             @if(in_array($req->status, ['Draft', 'Returned', 'Return', 'Need Revision']))
                                             <li>
                                                 <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;padding:0;display:block;" onsubmit="return confirm('Delete this request and all its records? This cannot be undone.');">
@@ -511,19 +518,20 @@
             .then(res => res.json())
             .then(data => {
                 let html = '<div class="table-responsive"><table class="table table-hover mb-0" style="font-size:.85rem;">';
-                html += '<thead style="background:#fcfcfc;"><tr><th>Version</th><th>Status</th><th>Created</th><th>Modified</th><th>Requested By</th><th>Action</th></tr></thead><tbody>';
+                html += '<thead style="background:#fcfcfc;"><tr><th>Version</th><th>Status</th><th>Created</th><th>Modified</th><th>Requested By</th><th>Accepted By</th><th>Approved By</th></tr></thead><tbody>';
                 
                 data.forEach((item, index) => {
                     let isLatest = index === 0;
                     let badge = isLatest ? '<span class="badge bg-success ms-2">Latest</span>' : '';
                     
-                    html += `<tr>
+                    html += `<tr style="cursor:pointer;" onclick="window.location.href='${item.view_url}'">
                         <td style="font-weight:600;">${item.version} ${badge}</td>
                         <td>${item.status}</td>
                         <td>${item.created_at}</td>
                         <td>${item.updated_at}</td>
                         <td>${item.requester_name}</td>
-                        <td><a href="${item.view_url}" class="btn btn-sm btn-outline-primary py-0" style="font-size:.75rem;">View</a></td>
+                        <td>${item.accepted_by}</td>
+                        <td>${item.approved_by}</td>
                     </tr>`;
                 });
                 
@@ -535,30 +543,7 @@
             });
     };
 
-    // ── Profile dropdown ──────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
-        const btn     = document.getElementById('profileDropdownBtn');
-        const menu    = document.getElementById('profileDropdownMenu');
-        const chevron = document.getElementById('profileChevron');
-        let isOpen    = false;
-
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            isOpen = !isOpen;
-            menu.style.display = isOpen ? 'block' : 'none';
-            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-        });
-
-        document.addEventListener('click', function() {
-            if (isOpen) {
-                isOpen = false;
-                menu.style.display = 'none';
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
-            }
-        });
-
-        menu.addEventListener('click', function(e) { e.stopPropagation(); });
-
         // ── File upload handling ──────────────────────────────────────────────
         const fileInput    = document.getElementById('fileInput');
         const filePreview  = document.getElementById('filePreview');

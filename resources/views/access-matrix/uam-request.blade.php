@@ -32,40 +32,7 @@
 <div class="d-flex" style="min-height:calc(100vh - 57px);">
 
     {{-- Sidebar --}}
-    <aside class="sidebar d-none d-lg-block" style="width:230px;flex-shrink:0;">
-        <div class="sidebar-section-label">Main</div>
-        <a href="{{ route('dashboard') }}" class="sidebar-nav-item">
-            <i class="bi bi-grid-fill"></i>
-            Dashboard
-        </a>
-
-        <div class="sidebar-section-label">Modules</div>
-        <a href="#uamCollapse" data-bs-toggle="collapse" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : 'collapsed' }}" role="button" aria-expanded="{{ request()->routeIs('access-matrix.*') ? 'true' : 'false' }}" aria-controls="uamCollapse">
-            <i class="bi bi-table"></i>
-            <span class="d-flex align-items-center w-100">
-                User Access Matrix
-                <i class="bi bi-chevron-down ms-auto" style="font-size:.7rem; transition: transform var(--transition);"></i>
-            </span>
-        </a>
-        <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
-            <div style="padding: .25rem 0; background: var(--bg);">
-                <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Request Access Matrix
-                </a>
-                <a href="{{ route('access-matrix.uam-request.sap') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Accept
-                </a>
-                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Approval Access Matrix
-                </a>
-            </div>
-        </div>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-clipboard2-check-fill"></i>
-            Access Review
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-    </aside>
+    <x-sidebar />
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
@@ -254,6 +221,17 @@
                                                     <i class="bi bi-clock-history"></i> Version History
                                                 </button>
                                             </li>
+                                            @if(in_array($req->status, ['Return', 'Need Revision', 'Approved']))
+                                            <li>
+                                                <form action="{{ route('access-matrix.copy-baseline') }}" method="POST" style="margin:0;">
+                                                    @csrf
+                                                    <input type="hidden" name="request_id" value="{{ $req->id }}">
+                                                    <button type="submit" class="dropdown-item" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--primary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
+                                                        <i class="bi bi-pencil-square"></i> Modified
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            @endif
                                         </ul>
                                     </div>
                                 </td>
@@ -313,19 +291,20 @@
             .then(res => res.json())
             .then(data => {
                 let html = '<div class="table-responsive"><table class="table table-hover mb-0" style="font-size:.85rem;">';
-                html += '<thead style="background:#fcfcfc;"><tr><th>Version</th><th>Status</th><th>Created</th><th>Modified</th><th>Requested By</th><th>Action</th></tr></thead><tbody>';
+                html += '<thead style="background:#fcfcfc;"><tr><th>Version</th><th>Status</th><th>Created</th><th>Modified</th><th>Requested By</th><th>Accepted By</th><th>Approved By</th></tr></thead><tbody>';
                 
                 data.forEach((item, index) => {
                     let isLatest = index === 0;
                     let badge = isLatest ? '<span class="badge bg-success ms-2">Latest</span>' : '';
                     
-                    html += `<tr>
+                    html += `<tr style="cursor:pointer;" onclick="window.location.href='${item.view_url}'">
                         <td style="font-weight:600;">${item.version} ${badge}</td>
                         <td>${item.status}</td>
                         <td>${item.created_at}</td>
                         <td>${item.updated_at}</td>
                         <td>${item.requester_name}</td>
-                        <td><a href="${item.view_url}" class="btn btn-sm btn-outline-primary py-0" style="font-size:.75rem;">View</a></td>
+                        <td>${item.accepted_by}</td>
+                        <td>${item.approved_by}</td>
                     </tr>`;
                 });
                 

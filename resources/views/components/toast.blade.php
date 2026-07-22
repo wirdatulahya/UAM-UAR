@@ -19,13 +19,22 @@
         @endphp
 
         @foreach($toasts as $toast)
-            <div class="toast align-items-center border-0 mb-2 animate-in" role="alert" aria-live="assertive" aria-atomic="true" style="background:var(--{{ $toast['type'] === 'danger' ? 'danger' : ($toast['type'] === 'success' ? 'success' : 'primary') }}); color:#fff; box-shadow:var(--card-shadow); border-radius:12px;">
+            @php
+                $bgColors = [
+                    'success' => '#15803d',
+                    'danger'  => '#b91c1c',
+                    'warning' => '#b45309',
+                    'info'    => '#0369a1',
+                ];
+                $bgColor = $bgColors[$toast['type']] ?? '#0B2E6D'; // Default to secondary
+            @endphp
+            <div class="toast align-items-center border-0 mb-2 animate-in" role="alert" aria-live="assertive" aria-atomic="true" style="background-color: {{ $bgColor }} !important; color: #fff; box-shadow: var(--card-shadow); border-radius: 12px; opacity: 1 !important;">
                 <div class="d-flex">
-                    <div class="toast-body d-flex align-items-center gap-2" style="font-weight: 500; font-size: 0.85rem;">
+                    <div class="toast-body d-flex align-items-center gap-2" style="font-weight: 600; font-size: 0.88rem;">
                         <i class="bi {{ $toast['icon'] }} fs-5"></i>
                         <span>{{ $toast['message'] }}</span>
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close" style="opacity: 0.8;"></button>
                 </div>
             </div>
         @endforeach

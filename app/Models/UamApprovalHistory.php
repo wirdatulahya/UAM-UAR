@@ -11,7 +11,13 @@ class UamApprovalHistory extends Model
         'status',
         'approver_name',
         'comment',
+        'user_id',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function request()
     {

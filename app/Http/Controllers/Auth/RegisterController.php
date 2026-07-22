@@ -28,6 +28,7 @@ class RegisterController extends Controller
             'username'              => ['required', 'string', 'max:255', 'unique:users,username', 'regex:/^[a-zA-Z0-9_]+$/'],
             'email'                 => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password'              => ['required', 'confirmed', Password::min(8)],
+            'role'                  => ['required', 'string', 'in:admin,pic_ao,manager,ao'],
         ], [
             'name.required'         => 'Full name is required.',
             'username.required'     => 'Username is required.',
@@ -38,6 +39,8 @@ class RegisterController extends Controller
             'password.required'     => 'Password is required.',
             'password.confirmed'    => 'Password confirmation does not match.',
             'password.min'          => 'Password must be at least 8 characters.',
+            'role.required'         => 'Role is required.',
+            'role.in'               => 'Invalid role selected.',
         ]);
 
         User::create([
@@ -45,6 +48,7 @@ class RegisterController extends Controller
             'username' => $request->username,
             'email'    => $request->email,
             'password' => Hash::make($request->password),
+            'role'     => $request->role,
         ]);
 
         return redirect()->route('login')

@@ -37,22 +37,7 @@
 <div class="d-flex" style="min-height:calc(100vh - 57px);">
 
     {{-- Sidebar --}}
-    <aside class="sidebar d-none d-lg-block" style="width:230px;flex-shrink:0;">
-
-        <div class="sidebar-section-label">Main</div>
-        <a href="{{ route('dashboard') }}" class="sidebar-nav-item">
-            <i class="bi bi-grid-fill"></i>
-            Dashboard
-        </a>
-
-        <div class="sidebar-section-label">Modules</div>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-clipboard2-check-fill"></i>
-            Access Review
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-
-    </aside>
+    <x-sidebar />
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
@@ -147,23 +132,7 @@
 @push('scripts')
 <script>
     // ── Profile Dropdown ───────────────────────────────────────────────
-    const profileBtn  = document.getElementById('profileDropdownBtn');
-    const profileMenu = document.getElementById('profileDropdownMenu');
-    const chevron     = document.getElementById('profileChevron');
-
-    profileBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        const isOpen = profileMenu.style.display === 'block';
-        profileMenu.style.display = isOpen ? 'none' : 'block';
-        if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
-        profileBtn.style.borderColor = isOpen ? 'var(--border)' : 'var(--secondary)';
-    });
-
-    document.addEventListener('click', function () {
-        profileMenu.style.display = 'none';
-        if (chevron) chevron.style.transform = '';
-        profileBtn.style.borderColor = 'var(--border)';
-    });
+    // Handled globally by Bootstrap dropdowns in app layout
 
     document.getElementById('logoutForm').addEventListener('submit', function () {
         const btn = document.getElementById('logoutBtn');

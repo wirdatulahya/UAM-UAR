@@ -220,6 +220,21 @@ class AccessMatrixController extends Controller
         }
 
         $formatted = $history->map(function($req) {
+            $acceptedBy = '-';
+            $approvedBy = '-';
+
+            if ($req->approvalHistories) {
+                $stage2History = $req->approvalHistories->where('status', 'Stage 2')->first();
+                if ($stage2History) {
+                    $acceptedBy = $stage2History->approver_name;
+                }
+
+                $finalHistory = $req->approvalHistories->whereIn('status', ['Approved', 'Return'])->first();
+                if ($finalHistory) {
+                    $approvedBy = $finalHistory->approver_name;
+                }
+            }
+
             return [
                 'id' => $req->id,
                 'version' => $req->version ?? 'V1',
@@ -227,6 +242,8 @@ class AccessMatrixController extends Controller
                 'created_at' => $req->created_at->format('d M Y, H:i'),
                 'updated_at' => $req->updated_at->format('d M Y, H:i'),
                 'requester_name' => $req->requester ? $req->requester->name : 'Unknown',
+                'accepted_by' => $acceptedBy,
+                'approved_by' => $approvedBy,
                 'view_url' => route('access-matrix.sap', ['request_id' => $req->id, 'source' => 'request'])
             ];
         });
@@ -249,22 +266,18 @@ class AccessMatrixController extends Controller
         
         // Dispatch Notifications
         if ($newStatus === 'Review' && in_array($oldStatus, ['Draft', 'Return', 'Need Revision'])) {
-            $ao = \App\Models\User::find($uamRequest->ao_id);
-            if ($ao) {
-                $ao->notify(new \App\Notifications\WorkflowNotification(
-                    'New Request to Review',
-                    "A UAM request ({$uamRequest->module}) is awaiting your review.",
-                    'bi-file-earmark-text',
-                    route('access-matrix.accept.sap', ['request_id' => $uamRequest->id])
-                ));
-            }
+            $managers = \App\Models\User::where('role', 'manager')->get();
+            \Illuminate\Support\Facades\Notification::send($managers, new \App\Notifications\UamRequestStatusUpdated(
+                $uamRequest, 
+                'submit', 
+                "A UAM request ({$uamRequest->module}) is awaiting your review."
+            ));
         } elseif (in_array($newStatus, ['Return', 'Need Revision'])) {
             if ($uamRequest->requester) {
-                $uamRequest->requester->notify(new \App\Notifications\WorkflowNotification(
-                    'Request Returned',
-                    "Your UAM request ({$uamRequest->module}) has been returned for revision.",
-                    'bi-arrow-return-left',
-                    route('access-matrix.sap', ['request_id' => $uamRequest->id, 'source' => 'request'])
+                $uamRequest->requester->notify(new \App\Notifications\UamRequestStatusUpdated(
+                    $uamRequest,
+                    'return',
+                    "Your UAM request ({$uamRequest->module}) has been returned for revision."
                 ));
             }
         }
@@ -313,6 +326,7 @@ class AccessMatrixController extends Controller
             'uam_request_id' => $uamRequest->id,
             'status'         => 'Stage 2',
             'approver_name'  => Auth::user()->name,
+            'user_id'        => Auth::id(),
             'comment'        => trim($validated['approver_comment']),
         ]);
 
@@ -322,13 +336,19 @@ class AccessMatrixController extends Controller
             'approver_comment' => trim($validated['approver_comment']),
         ]);
 
-        // Notify final approvers (Admins) or Requester
+        // Notify final approvers (AOs) and Requester
+        $aos = \App\Models\User::where('role', 'ao')->get();
+        \Illuminate\Support\Facades\Notification::send($aos, new \App\Notifications\UamRequestStatusUpdated(
+            $uamRequest,
+            'submit', // To the AO, it's essentially a new submission to their stage
+            "A UAM request ({$uamRequest->module}) has passed Stage 1 and needs your final approval."
+        ));
+
         if ($uamRequest->requester) {
-            $uamRequest->requester->notify(new \App\Notifications\WorkflowNotification(
-                'Request Approved by Manager',
-                "Your UAM request ({$uamRequest->module}) has been approved and moved to Final Approval.",
-                'bi-check2-square',
-                route('access-matrix.sap', ['request_id' => $uamRequest->id, 'source' => 'request'])
+            $uamRequest->requester->notify(new \App\Notifications\UamRequestStatusUpdated(
+                $uamRequest,
+                'approve',
+                "Your UAM request ({$uamRequest->module}) has been approved by the Manager and moved to Final Approval."
             ));
         }
 
@@ -360,6 +380,7 @@ class AccessMatrixController extends Controller
             'uam_request_id' => $uamRequest->id,
             'status'         => $overallStatus,
             'approver_name'  => Auth::user()->name,
+            'user_id'        => Auth::id(),
             'comment'        => trim($validated['approver_comment']),
         ]);
 
@@ -376,13 +397,15 @@ class AccessMatrixController extends Controller
 
         // Notify Requester
         if ($uamRequest->requester) {
-            $title = $overallStatus === 'Approved' ? 'Request Fully Approved' : 'Request Returned from Final Approval';
-            $icon = $overallStatus === 'Approved' ? 'bi-check-circle-fill' : 'bi-arrow-return-left';
-            $uamRequest->requester->notify(new \App\Notifications\WorkflowNotification(
-                $title,
-                "Your UAM request ({$uamRequest->module}) has been {$overallStatus}.",
-                $icon,
-                route('access-matrix.sap', ['request_id' => $uamRequest->id, 'source' => 'request'])
+            $actionType = $overallStatus === 'Approved' ? 'final_approve' : 'return';
+            $msg = $overallStatus === 'Approved' 
+                ? "Your UAM request ({$uamRequest->module}) has been fully approved." 
+                : "Your UAM request ({$uamRequest->module}) has been returned from Final Approval.";
+            
+            $uamRequest->requester->notify(new \App\Notifications\UamRequestStatusUpdated(
+                $uamRequest,
+                $actionType,
+                $msg
             ));
         }
 
@@ -424,6 +447,8 @@ class AccessMatrixController extends Controller
         $module     = trim($request->input('module', ''));
         $period     = trim($request->input('period', ''));
         $requestId  = $request->input('request_id');
+        $source     = $request->input('source');
+        $isApproval = $source === 'approval';
 
         $totalRecords = UamRecord::count();
 
@@ -498,7 +523,7 @@ class AccessMatrixController extends Controller
         return view('access-matrix.sap', compact(
             'roles', 'recordsMap', 'search', 'module', 'period',
             'totalRecords', 'availableModules', 'availablePeriods',
-            'requestId', 'uamRequest'
+            'requestId', 'uamRequest', 'source', 'isApproval'
         ));
     }
 
@@ -513,8 +538,8 @@ class AccessMatrixController extends Controller
 
         $baseline = UamRequest::find($request->input('request_id'));
 
-        if ($baseline->status !== 'Approved') {
-            return back()->withErrors(['request_id' => 'The selected baseline request is not approved.']);
+        if (!in_array($baseline->status, ['Approved', 'Return', 'Need Revision'])) {
+            return back()->withErrors(['request_id' => 'The selected request cannot be modified.']);
         }
 
         // Auto-increment version
@@ -1503,6 +1528,14 @@ class AccessMatrixController extends Controller
 
         // Move the request to Review status so the approver can act on it
         $uamRequest->update(['status' => 'Review']);
+
+        // Notify Managers
+        $managers = \App\Models\User::where('role', 'manager')->get();
+        \Illuminate\Support\Facades\Notification::send($managers, new \App\Notifications\UamRequestStatusUpdated(
+            $uamRequest, 
+            'submit', 
+            "A new UAM request ({$uamRequest->module}) has been submitted for your review."
+        ));
 
         return redirect()
             ->route('access-matrix.request.sap')

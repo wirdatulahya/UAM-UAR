@@ -34,42 +34,7 @@
 <div class="d-flex" style="min-height:calc(100vh - 57px);">
 
     {{-- Sidebar --}}
-    <aside class="sidebar d-none d-lg-block" style="width:230px;flex-shrink:0;">
-
-        <div class="sidebar-section-label">Main</div>
-        <a href="{{ route('dashboard') }}" class="sidebar-nav-item">
-            <i class="bi bi-grid-fill"></i>
-            Dashboard
-        </a>
-
-        <div class="sidebar-section-label">Modules</div>
-        <a href="#uamCollapse" data-bs-toggle="collapse" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : 'collapsed' }}" role="button" aria-expanded="{{ request()->routeIs('access-matrix.*') ? 'true' : 'false' }}" aria-controls="uamCollapse">
-            <i class="bi bi-table"></i>
-            <span class="d-flex align-items-center w-100">
-                User Access Matrix
-                <i class="bi bi-chevron-down ms-auto" style="font-size:.7rem; transition: transform var(--transition);"></i>
-            </span>
-        </a>
-        <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
-            <div style="padding: .25rem 0; background: var(--bg);">
-                <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Request Access Matrix
-                </a>
-                <a href="{{ route('access-matrix.uam-request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Accept
-                </a>
-                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Approval Access Matrix
-                </a>
-            </div>
-        </div>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-clipboard2-check-fill"></i>
-            Access Review
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-
-    </aside>
+    <x-sidebar />
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
@@ -322,7 +287,7 @@
                     </div>
 
                     {{-- Add Role button (top-right, only when editable) --}}
-                    @if(empty($isApproval) && (!isset($uamRequest) || !$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))))
+                    @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && empty($isApproval) && (!isset($uamRequest) || !$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))))
                         <a href="{{ route('access-matrix.create', array_filter(['request_id' => $requestId ?? null])) }}"
                            id="addRoleBtn"
                            style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.8rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(11,46,109,.18);transition:all .18s;"
@@ -540,7 +505,7 @@
                                             <td style="padding:0;border:none;border-left:1px solid #e5e7eb;vertical-align:middle;text-align:center;">
                                                 <div class="anim-wrapper" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 300ms ease-in-out,opacity 300ms ease-in-out;">
                                                     <div style="padding:.7rem 0;display:flex;justify-content:center;align-items:center;">
-                                                        @if(empty($isApproval) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
+                                                        @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && empty($isApproval) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))
                                                             <div class="dropdown">
                                                                 <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration:none;">
                                                                     <i class="bi bi-three-dots-vertical"></i>
@@ -804,7 +769,7 @@
         </div>
         @endif
         {{-- Submit Action (for Requester) --}}
-        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval))
+        @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
                 <form action="{{ route('access-matrix.submit', $uamRequest->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to submit this request for review? You will not be able to edit records after submitting.');" style="margin:0;">
                     @csrf
@@ -1025,7 +990,7 @@
                             <div style="display:flex;align-items:center;gap:.5rem;">
                                 <span id="modalOwnerCount" style="font-size:.7rem;font-weight:700;background:#166534;color:#fff;border-radius:20px;padding:.1rem .55rem;"></span>
                                 {{-- Edit toggle --}}
-                                @if((!$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))) && empty($isApproval))
+                                @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && (!$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))) && empty($isApproval))
                                 <button id="editOwnersBtn" type="button" onclick="toggleEditOwners()"
                                     style="font-size:.72rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;border:1.5px solid #166534;background:#fff;color:#166534;cursor:pointer;transition:all .15s;">
                                     <i class="bi bi-pencil-fill me-1"></i>Edit
@@ -1128,24 +1093,7 @@
 
 @push('scripts')
 <script>
-    // ── Profile Dropdown ───────────────────────────────────────────────
-    const profileBtn  = document.getElementById('profileDropdownBtn');
-    const profileMenu = document.getElementById('profileDropdownMenu');
-    const chevron     = document.getElementById('profileChevron');
-
-    profileBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        const isOpen = profileMenu.style.display === 'block';
-        profileMenu.style.display = isOpen ? 'none' : 'block';
-        chevron.style.transform   = isOpen ? '' : 'rotate(180deg)';
-        profileBtn.style.borderColor = isOpen ? 'var(--border)' : 'var(--secondary)';
-    });
-
-    document.addEventListener('click', function () {
-        profileMenu.style.display = 'none';
-        chevron.style.transform   = '';
-        profileBtn.style.borderColor = 'var(--border)';
-    });
+    // Profile Dropdown logic removed since it is now natively handled by Bootstrap.
 
     document.getElementById('logoutForm').addEventListener('submit', function () {
         const btn = document.getElementById('logoutBtn');

@@ -37,22 +37,7 @@
 <div class="d-flex" style="min-height:calc(100vh - 57px);">
 
     {{-- Sidebar --}}
-    <aside class="sidebar d-none d-lg-block" style="width:230px;flex-shrink:0;">
-
-        <div class="sidebar-section-label">Main</div>
-        <a href="{{ route('dashboard') }}" class="sidebar-nav-item">
-            <i class="bi bi-grid-fill"></i>
-            Dashboard
-        </a>
-
-        <div class="sidebar-section-label">Modules</div>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-clipboard2-check-fill"></i>
-            Access Review
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-
-    </aside>
+    <x-sidebar />
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
