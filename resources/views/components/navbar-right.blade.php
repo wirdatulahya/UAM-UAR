@@ -87,13 +87,6 @@
                 <i class="bi bi-person" style="font-size:1.05rem;"></i> My Profile
             </a>
 
-            {{-- Change Password --}}
-            <a href="{{ route('password.change') }}" class="dropdown-item"
-                style="display:flex;align-items:center;gap:.65rem;padding:.72rem 1rem;font-size:.85rem;font-weight:500;color:var(--text-muted);transition:background var(--transition);"
-                onmouseenter="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)';"
-                onmouseleave="this.style.background='none';this.style.color='var(--text-muted)';">
-                <i class="bi bi-key" style="font-size:1.05rem;"></i> Change Password
-            </a>
 
             {{-- Logout --}}
             <form id="logoutForm" action="{{ route('logout') }}" method="POST" style="margin:0;">

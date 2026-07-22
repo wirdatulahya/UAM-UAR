@@ -21,6 +21,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'nik',
         'username',
         'email',
         'password',
@@ -28,6 +29,10 @@ class User extends Authenticatable
         'role',
         'job_title',
         'position',
+        'phone_number',
+        'department',
+        'division',
+        'account_status',
     ];
 
     public function isAdmin(): bool

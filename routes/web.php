@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Auth\ChangePasswordController;
+
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AccessMatrixController;
 use Illuminate\Support\Facades\Route;
@@ -96,15 +96,14 @@ Route::middleware('auth')->group(function () {
 
     // Profile Settings
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profile/update', [\App\Http\Controllers\ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/photo', [\App\Http\Controllers\ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
 
     // Notifications
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/mark-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all');
 
-    // Change Password
-    Route::get('/change-password', [ChangePasswordController::class, 'showChangePasswordForm'])->name('password.change');
-    Route::post('/change-password', [ChangePasswordController::class, 'changePassword'])->name('password.update');
 
     /*
     |--------------------------------------------------------------------------

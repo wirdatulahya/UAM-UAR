@@ -13,7 +13,71 @@ class ProfileController extends Controller
      */
     public function index()
     {
-        return view('profile.index');
+        $user = Auth::user();
+
+        // Calculate Activity Summary
+        $requestsSubmitted = \App\Models\UamRequest::where('requested_by', $user->id)->count();
+        $requestsApproved = \App\Models\UamApprovalHistory::where('user_id', $user->id)->where('status', 'Approved')->count();
+        $requestsReturned = \App\Models\UamApprovalHistory::where('user_id', $user->id)->where('status', 'Return')->count();
+
+        // Last activity from approval history or request creation
+        $lastApprovalActivity = \App\Models\UamApprovalHistory::where('user_id', $user->id)->max('created_at');
+        $lastRequestActivity = \App\Models\UamRequest::where('requested_by', $user->id)->max('created_at');
+        $lastActivity = max($lastApprovalActivity, $lastRequestActivity);
+
+        return view('profile.index', compact(
+            'requestsSubmitted',
+            'requestsApproved',
+            'requestsReturned',
+            'lastActivity'
+        ));
+    }
+
+    /**
+     * Update the user's profile information and password.
+     */
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'nik' => ['nullable', 'string', 'max:255'],
+            'department' => ['nullable', 'string', 'max:255'],
+            'division' => ['nullable', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'max:255'],
+            'phone_number' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user = Auth::user();
+        
+        $updates = [
+            'name' => $request->name,
+            'nik' => $request->nik,
+            'department' => $request->department,
+            'division' => $request->division,
+            'position' => $request->position,
+            'phone_number' => $request->phone_number,
+        ];
+
+        $user->update($updates);
+
+        return redirect()->back()->with('success', 'Profile updated successfully.');
+    }
+
+    /**
+     * Update the user's password from the profile page.
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = Auth::user();
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+        $user->save();
+
+        return redirect()->back()->with('success', 'Password updated successfully.');
     }
 
     /**
