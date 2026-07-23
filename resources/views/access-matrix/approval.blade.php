@@ -247,7 +247,7 @@
                                                     <i class="bi bi-eye"></i> View Records
                                                 </a>
                                             </li>
-                                            @if($req->status !== 'Draft')
+                                            @if($req->status === 'Approved')
                                             <li>
                                                 <a class="dropdown-item" href="{{ route('access-matrix.download-excel', $req->id) }}" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;">
                                                     <i class="bi bi-file-earmark-excel"></i> Download Excel
@@ -259,11 +259,13 @@
                                                 </a>
                                             </li>
                                             @endif
+                                            @if($req->status !== 'Draft')
                                             <li>
                                                 <button type="button" class="dropdown-item" onclick="openVersionHistoryModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--secondary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">
                                                     <i class="bi bi-clock-history"></i> Version History
                                                 </button>
                                             </li>
+                                            @endif
                                             @if(in_array($req->status, ['Return', 'Need Revision', 'Approved']))
                                             <li>
                                                 <button type="button" class="dropdown-item" onclick="openCopyBaselineModal({{ $req->id }}, '{{ htmlspecialchars($req->application) }}', '{{ htmlspecialchars($req->version ?: 'V1') }}')" style="font-size:.85rem;display:flex;align-items:center;gap:.5rem;color:var(--primary);padding:.5rem 1.25rem;width:100%;text-align:left;border:none;background:transparent;outline:none;box-shadow:none;">

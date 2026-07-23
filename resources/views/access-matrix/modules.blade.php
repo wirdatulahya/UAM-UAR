@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'User Access Matrix Modules')
+@section('title', 'User Access Matrix Application')
 
 @push('styles')
 <style>
@@ -97,10 +97,10 @@
         <div class="mb-4 animate-in">
             <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
                 <i class="bi bi-table me-2" style="color:var(--primary);"></i>
-                {{ $type === 'request' ? 'Request Access Matrix Modules' : ($type === 'accept' ? 'Accept Modules' : 'Approval Access Matrix Modules') }}
+                {{ $type === 'request' ? 'Request Access Matrix Application' : ($type === 'accept' ? 'Accept Application' : 'Approval Access Matrix Application') }}
             </h1>
             <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                Select a target system module to {{ $type === 'request' ? 'submit and manage requests' : ($type === 'accept' ? 'review TCODEs for' : 'provide final approvals for') }}.
+                Select a target application to {{ $type === 'request' ? 'submit and manage requests' : ($type === 'accept' ? 'review TCODEs for' : 'provide final approvals for') }}.
             </p>
         </div>
 

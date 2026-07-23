@@ -85,15 +85,17 @@
                         ];
                     }
                     
-                    // Combine TCODEs
-                    $tcodes = preg_split('/[\s,]+/', $rec->tcode, -1, PREG_SPLIT_NO_EMPTY);
-                    foreach($tcodes as $tc) {
-                        if(!in_array($tc, $groupedRecords[$roleKey]['tcodes'])) {
-                            $groupedRecords[$roleKey]['tcodes'][] = $tc;
+                    if ($rec->change_type !== 'Deleted') {
+                        // Combine TCODEs
+                        $tcodes = preg_split('/[\s,]+/', $rec->tcode, -1, PREG_SPLIT_NO_EMPTY);
+                        foreach($tcodes as $tc) {
+                            if(!in_array($tc, $groupedRecords[$roleKey]['tcodes'])) {
+                                $groupedRecords[$roleKey]['tcodes'][] = $tc;
+                            }
                         }
                     }
                     
-                    // Change Details
+                    // Change Details (Should run for all records, even Deleted)
                     if(isset($changeDetailsMap) && isset($changeDetailsMap[$rec->id])) {
                         foreach($changeDetailsMap[$rec->id] as $detail) {
                             if(!in_array($detail, $groupedRecords[$roleKey]['changeDetails'])) {
@@ -102,26 +104,28 @@
                         }
                     }
 
-                    // Build Hierarchy
-                    if (is_array($rec->matrix_data) && !empty($rec->matrix_data)) {
-                        foreach ($rec->matrix_data as $unit => $bpos) {
-                            foreach ($bpos as $bpo => $ownersList) {
-                                $bpoName = trim($bpo);
-                                $unitName = trim($unit);
-                                
-                                if ($bpoName !== '') {
-                                    if (!isset($groupedRecords[$roleKey]['bpoHierarchy'][$bpoName])) {
-                                        $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName] = [];
-                                    }
-                                    if ($unitName !== '') {
-                                        if (!isset($groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName])) {
-                                            $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName] = [];
+                    if ($rec->change_type !== 'Deleted') {
+                        // Build Hierarchy
+                        if (is_array($rec->matrix_data) && !empty($rec->matrix_data)) {
+                            foreach ($rec->matrix_data as $unit => $bpos) {
+                                foreach ($bpos as $bpo => $ownersList) {
+                                    $bpoName = trim($bpo);
+                                    $unitName = trim($unit);
+                                    
+                                    if ($bpoName !== '') {
+                                        if (!isset($groupedRecords[$roleKey]['bpoHierarchy'][$bpoName])) {
+                                            $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName] = [];
                                         }
-                                        foreach ($ownersList as $owner) {
-                                            $ownerName = trim($owner);
-                                            if ($ownerName !== '') {
-                                                if(!in_array($ownerName, $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName])) {
-                                                    $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName][] = $ownerName;
+                                        if ($unitName !== '') {
+                                            if (!isset($groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName])) {
+                                                $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName] = [];
+                                            }
+                                            foreach ($ownersList as $owner) {
+                                                $ownerName = trim($owner);
+                                                if ($ownerName !== '') {
+                                                    if(!in_array($ownerName, $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName])) {
+                                                        $groupedRecords[$roleKey]['bpoHierarchy'][$bpoName][$unitName][] = $ownerName;
+                                                    }
                                                 }
                                             }
                                         }
@@ -187,7 +191,11 @@
                             @if(count($group['changeDetails']) > 0)
                                 <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
                                     @foreach($group['changeDetails'] as $detail)
-                                        <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                        @if($detail === 'Deleted Role')
+                                            <li style="margin-bottom: 2px; color: #6b7280; font-style: italic;">{{ $detail }}</li>
+                                        @else
+                                            <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                        @endif
                                     @endforeach
                                 </ul>
                             @else
@@ -334,7 +342,11 @@
                                             @if(count($group['changeDetails']) > 0)
                                                 <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
                                                     @foreach($group['changeDetails'] as $detail)
-                                                        <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                                        @if($detail === 'Deleted Role')
+                                                            <li style="margin-bottom: 2px; color: #6b7280; font-style: italic;">{{ $detail }}</li>
+                                                        @else
+                                                            <li style="margin-bottom: 2px;">{{ $detail }}</li>
+                                                        @endif
                                                     @endforeach
                                                 </ul>
                                             @else

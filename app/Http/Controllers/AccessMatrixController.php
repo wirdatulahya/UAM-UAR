@@ -215,6 +215,7 @@ class AccessMatrixController extends Controller
         if ($uamRequest->group_id) {
             $history = UamRequest::with('requester', 'approvalHistories')
                 ->where('group_id', $uamRequest->group_id)
+                ->where('status', '!=', 'Draft')
                 ->orderBy('created_at', 'desc')
                 ->get();
         }
@@ -1206,7 +1207,19 @@ class AccessMatrixController extends Controller
             $validated['change_type'] = 'Modified';
         }
 
+        // Update BPO, Unit, and Access Owner on the specific record
         $uamRecord->update($validated);
+
+        // Update Tcode and Description Role across ALL records of the same Role in this Request
+        if ($uamRecord->request_id) {
+            \App\Models\UamRecord::where('request_id', $uamRecord->request_id)
+                ->where('role', $uamRecord->role)
+                ->update([
+                    'tcode' => $validated['tcode'] ?? null,
+                    'description_role' => $validated['description_role'] ?? null,
+                    'change_type' => \Illuminate\Support\Facades\DB::raw("IF(change_type = 'Added', 'Added', 'Modified')")
+                ]);
+        }
 
         $redirectParams = [];
         if ($uamRecord->request_id) {
@@ -1383,9 +1396,6 @@ class AccessMatrixController extends Controller
         }
 
         $query = UamRecord::where('role', $role);
-        if ($tcode !== '') {
-            $query->where('tcode', $tcode);
-        }
         if ($requestId) {
             $query->where('request_id', $requestId);
         }
@@ -1393,7 +1403,7 @@ class AccessMatrixController extends Controller
         $records = $query->orderBy('id', 'desc')->get();
 
         if ($records->isEmpty()) {
-            return response()->json(['error' => "No records found for role \"{$role}\" / TCODE \"{$tcode}\"."], 404);
+            return response()->json(['error' => "No records found for role \"{$role}\"."], 404);
         }
 
         // Build hierarchy exactly as PDF export does (BPO -> Unit -> Owners)
@@ -1497,7 +1507,6 @@ class AccessMatrixController extends Controller
 
         // Build query
         $query = UamRecord::where('role', $role);
-        if ($tcode !== '') $query->where('tcode', $tcode);
         if (!empty($recordIds)) $query->whereIn('id', $recordIds);
 
         $records = $query->get();
@@ -1701,44 +1710,85 @@ class AccessMatrixController extends Controller
                 ->first();
 
             if ($baselineRequest) {
-                $baselineRecords = UamRecord::where('request_id', $baselineRequest->id)->get()->keyBy('role');
+                $baselineRecords = UamRecord::where('request_id', $baselineRequest->id)->get()->groupBy('role');
+                $currentRecordsByRole = $records->groupBy('role');
+                $roleChangeDetails = [];
 
-                foreach ($records as $record) {
-                    $details = [];
-                    if ($record->change_type === 'Added') {
-                        if ($baselineRecords->has($record->role)) {
-                            $details[] = "New TCODE Added: {$record->tcode}";
-                        } else {
-                            $details[] = "New Role Added: {$record->role}";
-                        }
-                    } elseif ($record->change_type === 'Modified' && $baselineRecords->has($record->role)) {
-                        $baseRecord    = $baselineRecords[$record->role];
-                        $baseTcodes    = array_filter(array_map('trim', explode(',', $baseRecord->tcode)));
-                        $currTcodes    = array_filter(array_map('trim', explode(',', $record->tcode)));
-                        $addedTcodes   = array_diff($currTcodes, $baseTcodes);
-                        $removedTcodes = array_diff($baseTcodes, $currTcodes);
-                        foreach ($addedTcodes   as $add) { $details[] = "TCODE Added: {$add}"; }
-                        foreach ($removedTcodes as $rem) { $details[] = "TCODE Removed: {$rem}"; }
-                        if (trim($record->bpo)  !== trim($baseRecord->bpo))  { $details[] = 'BPO Changed'; }
-                        if (trim($record->unit) !== trim($baseRecord->unit)) { $details[] = 'Unit Changed'; }
-                        $getOwners = function($matrix) {
-                            $owners = [];
-                            if (is_array($matrix)) {
-                                foreach ($matrix as $bpos) {
-                                    foreach ($bpos as $ownerList) {
-                                        foreach ($ownerList as $o) {
-                                            $oName = trim($o);
-                                            if ($oName !== '' && !in_array($oName, $owners)) { $owners[] = $oName; }
-                                        }
+                $getOwners = function($matrix) {
+                    $owners = [];
+                    if (is_array($matrix)) {
+                        foreach ($matrix as $bpos) {
+                            foreach ($bpos as $ownerList) {
+                                foreach ($ownerList as $o) {
+                                    $oName = trim($o);
+                                    if ($oName !== '' && !in_array($oName, $owners)) {
+                                        $owners[] = $oName;
                                     }
                                 }
                             }
-                            return $owners;
-                        };
-                        foreach (array_diff($getOwners($record->matrix_data), $getOwners($baseRecord->matrix_data)) as $a) { $details[] = "Added Application Owner: {$a}"; }
-                        foreach (array_diff($getOwners($baseRecord->matrix_data), $getOwners($record->matrix_data)) as $r) { $details[] = "Removed Application Owner: {$r}"; }
+                        }
                     }
-                    $changeDetailsMap[$record->id] = $details;
+                    return $owners;
+                };
+
+                foreach ($currentRecordsByRole as $role => $currRows) {
+                    $details = [];
+                    
+                    $activeCurrRows = $currRows->filter(function($r) { return $r->change_type !== 'Deleted'; });
+                    
+                    if (!$baselineRecords->has($role)) {
+                        $details[] = "New Role Added: {$role}";
+                    } elseif ($activeCurrRows->isEmpty()) {
+                        $details[] = "Deleted Role";
+                    } else {
+                        $baseRows = $baselineRecords[$role];
+                        
+                        $baseTcodes = [];
+                        foreach ($baseRows as $br) {
+                            $baseTcodes = array_merge($baseTcodes, array_filter(array_map('trim', preg_split('/[\s,]+/', $br->tcode, -1, PREG_SPLIT_NO_EMPTY))));
+                        }
+                        $baseTcodes = array_unique($baseTcodes);
+                        
+                        $currTcodes = [];
+                        foreach ($currRows as $cr) {
+                            $currTcodes = array_merge($currTcodes, array_filter(array_map('trim', preg_split('/[\s,]+/', $cr->tcode, -1, PREG_SPLIT_NO_EMPTY))));
+                        }
+                        $currTcodes = array_unique($currTcodes);
+                        
+                        $addedTcodes = array_diff($currTcodes, $baseTcodes);
+                        $removedTcodes = array_diff($baseTcodes, $currTcodes);
+                        
+                        foreach($addedTcodes as $add) { $details[] = "TCODE Added: {$add}"; }
+                        foreach($removedTcodes as $rem) { $details[] = "TCODE Removed: {$rem}"; }
+                        
+                        $baseOwners = [];
+                        foreach ($baseRows as $br) {
+                            $baseOwners = array_merge($baseOwners, $getOwners($br->matrix_data));
+                        }
+                        $baseOwners = array_unique($baseOwners);
+                        
+                        $currOwners = [];
+                        foreach ($currRows as $cr) {
+                            $currOwners = array_merge($currOwners, $getOwners($cr->matrix_data));
+                        }
+                        $currOwners = array_unique($currOwners);
+                        
+                        $addedOwners = array_diff($currOwners, $baseOwners);
+                        $removedOwners = array_diff($baseOwners, $currOwners);
+                        
+                        foreach ($addedOwners as $a) { $details[] = "Added User: {$a}"; }
+                        foreach ($removedOwners as $r) { $details[] = "Removed User: {$r}"; }
+                        
+                        // Role Modified text removed as per user request
+                        // if (count($addedTcodes) > 0 || count($removedTcodes) > 0 || count($addedOwners) > 0 || count($removedOwners) > 0) {
+                        //     array_unshift($details, "Role Modified: {$role}");
+                        // }
+                    }
+                    $roleChangeDetails[$role] = $details;
+                }
+                
+                foreach ($records as $record) {
+                    $changeDetailsMap[$record->id] = $roleChangeDetails[$record->role] ?? [];
                 }
             }
         }
@@ -1747,7 +1797,7 @@ class AccessMatrixController extends Controller
         $row = 5;
         foreach ($records as $record) {
             $tcodes = preg_split('/[\s,]+/', $record->tcode, -1, PREG_SPLIT_NO_EMPTY);
-            if (empty($tcodes)) $tcodes = [''];
+            if (empty($tcodes) || $record->change_type === 'Deleted') $tcodes = [''];
 
             $matrix = is_array($record->matrix_data) ? $record->matrix_data : [];
             if (empty($matrix)) {
@@ -1765,12 +1815,14 @@ class AccessMatrixController extends Controller
                 $sheet->setCellValue('C' . $row, $tcode);
 
                 // Mark '1' for granted access
-                foreach ($matrix as $unit => $bpos) {
-                    foreach ($bpos as $bpo => $owners) {
-                        foreach ($owners as $owner) {
-                            if (isset($ownerColumns[$bpo][$unit][$owner])) {
-                                $col = $ownerColumns[$bpo][$unit][$owner];
-                                $sheet->setCellValue($coord::stringFromColumnIndex($col) . $row, '1');
+                if ($record->change_type !== 'Deleted') {
+                    foreach ($matrix as $unit => $bpos) {
+                        foreach ($bpos as $bpo => $owners) {
+                            foreach ($owners as $owner) {
+                                if (isset($ownerColumns[$bpo][$unit][$owner])) {
+                                    $col = $ownerColumns[$bpo][$unit][$owner];
+                                    $sheet->setCellValue($coord::stringFromColumnIndex($col) . $row, '1');
+                                }
                             }
                         }
                     }
@@ -1780,6 +1832,11 @@ class AccessMatrixController extends Controller
                 $sheet->setCellValue($coord::stringFromColumnIndex($changeTypeColIndex)    . $row, $record->change_type);
                 $changeDetails = isset($changeDetailsMap[$record->id]) ? implode("\n", $changeDetailsMap[$record->id]) : '';
                 $sheet->setCellValue($coord::stringFromColumnIndex($changeDetailsColIndex) . $row, $changeDetails);
+                
+                if (in_array('Deleted Role', $changeDetailsMap[$record->id] ?? [])) {
+                    $sheet->getStyle($coord::stringFromColumnIndex($changeDetailsColIndex) . $row)->getFont()->setItalic(true)->getColor()->setARGB('FF6B7280');
+                }
+                
                 $row++;
             }
         }
@@ -1980,72 +2037,85 @@ class AccessMatrixController extends Controller
                 ->first();
 
             if ($baselineRequest) {
-                $baselineRecords = UamRecord::where('request_id', $baselineRequest->id)->get()->keyBy('role');
+                $baselineRecords = UamRecord::where('request_id', $baselineRequest->id)->get()->groupBy('role');
+                $currentRecordsByRole = $records->groupBy('role');
+                $roleChangeDetails = [];
 
-                foreach ($records as $record) {
-                    $details = [];
-                    if ($record->change_type === 'Added') {
-                        if ($baselineRecords->has($record->role)) {
-                            $details[] = "New TCODE Added: {$record->tcode}";
-                        } else {
-                            $details[] = "New Role Added: {$record->role}";
+                $getOwners = function($matrix) {
+                    $owners = [];
+                    if (is_array($matrix)) {
+                        foreach ($matrix as $bpos) {
+                            foreach ($bpos as $ownerList) {
+                                foreach ($ownerList as $o) {
+                                    $oName = trim($o);
+                                    if ($oName !== '' && !in_array($oName, $owners)) {
+                                        $owners[] = $oName;
+                                    }
+                                }
+                            }
                         }
-                    } elseif ($record->change_type === 'Modified' && $baselineRecords->has($record->role)) {
-                        $details[] = "Role Modified: {$record->role}";
-                        $baseRecord = $baselineRecords[$record->role];
+                    }
+                    return $owners;
+                };
+
+                foreach ($currentRecordsByRole as $role => $currRows) {
+                    $details = [];
+                    
+                    $activeCurrRows = $currRows->filter(function($r) { return $r->change_type !== 'Deleted'; });
+                    
+                    if (!$baselineRecords->has($role)) {
+                        $details[] = "New Role Added: {$role}";
+                    } elseif ($activeCurrRows->isEmpty()) {
+                        $details[] = "Deleted Role";
+                    } else {
+                        $baseRows = $baselineRecords[$role];
                         
-                        $baseTcodes = array_filter(array_map('trim', explode(',', $baseRecord->tcode)));
-                        $currTcodes = array_filter(array_map('trim', explode(',', $record->tcode)));
+                        $baseTcodes = [];
+                        foreach ($baseRows as $br) {
+                            $baseTcodes = array_merge($baseTcodes, array_filter(array_map('trim', preg_split('/[\s,]+/', $br->tcode, -1, PREG_SPLIT_NO_EMPTY))));
+                        }
+                        $baseTcodes = array_unique($baseTcodes);
+                        
+                        $currTcodes = [];
+                        foreach ($currRows as $cr) {
+                            $currTcodes = array_merge($currTcodes, array_filter(array_map('trim', preg_split('/[\s,]+/', $cr->tcode, -1, PREG_SPLIT_NO_EMPTY))));
+                        }
+                        $currTcodes = array_unique($currTcodes);
                         
                         $addedTcodes = array_diff($currTcodes, $baseTcodes);
                         $removedTcodes = array_diff($baseTcodes, $currTcodes);
                         
-                        foreach($addedTcodes as $add) {
-                            $details[] = "TCODE Added: {$add}";
-                        }
-                        foreach($removedTcodes as $rem) {
-                            $details[] = "TCODE Removed: {$rem}";
-                        }
+                        foreach($addedTcodes as $add) { $details[] = "TCODE Added: {$add}"; }
+                        foreach($removedTcodes as $rem) { $details[] = "TCODE Removed: {$rem}"; }
                         
-                        if (trim($record->bpo) !== trim($baseRecord->bpo)) {
-                            $details[] = 'BPO Changed';
+                        $baseOwners = [];
+                        foreach ($baseRows as $br) {
+                            $baseOwners = array_merge($baseOwners, $getOwners($br->matrix_data));
                         }
-                        if (trim($record->unit) !== trim($baseRecord->unit)) {
-                            $details[] = 'Unit Changed';
-                        }
+                        $baseOwners = array_unique($baseOwners);
                         
-                        // Compare owners
-                        $getOwners = function($matrix) {
-                            $owners = [];
-                            if (is_array($matrix)) {
-                                foreach ($matrix as $bpos) {
-                                    foreach ($bpos as $ownerList) {
-                                        foreach ($ownerList as $o) {
-                                            $oName = trim($o);
-                                            if ($oName !== '' && !in_array($oName, $owners)) {
-                                                $owners[] = $oName;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            return $owners;
-                        };
-
-                        $baseOwners = $getOwners($baseRecord->matrix_data);
-                        $currOwners = $getOwners($record->matrix_data);
-
-                        $added = array_diff($currOwners, $baseOwners);
-                        $removed = array_diff($baseOwners, $currOwners);
-
-                        foreach ($added as $a) {
-                            $details[] = "Added Application Owner: {$a}";
+                        $currOwners = [];
+                        foreach ($currRows as $cr) {
+                            $currOwners = array_merge($currOwners, $getOwners($cr->matrix_data));
                         }
-                        foreach ($removed as $r) {
-                            $details[] = "Removed Application Owner: {$r}";
-                        }
+                        $currOwners = array_unique($currOwners);
+                        
+                        $addedOwners = array_diff($currOwners, $baseOwners);
+                        $removedOwners = array_diff($baseOwners, $currOwners);
+                        
+                        foreach ($addedOwners as $a) { $details[] = "Added User: {$a}"; }
+                        foreach ($removedOwners as $r) { $details[] = "Removed User: {$r}"; }
+                        
+                        // Role Modified text removed as per user request
+                        // if (count($addedTcodes) > 0 || count($removedTcodes) > 0 || count($addedOwners) > 0 || count($removedOwners) > 0) {
+                        //     array_unshift($details, "Role Modified: {$role}");
+                        // }
                     }
-                    $changeDetailsMap[$record->id] = $details;
+                    $roleChangeDetails[$role] = $details;
+                }
+                
+                foreach ($records as $record) {
+                    $changeDetailsMap[$record->id] = $roleChangeDetails[$record->role] ?? [];
                 }
             }
         }
