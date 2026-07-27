@@ -67,17 +67,23 @@ Route::middleware('auth')->group(function () {
     });
 
     // ── Accept Module (Manager) ────────────────────────────────────────────────
-    Route::middleware(['role:manager'])->group(function () {
+    Route::middleware(['role:manager,admin'])->group(function () {
         Route::get('/access-matrix/uam-request', [AccessMatrixController::class, 'acceptModules'])->name('access-matrix.uam-request.index');
         Route::get('/access-matrix/uam-request/sap', [AccessMatrixController::class, 'uamRequestList'])->name('access-matrix.uam-request.sap');
+    });
+
+    Route::middleware(['role:manager'])->group(function () {
         Route::post('/access-matrix/approval/{uamRequest}/status', [AccessMatrixController::class, 'updateRequestStatus'])->name('access-matrix.update-status');
         Route::post('/access-matrix/approval/{uamRequest}/decide', [AccessMatrixController::class, 'approveDecision'])->name('access-matrix.approve-decision');
     });
 
     // ── Approval Matrix Module (AO / Final Approver) ───────────────────────────
-    Route::middleware(['role:ao'])->group(function () {
+    Route::middleware(['role:ao,admin'])->group(function () {
         Route::get('/access-matrix/approval', [AccessMatrixController::class, 'approvalLanding'])->name('access-matrix.approval.index');
         Route::get('/access-matrix/approval/sap', [AccessMatrixController::class, 'approvalList'])->name('access-matrix.approval.sap');
+    });
+
+    Route::middleware(['role:ao'])->group(function () {
         Route::post('/access-matrix/approval/{uamRequest}/final-decide', [AccessMatrixController::class, 'finalApproveDecision'])->name('access-matrix.final-decide');
     });
 
@@ -89,6 +95,7 @@ Route::middleware('auth')->group(function () {
     // ── Shared Actions (All Roles) ─────────────────────────────────────────────
     Route::get('/access-matrix/request/{uamRequest}/download-excel', [AccessMatrixController::class, 'downloadExcel'])->name('access-matrix.download-excel');
     Route::get('/access-matrix/request/{uamRequest}/download-pdf', [AccessMatrixController::class, 'downloadPdf'])->name('access-matrix.download-pdf');
+    Route::get('/access-matrix/request/{uamRequest}/preview-pdf', [AccessMatrixController::class, 'previewPdf'])->name('access-matrix.preview-pdf');
     Route::get('/access-matrix/request/{uamRequest}/history', [AccessMatrixController::class, 'versionHistory'])->name('access-matrix.history');
     Route::get('/access-matrix/request/{uamRequest}/matrix-map', [AccessMatrixController::class, 'getMatrixMap'])->name('access-matrix.matrix-map');
     Route::get('/access-matrix/sap', [AccessMatrixController::class, 'sap'])->name('access-matrix.sap');

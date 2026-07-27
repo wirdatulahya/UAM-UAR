@@ -99,11 +99,12 @@ class AccessMatrixController extends Controller
         $availableApplications = UamRequest::distinct()->orderBy('application')->pluck('application');
         $availableYears        = UamRequest::distinct()->orderByDesc('year')->pluck('year');
         $availablePeriods      = UamRequest::distinct()->orderBy('period')->pluck('period');
+        $availableModules      = UamRequest::whereNotNull('module')->where('module', '!=', '')->distinct()->orderBy('module')->pluck('module');
 
         return view('access-matrix.approval', compact(
             'requests',
             'filterApplication', 'filterYear', 'filterPeriod', 'search',
-            'availableApplications', 'availableYears', 'availablePeriods'
+            'availableApplications', 'availableYears', 'availablePeriods', 'availableModules'
         ));
     }
 
@@ -263,11 +264,20 @@ class AccessMatrixController extends Controller
 
         $newStatus = $request->input('status');
         $oldStatus = $uamRequest->status;
+
+        if ($oldStatus === $newStatus) {
+            if ($request->ajax()) {
+                return response()->json(['success' => true, 'status' => $uamRequest->status]);
+            }
+            return redirect()->back()->with('success', 'Status updated successfully.');
+        }
+
         $uamRequest->update(['status' => $newStatus]);
         
         // Dispatch Notifications
         if ($newStatus === 'Review' && in_array($oldStatus, ['Draft', 'Return', 'Need Revision'])) {
-            $managers = \App\Models\User::where('role', 'manager')->get();
+            $department = $uamRequest->requester->department ?? '';
+            $managers = \App\Models\User::where('role', 'manager')->where('department', $department)->get();
             \Illuminate\Support\Facades\Notification::send($managers, new \App\Notifications\UamRequestStatusUpdated(
                 $uamRequest, 
                 'submit', 
@@ -295,6 +305,12 @@ class AccessMatrixController extends Controller
     // ────────────────────────────────────────────────────────────────────────
     public function approveDecision(Request $request, UamRequest $uamRequest)
     {
+        if ($uamRequest->status === 'Stage 2') {
+            return redirect()
+                ->route('access-matrix.uam-request.sap')
+                ->with('success', "Request \"{$uamRequest->module}\" has already been reviewed.");
+        }
+
         $validated = $request->validate([
             'decisions'        => ['required', 'array'],
             'decisions.*'      => ['required', 'in:Approved,Return'],
@@ -337,21 +353,17 @@ class AccessMatrixController extends Controller
             'approver_comment' => trim($validated['approver_comment']),
         ]);
 
-        // Notify final approvers (AOs) and Requester
-        $aos = \App\Models\User::where('role', 'ao')->get();
+        // Notify final approvers (AOs) - based on requester's department
+        $department = $uamRequest->requester->department ?? '';
+        $aos = \App\Models\User::where('role', 'ao')->where('department', $department)->get();
+        
         \Illuminate\Support\Facades\Notification::send($aos, new \App\Notifications\UamRequestStatusUpdated(
             $uamRequest,
             'submit', // To the AO, it's essentially a new submission to their stage
             "A UAM request ({$uamRequest->module}) has passed Stage 1 and needs your final approval."
         ));
 
-        if ($uamRequest->requester) {
-            $uamRequest->requester->notify(new \App\Notifications\UamRequestStatusUpdated(
-                $uamRequest,
-                'approve',
-                "Your UAM request ({$uamRequest->module}) has been approved by the Manager and moved to Final Approval."
-            ));
-        }
+        // Note: Removed Requester notification here per requirement (Notify AO only on Stage 2)
 
         return redirect()
             ->route('access-matrix.uam-request.sap')
@@ -368,14 +380,26 @@ class AccessMatrixController extends Controller
             'approver_comment' => ['required', 'string', 'max:2000'],
         ]);
 
+        $overallStatus = $validated['overall_decision'];
+
+        if (in_array($uamRequest->status, ['Approved', 'Done'])) {
+            return redirect()
+                ->route('access-matrix.approval.sap')
+                ->with('success', "Request already fully approved.");
+        }
+
+        if ($uamRequest->status === $overallStatus) {
+            return redirect()
+                ->route('access-matrix.approval.sap')
+                ->with('success', "Request already processed.");
+        }
+
         $wordCount = str_word_count(trim($validated['approver_comment']));
         if ($wordCount < 3) {
             return redirect()->back()
                 ->withErrors(['approver_comment' => 'Comment must contain at least 3 words.'])
                 ->withInput();
         }
-
-        $overallStatus = $validated['overall_decision'];
 
         UamApprovalHistory::create([
             'uam_request_id' => $uamRequest->id,
@@ -396,7 +420,7 @@ class AccessMatrixController extends Controller
 
         $uamRequest->update($updateData);
 
-        // Notify Requester
+        // Notify Requester (PIC AO) and Manager on Final Approval
         if ($uamRequest->requester) {
             $actionType = $overallStatus === 'Approved' ? 'final_approve' : 'return';
             $msg = $overallStatus === 'Approved' 
@@ -408,6 +432,16 @@ class AccessMatrixController extends Controller
                 $actionType,
                 $msg
             ));
+
+            if ($overallStatus === 'Approved') {
+                $department = $uamRequest->requester->department ?? '';
+                $managers = \App\Models\User::where('role', 'manager')->where('department', $department)->get();
+                \Illuminate\Support\Facades\Notification::send($managers, new \App\Notifications\UamRequestStatusUpdated(
+                    $uamRequest,
+                    'final_approve',
+                    "A UAM request ({$uamRequest->module}) from your department has been fully approved."
+                ));
+            }
         }
 
         $label = $overallStatus === 'Approved' ? 'approved' : 'returned for revision';
@@ -423,13 +457,14 @@ class AccessMatrixController extends Controller
     public function autoSaveDecision(Request $request, UamRequest $uamRequest)
     {
         $validated = $request->validate([
-            'record_id'        => ['nullable', 'integer'],
+            'record_ids'       => ['nullable', 'array'],
+            'record_ids.*'     => ['integer'],
             'decision'         => ['nullable', 'in:Approved,Return'],
             'approver_comment' => ['nullable', 'string'],
         ]);
 
-        if ($request->has('record_id') && $request->has('decision')) {
-            $uamRequest->records()->where('id', $validated['record_id'])->update(['status' => $validated['decision']]);
+        if ($request->has('record_ids') && $request->has('decision')) {
+            $uamRequest->records()->whereIn('id', $validated['record_ids'])->update(['status' => $validated['decision']]);
         }
 
         if ($request->has('approver_comment')) {
@@ -600,6 +635,7 @@ class AccessMatrixController extends Controller
     {
         $request->validate([
             'application' => ['required', 'string', 'max:255'],
+            'module'      => ['required', 'string', 'max:255'],
             'year'        => ['required', 'integer', 'min:2026', 'max:9999'],
             'period'      => ['required', 'string', 'in:Q1,Q2,Q3'],
             'file'        => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
@@ -614,6 +650,7 @@ class AccessMatrixController extends Controller
         $fileName  = $file->getClientOriginalName();
         
         $application = $request->input('application');
+        $module      = $request->input('module');
         $year        = $request->input('year');
         $period      = $request->input('period');
 
@@ -783,7 +820,6 @@ class AccessMatrixController extends Controller
         }
 
         // ── 3b. Extract Metadata automatically from the top rows ──────────────────
-        $extractedModul = null;
         $extractedApplication = null;
         $extractedPeriod = null;
         $extractedYear = null;
@@ -828,14 +864,7 @@ class AccessMatrixController extends Controller
                     }
                 }
 
-                // Modul
-                if (!$extractedModul) {
-                    if (preg_match('/(modul|module)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(modul|module)\s*[:\-]\s*(.+)$/i', $str, $m)) {
-                        $extractedModul = trim($m[2]);
-                    } elseif (str_contains($lower, 'modul') || str_contains($lower, 'module')) {
-                        $extractedModul = $getValue();
-                    }
-                }
+
 
                 // Period / Bulan
                 if (!$extractedPeriod) {
@@ -856,120 +885,28 @@ class AccessMatrixController extends Controller
                 }
             }
         }
-        // --- 1. Primary Source of Truth: Known Coordinates (B3, B4, B5) ---
-        // Application (B3)
-        if (isset($raw[2])) {
-            $row3 = array_values((array)$raw[2]);
-            if (isset($row3[1]) && trim((string)$row3[1]) !== '') {
-                $val = preg_replace('/^[\s:\-=]+/', '', trim((string)$row3[1]));
-                $extractedApplication = preg_replace('/^(aplikasi|application|app|system|sistem|platform)\s*[:\-]?\s*/i', '', $val);
-            }
-        }
-        // Modul (B4)
-        if (isset($raw[3])) {
-            $row4 = array_values((array)$raw[3]);
-            if (isset($row4[1]) && trim((string)$row4[1]) !== '') {
-                $val = preg_replace('/^[\s:\-=]+/', '', trim((string)$row4[1]));
-                $extractedModul = preg_replace('/^(modul|module|aplikasi|application|app|system|sistem)\s*[:\-]?\s*/i', '', $val);
-            }
-        }
-        // AO (B5)
-        if (isset($raw[4])) {
-            $row5 = array_values((array)$raw[4]);
-            if (isset($row5[1]) && trim((string)$row5[1]) !== '') {
-                $val = preg_replace('/^[\s:\-=]+/', '', trim((string)$row5[1]));
-                $aoName = preg_replace('/^(ao|access owner|application owner)\s*[:\-]?\s*/i', '', $val);
-            }
-        }
-
-        // --- Bottom-Up Search for Requester Name (NIK) ---
-        if (!$extractedNik) {
-            $startRow = max(0, count($raw) - 50);
-            for ($i = count($raw) - 1; $i >= $startRow; $i--) {
-                $row = array_values((array)($raw[$i] ?? []));
-                foreach ($row as $idx => $cell) {
-                    $str = trim((string)($cell ?? ''));
-                    if ($str === '') continue;
-                    
-                    $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($str)));
-                    
-                    // Priority 1: Look explicitly for NIK pattern (e.g. NIK: 720203)
-                    if (preg_match('/nik\s*[:\-\.]?\s*([a-zA-Z0-9]+)/i', $str, $m)) {
-                        $extractedNik = $m[1];
-                        break 2;
-                    }
-
-                    // Priority 2: Specific hardcoded fallback for the requested user
-                    if (str_contains($lower, 'mochammad hasan jauhari')) {
-                        // Look for NIK below the name
-                        for ($offset = 1; $offset <= 3; $offset++) {
-                            if (isset($raw[$i + $offset])) {
-                                $rowBelow = array_values((array)$raw[$i + $offset]);
-                                $belowCell = trim((string)($rowBelow[$idx] ?? ''));
-                                if (preg_match('/(\d{5,8})/', $belowCell, $m)) {
-                                    $extractedNik = $m[1];
-                                    break 3;
-                                }
-                            }
-                        }
-                        // Hard fallback if not found below
-                        $extractedNik = $extractedNik ?? '720203';
-                        break 2;
-                    }
-                    
-                    // Priority 3: Generic signature labels
-                    if (preg_match('/(requester|requestor|pemohon|dibuat oleh|prepared by)\s*[:\-]?\s+(.+)$/i', $str, $m) || preg_match('/(requester|requestor|pemohon|dibuat oleh|prepared by)\s*[:\-]\s*(.+)$/i', $str, $m)) {
-                        // Look for NIK below
-                        for ($offset = 1; $offset <= 5; $offset++) {
-                            if (isset($raw[$i + $offset])) {
-                                $rowBelow = array_values((array)$raw[$i + $offset]);
-                                $belowCell = trim((string)($rowBelow[$idx] ?? ''));
-                                if (preg_match('/nik\s*[:\-\.]?\s*([a-zA-Z0-9]+)/i', $belowCell, $n) || preg_match('/^(\d{5,8})$/', trim($belowCell), $n)) {
-                                    $extractedNik = $n[1];
-                                    break 3;
-                                }
-                            }
-                        }
-                        // If no NIK found, fallback to name
-                        $extractedNik = $extractedNik ?? trim($m[2]);
-                        break 2;
-                    } elseif (str_contains($lower, 'requester') || str_contains($lower, 'requestor') || str_contains($lower, 'pemohon') || str_contains($lower, 'dibuat oleh') || str_contains($lower, 'prepared by')) {
-                        for ($offset = 1; $offset <= 5; $offset++) {
-                            if (isset($raw[$i + $offset])) {
-                                $rowBelow = array_values((array)$raw[$i + $offset]);
-                                $belowCell = trim((string)($rowBelow[$idx] ?? ''));
-                                if (preg_match('/nik\s*[:\-\.]?\s*([a-zA-Z0-9]+)/i', $belowCell, $n) || preg_match('/^(\d{5,8})$/', trim($belowCell), $n)) {
-                                    $extractedNik = $n[1];
-                                    break 3;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // Clean up extracted values robustly
         if ($extractedApplication) $extractedApplication = preg_replace('/^[\s:\-=]+/', '', $extractedApplication);
-        if ($extractedModul) $extractedModul = preg_replace('/^[\s:\-=]+/', '', $extractedModul);
         if ($aoName) $aoName = preg_replace('/^[\s:\-=]+/', '', $aoName);
         if ($extractedNik) $extractedNik = preg_replace('/^[\s:\-=]+/', '', $extractedNik);
         
         // Values are now bound strictly to the form inputs instead of Excel extraction
-        $module = null;
-        if ($extractedModul) {
-            $module = trim($extractedModul);
-        }
+
 
         // ── 4. Parse data rows ────────────────────────────────────────────────
         $userId  = Auth::id();
         $now     = now();
         $inserts = [];
         $globalMatrix = [];
+        $dataStarted = false;
         foreach (array_slice($raw, $headerRowIdx + 1) as $row) {
             $row      = array_values((array)$row);
             $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
-            if (empty($nonEmpty)) continue;
+            
+            if (empty($nonEmpty)) {
+                if ($dataStarted) break; // Stop at first blank row after data
+                continue;
+            }
 
             $record = [
                 'role'             => null,
@@ -984,7 +921,36 @@ class AccessMatrixController extends Controller
                 }
             }
 
+            $rLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['role'] ?? '')));
+            
+            // If we hit a footer signature block indicator, stop immediately
+            if (in_array($rLower, ['requestedby', 'acceptedby', 'approvedby', 'nik', 'name', 'nama', 'position', 'jabatan', 'date', 'tanggal'])) {
+                break;
+            }
+
             if (empty($record['role']) || empty($record['tcode'])) continue;
+
+            $rLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['role'])));
+            $descLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['description_role'] ?? '')));
+            $tLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['tcode'])));
+            
+            $roleAliases = ['role', 'hakakses', 'namarole', 'namaakses'];
+            $descAliases = ['descriptionrole', 'deskripsirole', 'keteranganrole', 'deskripsi', 'keterangan'];
+            $tcodeAliases = ['tcode', 'transactioncode', 'transaction', 'tcodes', 'transactioncodes'];
+            
+            // 1. Skip if the row is the header itself (if ANY of the key columns equal their header name)
+            if (in_array($rLower, $roleAliases) || in_array($descLower, $descAliases) || in_array($tLower, $tcodeAliases)) {
+                continue;
+            }
+
+            // 2. Validate valid SAP Role format (e.g., ZPS-*, ZMM-*, ZFI-*). 
+            // SAP Roles do not contain spaces and consist of alphanumeric chars, dashes, underscores.
+            $roleVal = trim((string)$record['role']);
+            if (!preg_match('/^[A-Za-z0-9_\-\.\*]+$/', $roleVal)) {
+                continue; // Automatically skip rows that do not match the expected Role pattern
+            }
+
+            $dataStarted = true;
 
             $matrixData = [];
             $rowBpos    = [];
@@ -1581,8 +1547,15 @@ class AccessMatrixController extends Controller
             'comment'        => 'Request submitted for review',
         ]);
 
-        // Notify Managers
-        $managers = \App\Models\User::where('role', 'manager')->get();
+        // Notify specific Manager participant if they have interacted before, else notify all managers
+        $participantManager = \App\Models\UamApprovalHistory::where('uam_request_id', $uamRequest->id)
+            ->whereIn('status', ['Stage 2', 'Return'])
+            ->whereHas('user', function($q) { $q->where('role', 'manager'); })
+            ->orderBy('created_at', 'desc')
+            ->first();
+            
+        $managers = $participantManager && $participantManager->user ? collect([$participantManager->user]) : \App\Models\User::where('role', 'manager')->get();
+        
         \Illuminate\Support\Facades\Notification::send($managers, new \App\Notifications\UamRequestStatusUpdated(
             $uamRequest, 
             'submit', 
@@ -2036,7 +2009,7 @@ class AccessMatrixController extends Controller
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
-    public function downloadPdf(UamRequest $uamRequest)
+    private function generatePdf(UamRequest $uamRequest)
     {
         $records = UamRecord::where('request_id', $uamRequest->id)->orderBy('role')->get();
 
@@ -2119,11 +2092,6 @@ class AccessMatrixController extends Controller
                         
                         foreach ($addedOwners as $a) { $details[] = "Added User: {$a}"; }
                         foreach ($removedOwners as $r) { $details[] = "Removed User: {$r}"; }
-                        
-                        // Role Modified text removed as per user request
-                        // if (count($addedTcodes) > 0 || count($removedTcodes) > 0 || count($addedOwners) > 0 || count($removedOwners) > 0) {
-                        //     array_unshift($details, "Role Modified: {$role}");
-                        // }
                     }
                     $roleChangeDetails[$role] = $details;
                 }
@@ -2134,14 +2102,33 @@ class AccessMatrixController extends Controller
             }
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('access-matrix.pdf', [
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('access-matrix.pdf', [
             'uamRequest' => $uamRequest,
             'records' => $records,
             'changeDetailsMap' => $changeDetailsMap
         ])->setPaper('a4', 'landscape');
+    }
 
+    public function downloadPdf(UamRequest $uamRequest)
+    {
+        if ($uamRequest->status !== 'Approved' && $uamRequest->status !== 'Done') {
+            abort(403, 'The PDF document is only available after the request has been fully approved.');
+        }
+
+        $pdf = $this->generatePdf($uamRequest);
         $fileName = "UAM_{$uamRequest->application}_{$uamRequest->module}_{$uamRequest->period}_{$uamRequest->year}_{$uamRequest->version}.pdf";
         return $pdf->download($fileName);
+    }
+
+    public function previewPdf(UamRequest $uamRequest)
+    {
+        if ($uamRequest->status !== 'Approved' && $uamRequest->status !== 'Done') {
+            abort(403, 'The PDF document is only available after the request has been fully approved.');
+        }
+
+        $pdf = $this->generatePdf($uamRequest);
+        $fileName = "UAM_{$uamRequest->application}_{$uamRequest->module}_{$uamRequest->period}_{$uamRequest->year}_{$uamRequest->version}.pdf";
+        return $pdf->stream($fileName);
     }
 
     /**

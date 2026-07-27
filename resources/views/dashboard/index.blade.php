@@ -104,7 +104,7 @@
                         'icon' => 'bi-ui-checks-grid',
                         'color' => '#0B2E6D',
                         'bg' => '#e8edf7',
-                        'title' => 'Access User Review',
+                        'title' => ' User Access Review',
                         'desc' => 'Review and approve access matrices submitted by users.',
                         'status' => 'inactive',
                         'route' => route('access-matrix.approval.index')

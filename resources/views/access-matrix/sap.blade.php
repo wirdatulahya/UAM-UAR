@@ -256,7 +256,7 @@
             <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
 
                 {{-- Table Header Bar --}}
-                @php $isApprovalView = isset($uamRequest) && $uamRequest && $uamRequest->status === 'Review' && isset($isApproval) && $isApproval; @endphp
+                @php $isApprovalView = isset($uamRequest) && $uamRequest && $uamRequest->status === 'Review' && isset($isApproval) && $isApproval && Auth::user()->role !== 'admin'; @endphp
                 <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
                     <div style="display:flex;align-items:center;gap:.65rem;">
                         <div style="width:36px;height:36px;background:var(--secondary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;">
@@ -453,11 +453,11 @@
                                                             {{-- ── Approval view: radio buttons ── --}}
                                                             <div style="display:flex;flex-direction:column;align-items:flex-start;gap:.3rem;">
                                                                 <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
-                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm(); autoSaveDecision({{ $rec->id }}, this.value);" {{ $rec->status === 'Approved' ? 'checked' : '' }}>
+                                                                    <input type="radio" form="approvalDecisionForm" class="role-decision-radio-{{ $rowId }}" data-rec-id="{{ $rec->id }}" name="decisions[{{ $rec->id }}]" value="Approved" required style="accent-color:#22c55e;width:14px;height:14px;cursor:pointer;" onchange="syncRoleDecisions('{{ $rowId }}', this.value);" {{ $rec->status === 'Approved' ? 'checked' : '' }}>
                                                                     <span style="font-size:.75rem;color:#15803d;font-weight:700;">Approve</span>
                                                                 </label>
                                                                 <label style="display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap;">
-                                                                    <input type="radio" form="approvalDecisionForm" name="decisions[{{ $rec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="validateDecisionForm(); autoSaveDecision({{ $rec->id }}, this.value);" {{ $rec->status === 'Return' ? 'checked' : '' }}>
+                                                                    <input type="radio" form="approvalDecisionForm" class="role-decision-radio-{{ $rowId }}" data-rec-id="{{ $rec->id }}" name="decisions[{{ $rec->id }}]" value="Return" style="accent-color:#ef4444;width:14px;height:14px;cursor:pointer;" onchange="syncRoleDecisions('{{ $rowId }}', this.value);" {{ $rec->status === 'Return' ? 'checked' : '' }}>
                                                                     <span style="font-size:.75rem;color:#c0392b;font-weight:700;">Return</span>
                                                                 </label>
                                                             </div>
@@ -612,7 +612,7 @@
                 @endif
 
                 {{-- Overall Decision + Final Submit (Stage 2) --}}
-                @if($isStage2 && isset($uamRequest) && $uamRequest->status === 'Stage 2')
+                @if($isStage2 && isset($uamRequest) && $uamRequest->status === 'Stage 2' && Auth::user()->role !== 'admin')
                 <div id="overallDecisionContainer" style="padding:1.25rem 1.25rem;border-top:1.5px solid var(--border);background:linear-gradient(135deg, #f0f4ff 0%, #f8fafc 100%);">
                     <form action="{{ route('access-matrix.final-decide', $uamRequest->id) }}" method="POST" id="finalDecisionForm">
                         @csrf
@@ -768,6 +768,32 @@
             </div>
         </div>
         @endif
+
+        {{-- ── PDF Preview ── --}}
+        @if(isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Approved', 'Done']))
+        <div class="animate-in mb-4" style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.02);">
+            <div style="padding:.75rem 1.25rem;background:#f3f4f6;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                    <div style="width:28px;height:28px;background:#d1d5db;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bi bi-file-earmark-pdf-fill" style="color:#4b5563;font-size:.8rem;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:.82rem;font-weight:700;color:#374151;line-height:1.2;">PDF Preview</div>
+                        <div style="font-size:.68rem;color:#6b7280;">Preview of the generated request document</div>
+                    </div>
+                </div>
+                <div>
+                    <a href="{{ route('access-matrix.download-pdf', $uamRequest->id) }}" class="btn btn-sm" style="background:#fff;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-weight:600;color:#374151;display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .75rem;box-shadow:0 1px 2px rgba(0,0,0,.05);text-decoration:none;transition:background 0.2s;" onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='#fff'">
+                        <i class="bi bi-download"></i> Download PDF
+                    </a>
+                </div>
+            </div>
+            <div style="padding:0;background:#525659;">
+                <iframe src="{{ route('access-matrix.preview-pdf', $uamRequest->id) }}" style="width:100%;height:600px;border:none;display:block;" title="PDF Preview"></iframe>
+            </div>
+        </div>
+        @endif
+
         {{-- Submit Action (for Requester) --}}
         @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && isset($uamRequest) && $uamRequest && in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']) && empty($isApproval))
             <div class="d-flex justify-content-end mt-4 animate-in animate-in-delay-3" style="margin-bottom: 2rem;">
@@ -1482,9 +1508,29 @@
     };
 
     // Auto-save helpers
-    window.autoSaveDecision = function(recordId, decision) {
+    window.syncRoleDecisions = function(rowId, decision) {
+        const radios = document.querySelectorAll('.role-decision-radio-' + rowId);
+        const recordIds = [];
+        
+        radios.forEach(radio => {
+            if (radio.value === decision) {
+                radio.checked = true;
+                recordIds.push(radio.dataset.recId);
+            }
+        });
+
+        // Trigger form validation to update button state
+        if (typeof validateDecisionForm === 'function') {
+            validateDecisionForm();
+        }
+
+        // De-duplicate recordIds (since there are 2 radios per record)
+        const uniqueRecordIds = [...new Set(recordIds)];
+        if (uniqueRecordIds.length === 0) return;
+
         const reqId = "{{ $uamRequest ? $uamRequest->id : '' }}";
         if (!reqId) return;
+
         fetch(`/access-matrix/approval/${reqId}/auto-save`, {
             method: 'POST',
             headers: {
@@ -1492,7 +1538,7 @@
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             },
             body: JSON.stringify({
-                record_id: recordId,
+                record_ids: uniqueRecordIds,
                 decision: decision
             })
         });

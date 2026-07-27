@@ -32,40 +32,7 @@
 <div class="d-flex" style="min-height:calc(100vh - 57px);">
 
     {{-- Sidebar --}}
-    <aside class="sidebar d-none d-lg-block" style="width:230px;flex-shrink:0;">
-        <div class="sidebar-section-label">Main</div>
-        <a href="{{ route('dashboard') }}" class="sidebar-nav-item">
-            <i class="bi bi-grid-fill"></i>
-            Dashboard
-        </a>
-
-        <div class="sidebar-section-label">Modules</div>
-        <a href="#uamCollapse" data-bs-toggle="collapse" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : 'collapsed' }}" role="button" aria-expanded="{{ request()->routeIs('access-matrix.*') ? 'true' : 'false' }}" aria-controls="uamCollapse">
-            <i class="bi bi-table"></i>
-            <span class="d-flex align-items-center w-100">
-                User Access Matrix
-                <i class="bi bi-chevron-down ms-auto" style="font-size:.7rem; transition: transform var(--transition);"></i>
-            </span>
-        </a>
-        <div class="collapse {{ request()->routeIs('access-matrix.*') ? 'show' : '' }}" id="uamCollapse">
-            <div style="padding: .25rem 0; background: var(--bg);">
-                <a href="{{ route('access-matrix.request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Request Access Matrix
-                </a>
-                <a href="{{ route('access-matrix.uam-request.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.uam-request.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Accept
-                </a>
-                <a href="{{ route('access-matrix.approval.index') }}" class="sidebar-nav-item {{ request()->routeIs('access-matrix.approval.*') ? 'active' : '' }}" style="padding-left: 2.75rem; font-size: .8rem; border-left: none;">
-                    Approval Access Matrix
-                </a>
-            </div>
-        </div>
-        <a href="#" class="sidebar-nav-item" aria-disabled="true">
-            <i class="bi bi-clipboard2-check-fill"></i>
-            Access Review
-            <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
-        </a>
-    </aside>
+    <x-sidebar />
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
@@ -362,16 +329,25 @@
                         <form method="POST" action="{{ route('access-matrix.import') }}" enctype="multipart/form-data" id="importForm">
                             @csrf
                             {{-- Metadata Fields --}}
-                            <div style="display:flex;gap:1rem;margin-bottom:1.5rem;">
-                                <div style="flex:1;">
+                            <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                                <div style="flex:1 1 30%;">
                                     <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Application <span class="text-danger">*</span></label>
                                     <input type="text" name="application" class="form-control" required placeholder="e.g. SAP S/4HANA" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                                 </div>
-                                <div style="flex:1;">
+                                <div style="flex:1 1 30%;">
+                                    <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Module <span class="text-danger">*</span></label>
+                                    <input list="moduleOptions" name="module" class="form-control" required placeholder="Type or select a module..." style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);" autocomplete="off">
+                                    <datalist id="moduleOptions">
+                                        @foreach($availableModules as $mod)
+                                            <option value="{{ $mod }}">
+                                        @endforeach
+                                    </datalist>
+                                </div>
+                                <div style="flex:1 1 30%;">
                                     <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Year <span class="text-danger">*</span></label>
                                     <input type="number" name="year" min="2026" max="9999" class="form-control" required placeholder="e.g. 2026" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                                 </div>
-                                <div style="flex:1;">
+                                <div style="flex:1 1 30%;">
                                     <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Period <span class="text-danger">*</span></label>
                                     <select name="period" class="form-select" required style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                                         <option value="" disabled selected>-- Select --</option>
@@ -380,7 +356,7 @@
                                         <option value="Q3">Q3 (Third Period)</option>
                                     </select>
                                 </div>
-                                <div style="flex:1;">
+                                <div style="flex:1 1 30%;">
                                     <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Version <span class="text-danger">*</span></label>
                                     <input type="text" name="version" class="form-control" value="V1" readonly style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);background-color: #f3f4f6;cursor: not-allowed;">
                                 </div>
