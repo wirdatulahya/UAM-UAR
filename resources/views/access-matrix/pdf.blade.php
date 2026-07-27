@@ -379,16 +379,14 @@
         @endphp
         <table style="width: 100%; border: none; font-size: 11px; table-layout: fixed;">
             <tr>
-                <!-- Requested By -->
+                <!-- Dibuat oleh -->
                 <td style="border: none; width: 33.33%; text-align: left; vertical-align: top; padding-right: 15px;">
-                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Requested By</div>
+                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Dibuat oleh</div>
                     @if($requester)
                         <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $requester->name }}</div>
-                        <div style="color: #555; margin-bottom: 2px;">{{ $requester->nik ?? $requester->username ?? '-' }}</div>
-                        <div style="color: #555; margin-bottom: 6px;">{{ $requester->position ?? $requester->job_title ?? '-' }}</div>
+                        <div style="color: #555; margin-bottom: 6px;">{{ $requester->nik ?? $requester->username ?? '-' }}</div>
                     @else
                         <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $uamRequest->requester_name ?? '-' }}</div>
-                        <div style="color: #555; margin-bottom: 2px;">-</div>
                         <div style="color: #555; margin-bottom: 6px;">-</div>
                     @endif
                     <div style="color: #777; font-size: 9px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">
@@ -396,20 +394,17 @@
                     </div>
                 </td>
 
-                <!-- Accepted By -->
+                <!-- Diperiksa oleh -->
                 <td style="border: none; width: 33.33%; text-align: left; vertical-align: top; padding-right: 15px; padding-left: 15px;">
-                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Accepted By</div>
+                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Diperiksa oleh</div>
                     @if($acceptUser)
                         <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $acceptUser->name }}</div>
-                        <div style="color: #555; margin-bottom: 2px;">{{ $acceptUser->nik ?? $acceptUser->username ?? '-' }}</div>
-                        <div style="color: #555; margin-bottom: 6px;">{{ $acceptUser->position ?? $acceptUser->job_title ?? '-' }}</div>
+                        <div style="color: #555; margin-bottom: 6px;">{{ $acceptUser->nik ?? $acceptUser->username ?? '-' }}</div>
                     @elseif($acceptHistory)
                         <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $acceptHistory->approver_name }}</div>
-                        <div style="color: #555; margin-bottom: 2px;">-</div>
                         <div style="color: #555; margin-bottom: 6px;">-</div>
                     @else
                         <div style="font-weight: bold; font-size: 12px; color: #bbb; margin-bottom: 3px;">-</div>
-                        <div style="color: #bbb; margin-bottom: 2px;">-</div>
                         <div style="color: #bbb; margin-bottom: 6px;">-</div>
                     @endif
                     <div style="color: #777; font-size: 9px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">
@@ -417,20 +412,17 @@
                     </div>
                 </td>
 
-                <!-- Approved By -->
+                <!-- Disetujui oleh -->
                 <td style="border: none; width: 33.33%; text-align: left; vertical-align: top; padding-left: 15px;">
-                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Approved By</div>
+                    <div style="margin-bottom: 60px; font-weight: bold; color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">Disetujui oleh</div>
                     @if($approveUser)
                         <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $approveUser->name }}</div>
-                        <div style="color: #555; margin-bottom: 2px;">{{ $approveUser->nik ?? $approveUser->username ?? '-' }}</div>
-                        <div style="color: #555; margin-bottom: 6px;">{{ $approveUser->position ?? $approveUser->job_title ?? '-' }}</div>
+                        <div style="color: #555; margin-bottom: 6px;">{{ $approveUser->nik ?? $approveUser->username ?? '-' }}</div>
                     @elseif($approveHistory)
                         <div style="font-weight: bold; font-size: 12px; color: #222; margin-bottom: 3px;">{{ $approveHistory->approver_name }}</div>
-                        <div style="color: #555; margin-bottom: 2px;">-</div>
                         <div style="color: #555; margin-bottom: 6px;">-</div>
                     @else
                         <div style="font-weight: bold; font-size: 12px; color: #bbb; margin-bottom: 3px;">-</div>
-                        <div style="color: #bbb; margin-bottom: 2px;">-</div>
                         <div style="color: #bbb; margin-bottom: 6px;">-</div>
                     @endif
                     <div style="color: #777; font-size: 9px; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">

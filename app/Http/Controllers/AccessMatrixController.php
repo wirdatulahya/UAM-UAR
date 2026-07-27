@@ -1978,39 +1978,25 @@ class AccessMatrixController extends Controller
             'borders'   => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
 
-        // 2 blank rows gap, then compact 5-row signature block
+        // 2 blank rows gap, then compact signature block
         $sigRow = $row + 2;
 
         // Row 0: Labels
-        $sheet->setCellValue('A' . $sigRow, 'REQUESTED BY');
-        $sheet->setCellValue('B' . $sigRow, 'ACCEPTED BY');
-        $sheet->setCellValue('C' . $sigRow, 'APPROVED BY');
-        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . $sigRow)->applyFromArray($sigLabelStyle); }
+        $sheet->setCellValue('A' . $sigRow, 'APPROVED BY');
+        $sheet->getStyle('A' . $sigRow)->applyFromArray($sigLabelStyle);
         $sheet->getRowDimension($sigRow)->setRowHeight(20);
 
         // Row 1: Nama
-        $sheet->setCellValue('A' . ($sigRow + 1), $requesterName);
-        $sheet->setCellValue('B' . ($sigRow + 1), $acceptName);
-        $sheet->setCellValue('C' . ($sigRow + 1), $approveName);
-        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 1))->applyFromArray($sigNameStyle); }
+        $sheet->setCellValue('A' . ($sigRow + 1), $approveName);
+        $sheet->getStyle('A' . ($sigRow + 1))->applyFromArray($sigNameStyle);
 
         // Row 2: NIK
-        $sheet->setCellValue('A' . ($sigRow + 2), $requesterNik);
-        $sheet->setCellValue('B' . ($sigRow + 2), $acceptNik);
-        $sheet->setCellValue('C' . ($sigRow + 2), $approveNik);
-        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 2))->applyFromArray($sigInfoStyle); }
+        $sheet->setCellValue('A' . ($sigRow + 2), $approveNik);
+        $sheet->getStyle('A' . ($sigRow + 2))->applyFromArray($sigInfoStyle);
 
-        // Row 3: Posisi
-        $sheet->setCellValue('A' . ($sigRow + 3), $requesterPos);
-        $sheet->setCellValue('B' . ($sigRow + 3), $acceptPos);
-        $sheet->setCellValue('C' . ($sigRow + 3), $approvePos);
-        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 3))->applyFromArray($sigInfoStyle); }
-
-        // Row 4: Date
-        $sheet->setCellValue('A' . ($sigRow + 4), 'Submitted: ' . $submittedDate);
-        $sheet->setCellValue('B' . ($sigRow + 4), 'Accepted: '  . $acceptedDate);
-        $sheet->setCellValue('C' . ($sigRow + 4), 'Approved: '  . $approvedDate);
-        foreach (['A', 'B', 'C'] as $c) { $sheet->getStyle($c . ($sigRow + 4))->applyFromArray($sigDateStyle); }
+        // Row 3: Date
+        $sheet->setCellValue('A' . ($sigRow + 3), 'Approved: '  . $approvedDate);
+        $sheet->getStyle('A' . ($sigRow + 3))->applyFromArray($sigDateStyle);
 
         // ─── Writer & Download ─────────────────────────────────────────────
         $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
