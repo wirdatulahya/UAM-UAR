@@ -10,7 +10,7 @@
     <a href="#uamCollapse" data-bs-toggle="collapse" class="sidebar-nav-item {{ request()->routeIs('access-matrix.*') ? 'active' : 'collapsed' }}" role="button" aria-expanded="{{ request()->routeIs('access-matrix.*') ? 'true' : 'false' }}" aria-controls="uamCollapse">
         <i class="bi bi-table"></i>
         <span class="d-flex align-items-center w-100">
-            User Access Matrix
+            User Access Matrix (UAM) 
             <i class="bi bi-chevron-down ms-auto" style="font-size:.7rem; transition: transform var(--transition);"></i>
         </span>
     </a>
@@ -36,7 +36,7 @@
     
     <a href="#" class="sidebar-nav-item" aria-disabled="true">
         <i class="bi bi-clipboard2-check-fill"></i>
-        Access Review
+            User Access Review (UAR)
         <span class="ms-auto badge" style="background:var(--primary-light);color:var(--primary);font-size:.62rem;font-weight:700;padding:.2rem .45rem;border-radius:6px;">Soon</span>
     </a>
 
