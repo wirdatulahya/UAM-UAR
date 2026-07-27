@@ -155,6 +155,27 @@
                         }
                     }
                 }
+
+                // Determine change_type based on changeDetails for the grouped role
+                foreach($groupedRecords as &$group) {
+                    if (!empty($group['changeDetails'])) {
+                        $isAdded = false;
+                        $isDeleted = false;
+                        foreach($group['changeDetails'] as $detail) {
+                            if (str_starts_with($detail, 'New Role Added')) $isAdded = true;
+                            if ($detail === 'Deleted Role') $isDeleted = true;
+                        }
+                        
+                        if ($isAdded) {
+                            $group['change_type'] = 'Added';
+                        } elseif ($isDeleted) {
+                            $group['change_type'] = 'Deleted';
+                        } else {
+                            $group['change_type'] = 'Modified';
+                        }
+                    }
+                }
+                unset($group);
             @endphp
 
             @foreach($groupedRecords as $group)

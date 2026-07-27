@@ -1240,6 +1240,21 @@ class AccessMatrixController extends Controller
         $requestId = $uamRecord->request_id;
         $uamRecord->delete();
 
+        // Mark remaining records for this role as Modified
+        if ($requestId) {
+            \App\Models\UamRecord::where('request_id', $requestId)
+                ->where('role', $role)
+                ->update([
+                    'change_type' => \Illuminate\Support\Facades\DB::raw("IF(change_type = 'Added', 'Added', 'Modified')")
+                ]);
+        } else {
+            \App\Models\UamRecord::whereNull('request_id')
+                ->where('role', $role)
+                ->update([
+                    'change_type' => \Illuminate\Support\Facades\DB::raw("IF(change_type = 'Added', 'Added', 'Modified')")
+                ]);
+        }
+
         $redirectParams = [];
         if ($requestId) {
             $redirectParams['request_id'] = $requestId;
@@ -1353,6 +1368,19 @@ class AccessMatrixController extends Controller
             UamRecord::insert($inserts);
             if ($uamRequest) {
                 $uamRequest->increment('record_count', count($inserts));
+                
+                // Mark existing records for this role as Modified
+                \App\Models\UamRecord::where('request_id', $uamRequest->id)
+                    ->where('role', $role)
+                    ->update([
+                        'change_type' => \Illuminate\Support\Facades\DB::raw("IF(change_type = 'Added', 'Added', 'Modified')")
+                    ]);
+            } else {
+                \App\Models\UamRecord::whereNull('request_id')
+                    ->where('role', $role)
+                    ->update([
+                        'change_type' => \Illuminate\Support\Facades\DB::raw("IF(change_type = 'Added', 'Added', 'Modified')")
+                    ]);
             }
         }
 
