@@ -5,26 +5,27 @@
 @section('content')
 
 {{-- Navbar --}}
-<nav class="app-navbar">
-    <div class="container-fluid px-4">
-        <div class="d-flex align-items-center justify-content-between">
-            <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
-                <div class="brand-dot"><i class="bi bi-shield-lock-fill"></i></div>
-                <div>
-                    <div class="brand-text-main">AccessHub</div>
-                    <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
-                </div>
-            </a>
-            <x-navbar-right />
+{{-- ─── App Shell ─────────────────────────────────────────────────────── --}}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+{{-- Sidebar (Fixed full-height) --}}
+<x-sidebar />
+
+{{-- Content Wrapper --}}
+<div class="app-content-wrapper">
+
+    {{-- Topbar --}}
+    <header class="app-topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
-    </div>
-</nav>
+        {{-- Right — Profile Dropdown --}}
+        <x-navbar-right />
+    </header>
 
-<div class="d-flex" style="min-height:calc(100vh - 57px);">
-
-    {{-- Sidebar --}}
-    <x-sidebar />
-
+    {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
 
                 <x-breadcrumb :items="[
@@ -37,26 +38,28 @@
         {{-- Page Header --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in">
             <div>
-                <h1 style="font-size:1.35rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                    <i class="bi bi-plus-circle-fill me-2" style="color:var(--primary);"></i>Add New Role
+                <h1 style="font-size:1.6rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;letter-spacing:-.5px;">
+                    Add New Role
                 </h1>
-                <p style="font-size:.82rem;color:var(--text-muted);margin:0;">Create a new User Access Matrix entry</p>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Create a new User Access Matrix entry</p>
             </div>
             <a href="{{ route('access-matrix.sap', $requestId ? ['request_id' => $requestId] : []) }}"
-               style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
-               onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
-               onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+               style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:var(--input-radius);padding:.52rem 1.15rem;font-size:.85rem;font-weight:700;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
+               onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';this.style.background='var(--secondary-light)'"
+               onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background=''">
                 <i class="bi bi-arrow-left"></i> Back
             </a>
         </div>
 
         {{-- Form Card --}}
         <div class="animate-in animate-in-delay-1" style="max-width:720px;">
-            <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
-
-                <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--secondary-light);">
-                    <div style="font-size:.88rem;font-weight:700;color:var(--secondary);">
-                        <i class="bi bi-shield-lock-fill me-2"></i>Role Details
+            <div class="card-premium">
+                <div class="card-header-premium">
+                    <div style="font-size:.9rem;font-weight:800;color:var(--secondary);display:flex;align-items:center;gap:.5rem;">
+                        <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--primary-light),#ffc1c2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--primary);">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        Role Details
                     </div>
                 </div>
 
@@ -110,18 +113,18 @@
                             <input type="hidden" name="module" value="{{ $uamRequest->module }}">
                             <input type="hidden" name="period" value="{{ $uamRequest->period }}">
                             {{-- Read-only context badge --}}
-                            <div class="mb-3" style="display:flex;align-items:center;gap:.5rem;padding:.5rem .85rem;background:var(--secondary-light);border:1.5px solid rgba(11,46,109,.12);border-radius:10px;">
-                                <i class="bi bi-info-circle-fill" style="color:var(--secondary);font-size:.82rem;flex-shrink:0;"></i>
-                                <span style="font-size:.78rem;color:var(--secondary);">
+                            <div class="mb-4" style="display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;background:var(--secondary-light);border:1px solid rgba(11,46,109,.12);border-radius:var(--input-radius);">
+                                <i class="bi bi-info-circle-fill" style="color:var(--secondary);font-size:.9rem;flex-shrink:0;"></i>
+                                <span style="font-size:.82rem;color:var(--secondary);">
                                     This role will be added to
-                                    <strong>{{ $uamRequest->module }}</strong>
+                                    <strong style="color:var(--primary);">{{ $uamRequest->module }}</strong>
                                     &nbsp;·&nbsp;
-                                    <strong>{{ $uamRequest->full_period }}</strong>
+                                    <strong style="color:var(--primary);">{{ $uamRequest->full_period }}</strong>
                                 </span>
                             </div>
                         @else
                             {{-- Fallback: show fields when no parent request exists --}}
-                            <div class="row g-3 mb-3">
+                            <div class="row g-3 mb-4">
                                 <div class="col-12 col-sm-6">
                                     <label for="module" class="form-label">Module <span style="color:var(--primary);">*</span></label>
                                     <input type="text" id="module" name="module"
@@ -179,21 +182,23 @@
                         </div>
 
                         <div class="row g-3 mb-3">
-                            {{-- BPO — LEFT --}}
+                            {{-- BPO -- pulled from Master Data --}}
                             <div class="col-12 col-sm-6">
                                 <label for="bpo" class="form-label">BPO</label>
-                                <input list="bpo-options" id="bpo" name="bpo" class="form-control @error('bpo') is-invalid @enderror" placeholder="Select or type BPO" autocomplete="off" value="{{ old('bpo') }}">
-                                <datalist id="bpo-options"></datalist>
+                                <select id="bpo" name="bpo" class="form-select @error('bpo') is-invalid @enderror">
+                                    <option value="">-- Pilih BPO --</option>
+                                </select>
                                 @error('bpo')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            {{-- UNIT — RIGHT --}}
+                            {{-- UNIT -- filtered by selected BPO --}}
                             <div class="col-12 col-sm-6">
                                 <label for="unit" class="form-label">UNIT</label>
-                                <input list="unit-options" id="unit" name="unit" class="form-control @error('unit') is-invalid @enderror" placeholder="Select or type Unit" autocomplete="off" value="{{ old('unit') }}">
-                                <datalist id="unit-options"></datalist>
+                                <select id="unit" name="unit" class="form-select @error('unit') is-invalid @enderror" disabled>
+                                    <option value="">-- Pilih BPO dahulu --</option>
+                                </select>
                                 @error('unit')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -201,11 +206,12 @@
                         </div>
 
                         <div class="row g-3 mb-3">
-                            {{-- Application Owner --}}
+                            {{-- User Access Matrix -- filtered by BPO + Unit from matrix map --}}
                             <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">User Access Matrix</label>
-                                <input list="ao-options" id="access_owner" name="access_owner" class="form-control @error('access_owner') is-invalid @enderror" placeholder="Select or type Application Owner" autocomplete="off" value="{{ old('access_owner') }}">
-                                <datalist id="ao-options"></datalist>
+                                <label for="access_owner" class="form-label">User</label>
+                                <select id="access_owner" name="access_owner" class="form-select @error('access_owner') is-invalid @enderror" disabled>
+                                    <option value="">-- Pilih Unit dahulu --</option>
+                                </select>
                                 @error('access_owner')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -293,109 +299,132 @@
     // Run once on load to set initial state
     syncTcodeButtons();
 
-    // ── Dynamic Dropdowns logic ──────────────────────────────────────
+    // ── 1. Pre-fill old values (from validation failure) ─────────────────────
+    const OLD_BPO  = '{{ old('bpo') }}';
+    const OLD_UNIT = '{{ old('unit') }}';
+    const OLD_AO   = '{{ old('access_owner') }}';
+
+    const bpoSelect  = document.getElementById('bpo');
+    const unitSelect = document.getElementById('unit');
+    const aoSelect   = document.getElementById('access_owner');
+
+    // ── 2. Load all active BPOs from Master Data ─────────────────────────────
+    // Store BPO objects (with id) so we can fetch units by id later
+    let allBpos = [];
+
+    fetch('/api/master-data/bpos')
+        .then(r => r.json())
+        .then(bpos => {
+            allBpos = bpos;
+            bpos.forEach(b => {
+                const o = document.createElement('option');
+                o.value = b.name;
+                o.dataset.id = b.id;
+                o.textContent = b.name;
+                bpoSelect.appendChild(o);
+            });
+            // Restore old value after validation failure
+            if (OLD_BPO) {
+                bpoSelect.value = OLD_BPO;
+                const selOpt = bpoSelect.querySelector(`option[value="${OLD_BPO}"]`);
+                if (selOpt) loadUnits(selOpt.dataset.id, OLD_UNIT);
+            }
+        })
+        .catch(err => console.error('Error loading BPOs:', err));
+
+    // ── 3. When BPO changes → load Units ─────────────────────────────────────
+    bpoSelect.addEventListener('change', function () {
+        const selOpt = this.options[this.selectedIndex];
+        const bpoId  = selOpt ? selOpt.dataset.id : null;
+
+        unitSelect.innerHTML = '<option value="">-- Pilih Unit --</option>';
+        unitSelect.disabled = true;
+        aoSelect.innerHTML = '<option value="">-- Pilih Unit dahulu --</option>';
+        aoSelect.disabled = true;
+
+        if (!bpoId) return;
+        loadUnits(bpoId, null);
+    });
+
+    function loadUnits(bpoId, preselectUnit) {
+        fetch(`/api/master-data/bpos/${bpoId}/units`)
+            .then(r => r.json())
+            .then(units => {
+                unitSelect.innerHTML = '<option value="">-- Pilih Unit --</option>';
+                units.forEach(u => {
+                    const o = document.createElement('option');
+                    o.value = u.name;
+                    o.textContent = u.name;
+                    if (preselectUnit && u.name === preselectUnit) o.selected = true;
+                    unitSelect.appendChild(o);
+                });
+                unitSelect.disabled = false;
+                if (preselectUnit && unitSelect.value === preselectUnit) {
+                    loadAos(bpoSelect.value, preselectUnit, OLD_AO);
+                }
+            })
+            .catch(err => console.error('Error loading Units:', err));
+    }
+
+    // ── 4. When Unit changes → filter Users from the matrix map ──────────────
     let globalMatrix = {};
     const requestId = '{{ $requestId ?? ($uamRequest->id ?? "") }}';
 
     if (requestId) {
         fetch(`/access-matrix/request/${requestId}/matrix-map`)
             .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    globalMatrix = data.matrix || {};
-                    refreshDropdowns();
-                }
-            })
-            .catch(err => console.error("Error fetching matrix map:", err));
+            .then(data => { if (data.success) globalMatrix = data.matrix || {}; })
+            .catch(err => console.error('Error fetching matrix map:', err));
     }
 
-    const tcodeList = document.getElementById('tcodeList');
-    const bpoInput = document.getElementById('bpo');
-    const unitInput = document.getElementById('unit');
-    const aoInput = document.getElementById('access_owner');
-    
-    const bpoDatalist = document.getElementById('bpo-options');
-    const unitDatalist = document.getElementById('unit-options');
-    const aoDatalist = document.getElementById('ao-options');
-
-    tcodeList.addEventListener('input', function(e) {
-        if (e.target.tagName === 'INPUT') refreshDropdowns();
+    unitSelect.addEventListener('change', function () {
+        const bpoCode  = bpoSelect.value;
+        const unitCode = this.value;
+        aoSelect.innerHTML = '<option value="">-- Pilih User --</option>';
+        aoSelect.disabled = true;
+        if (!unitCode) return;
+        loadAos(bpoCode, unitCode, null);
     });
 
-    bpoInput.addEventListener('input', refreshDropdowns);
-    unitInput.addEventListener('input', refreshDropdowns);
-
-    function refreshDropdowns(e) {
+    function loadAos(bpoCode, unitCode, preselectAo) {
         const tcodes = Array.from(document.querySelectorAll('input[name="tcode[]"]'))
-                            .map(i => i.value.trim())
-                            .filter(v => v !== '');
-
-        const selectedBpo = bpoInput.value.trim();
-        const selectedUnit = unitInput.value.trim();
-
-        if (tcodes.length === 0) {
-            bpoDatalist.innerHTML = '';
-            unitDatalist.innerHTML = '';
-            aoDatalist.innerHTML = '';
-            return;
-        }
-
-        // Determine valid BPOs (intersection across all tcodes)
-        let validBpos = null;
-        for (let tc of tcodes) {
-            const map = globalMatrix[tc] || {};
-            const bpos = Object.keys(map);
-            if (validBpos === null) validBpos = bpos;
-            else validBpos = validBpos.filter(b => bpos.includes(b));
-        }
-
-        populateDatalist(bpoDatalist, validBpos || []);
-
-        // If a BPO is selected, determine valid Units
-        if (!selectedBpo) {
-            unitDatalist.innerHTML = '';
-            aoDatalist.innerHTML = '';
-            return;
-        }
-
-        let validUnits = null;
-        for (let tc of tcodes) {
-            const units = Object.keys(globalMatrix[tc] && globalMatrix[tc][selectedBpo] ? globalMatrix[tc][selectedBpo] : {});
-            if (validUnits === null) validUnits = units;
-            else validUnits = validUnits.filter(u => units.includes(u));
-        }
-
-        populateDatalist(unitDatalist, validUnits || []);
-
-        // If a Unit is selected, determine valid AOs
-        if (!selectedUnit) {
-            aoDatalist.innerHTML = '';
-            return;
-        }
+                           .map(i => i.value.trim()).filter(v => v !== '');
 
         let validAos = null;
-        for (let tc of tcodes) {
-            const aos = (globalMatrix[tc] && globalMatrix[tc][selectedBpo] && globalMatrix[tc][selectedBpo][selectedUnit]) ? globalMatrix[tc][selectedBpo][selectedUnit] : [];
-            if (validAos === null) validAos = aos;
-            else validAos = validAos.filter(a => aos.includes(a));
+        if (tcodes.length > 0) {
+            for (const tc of tcodes) {
+                const aos = (globalMatrix[tc] &&
+                             globalMatrix[tc][bpoCode] &&
+                             globalMatrix[tc][bpoCode][unitCode])
+                    ? globalMatrix[tc][bpoCode][unitCode]
+                    : [];
+                if (validAos === null) validAos = [...aos];
+                else validAos = validAos.filter(a => aos.includes(a));
+            }
         }
 
-        populateDatalist(aoDatalist, validAos || []);
+        const aoList = validAos ? [...new Set(validAos)].sort() : [];
+
+        aoSelect.innerHTML = aoList.length === 0
+            ? '<option value="">-- Tidak ada user untuk kombinasi ini --</option>'
+            : '<option value="">-- Pilih User --</option>';
+
+        aoList.forEach(ao => {
+            const o = document.createElement('option');
+            o.value = ao;
+            o.textContent = ao;
+            if (preselectAo && ao === preselectAo) o.selected = true;
+            aoSelect.appendChild(o);
+        });
+        aoSelect.disabled = aoList.length === 0;
     }
 
-    function populateDatalist(datalistEl, optionsArray) {
-        datalistEl.innerHTML = '';
-        if (!optionsArray || optionsArray.length === 0) return;
-        
-        // Remove duplicates and sort
-        const uniqueOptions = [...new Set(optionsArray)].sort();
-        
-        uniqueOptions.forEach(opt => {
-            const option = document.createElement('option');
-            option.value = opt;
-            datalistEl.appendChild(option);
-        });
-    }
+    // Re-calculate AOs when TCODE input changes
+    document.getElementById('tcodeList').addEventListener('input', function (e) {
+        if (e.target.tagName === 'INPUT' && unitSelect.value) {
+            loadAos(bpoSelect.value, unitSelect.value, aoSelect.value);
+        }
+    });
 </script>
 @endpush
 

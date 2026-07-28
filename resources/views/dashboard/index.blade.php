@@ -1,46 +1,36 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Dashboard')
 
 @section('content')
 
-{{-- ─── Navbar ─────────────────────────────────────────────────────── --}}
-<nav class="app-navbar">
-    <div class="container-fluid px-4">
-        <div class="d-flex align-items-center justify-content-between">
+{{-- ─── App Shell ─────────────────────────────────────────────────────── --}}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-            <div class="d-flex align-items-center gap-2">
-                {{-- Brand --}}
-            <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
-                <div class="brand-dot">
-                    <i class="bi bi-shield-lock-fill"></i>
-                </div>
-                <div>
-                    <div class="brand-text-main">AccessHub</div>
-                    <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
-                </div>
-            </a>
-            </div>
+{{-- Sidebar (Fixed full-height) --}}
+<x-sidebar />
 
-            {{-- Right — Profile Dropdown --}}
-            <x-navbar-right />
+{{-- Content Wrapper --}}
+<div class="app-content-wrapper">
+
+    {{-- Topbar --}}
+    <header class="app-topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
-    </div>
-</nav>
-
-{{-- ─── App Shell (Sidebar + Main) ────────────────────────────────── --}}
-<div class="d-flex" style="min-height:calc(100vh - 57px);">
-
-    {{-- Sidebar --}}
-    <x-sidebar />
+        {{-- Right — Profile Dropdown --}}
+        <x-navbar-right />
+    </header>
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
 
-        {{-- Success/Error flash --}}
+        {{-- Success flash --}}
         @if (session('success'))
-            <div class="alert d-flex align-items-center gap-2 mb-4 animate-in"
-                 style="background:#e8f5e9;border:0;border-left:4px solid #2e7d32;border-radius:10px;color:#1b5e20;font-size:.875rem;padding:.75rem 1rem;"
+            <div class="d-flex align-items-center gap-2 mb-4 animate-in"
+                 style="background:#dcfce7;border:0;border-left:4px solid #16a34a;border-radius:12px;color:#166534;font-size:.875rem;padding:.8rem 1.1rem;"
                  role="alert">
                 <i class="bi bi-check-circle-fill flex-shrink-0"></i>
                 {{ session('success') }}
@@ -50,27 +40,33 @@
         {{-- ── Welcome Hero ─────────────────────────────────────────── --}}
         <div class="row g-4 mb-4">
             <div class="col-12">
-                <div class="animate-in" style="background:linear-gradient(135deg,var(--secondary) 0%,#1a4d9e 60%, #163f82 100%);border-radius:20px;padding:2.5rem 2.5rem 2rem;position:relative;overflow:hidden;">
-                    {{-- decorative circle --}}
-                    <div style="position:absolute;width:280px;height:280px;background:rgba(227,30,36,.15);border-radius:50%;right:-60px;top:-80px;"></div>
-                    <div style="position:absolute;width:160px;height:160px;background:rgba(255,255,255,.05);border-radius:50%;right:80px;bottom:-60px;"></div>
+                <div class="animate-in" style="background:linear-gradient(135deg,#071f4d 0%,#0B2E6D 45%,#1a4d9e 100%);border-radius:24px;padding:2.5rem 2.5rem 2rem;position:relative;overflow:hidden;">
+
+                    {{-- Decorative elements --}}
+                    <div style="position:absolute;width:320px;height:320px;background:radial-gradient(circle,rgba(227,30,36,.18) 0%,transparent 70%);border-radius:50%;right:-80px;top:-100px;pointer-events:none;"></div>
+                    <div style="position:absolute;width:180px;height:180px;background:rgba(255,255,255,.04);border-radius:50%;right:120px;bottom:-70px;pointer-events:none;"></div>
+                    <div style="position:absolute;width:80px;height:80px;background:rgba(255,255,255,.06);border-radius:20px;right:2.5rem;top:2rem;pointer-events:none;transform:rotate(15deg);"></div>
 
                     <div style="position:relative;z-index:1;">
-                        <p style="color:rgba(255,255,255,.65);font-size:.82rem;font-weight:500;margin-bottom:.35rem;letter-spacing:.3px;text-transform:uppercase;">
+                        <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.28rem .85rem;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.8);letter-spacing:.5px;text-transform:uppercase;margin-bottom:.9rem;">
+                            <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.6);display:inline-block;"></span>
                             Welcome back
-                        </p>
-                        <h1 style="color:#fff;font-size:1.85rem;font-weight:800;margin-bottom:.35rem;line-height:1.2;">
+                        </div>
+                        <h1 style="color:#fff;font-size:2rem;font-weight:900;margin-bottom:.3rem;line-height:1.15;letter-spacing:-.5px;">
                             {{ Auth::user()->name }}
                         </h1>
-                        <p style="color:rgba(255,255,255,.7);font-size:.92rem;margin-bottom:1.75rem;">
+                        <p style="color:rgba(255,255,255,.55);font-size:.9rem;margin-bottom:1.75rem;font-weight:500;">
                             AccessHub &nbsp;·&nbsp; PT Telkom Infrastruktur Indonesia
                         </p>
                         <div class="d-flex flex-wrap gap-2">
-                            <span style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px);color:#fff;border-radius:20px;padding:.3rem .85rem;font-size:.78rem;font-weight:600;">
-                                <i class="bi bi-person-badge me-1"></i>{{ Auth::user()->username }}
+                            <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
+                                <i class="bi bi-person-badge"></i>{{ Auth::user()->username }}
                             </span>
-                            <span style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px);color:#fff;border-radius:20px;padding:.3rem .85rem;font-size:.78rem;font-weight:600;">
-                                <i class="bi bi-envelope me-1"></i>{{ Auth::user()->email }}
+                            <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
+                                <i class="bi bi-envelope"></i>{{ Auth::user()->email }}
+                            </span>
+                            <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(227,30,36,.25);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(227,30,36,.3);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
+                                <i class="bi bi-shield-fill"></i>{{ ucfirst(str_replace('_', ' ', Auth::user()->role)) }}
                             </span>
                         </div>
                     </div>
@@ -78,8 +74,14 @@
             </div>
         </div>
 
+        {{-- ── Section Title ──────────────────────────────────────────── --}}
+        <div class="d-flex align-items-center gap-3 mb-3 animate-in animate-in-delay-1">
+            <h2 style="font-size:1rem;font-weight:800;color:var(--text);margin:0;letter-spacing:-.2px;">Modules</h2>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+
         {{-- ── Module Cards ─────────────────────────────────────────── --}}
-        <div class="row g-3">
+        <div class="row g-3 mb-5">
 
             @php
                 $uamRoute = route('access-matrix.request.index');
@@ -91,54 +93,70 @@
 
                 $modules = [
                     [
-                        'icon' => 'bi-table',
-                        'color' => '#0B2E6D',
-                        'bg' => '#e8edf7',
-                        'title' => 'User Access Matrix',
-                        'desc' => 'Manage and track user access permissions across all systems.',
-                        'status' => 'active',
-                        'route' => $uamRoute
+                        'icon'    => 'bi-table',
+                        'gradient'=> 'linear-gradient(135deg,#dbeafe,#bfdbfe)',
+                        'icon_color'=> '#1e40af',
+                        'accent'  => '#3b82f6',
+                        'title'   => 'User Access Matrix',
+                        'desc'    => 'Manage and track user access permissions across all systems.',
+                        'tag'     => 'UAM',
+                        'status'  => 'active',
+                        'route'   => $uamRoute,
+                        'delay'   => '.06s',
                     ],
-
                     [
-                        'icon' => 'bi-ui-checks-grid',
-                        'color' => '#0B2E6D',
-                        'bg' => '#e8edf7',
-                        'title' => ' User Access Review',
-                        'desc' => 'Review and approve access matrices submitted by users.',
-                        'status' => 'inactive',
-                        'route' => route('access-matrix.approval.index')
+                        'icon'    => 'bi-ui-checks-grid',
+                        'gradient'=> 'linear-gradient(135deg,#ede9fe,#ddd6fe)',
+                        'icon_color'=> '#6d28d9',
+                        'accent'  => '#7c3aed',
+                        'title'   => 'User Access Review',
+                        'desc'    => 'Review and approve access matrices submitted by users.',
+                        'tag'     => 'UAR',
+                        'status'  => 'inactive',
+                        'route'   => route('access-matrix.approval.index'),
+                        'delay'   => '.12s',
                     ],
                 ];
             @endphp
 
-            @foreach ($modules as $i => $mod)
-            <div class="col-12 col-sm-6 col-xl-3 animate-in" style="animation-delay: {{ $i * 0.07 }}s;">
+            @foreach ($modules as $mod)
+            <div class="col-12 col-sm-6 col-xl-4 animate-in" style="animation-delay: {{ $mod['delay'] }};">
                 @if ($mod['status'] === 'active')
-                <a href="{{ $mod['route'] }}" class="h-100 d-block" style="text-decoration:none; color:inherit;">
+                <a href="{{ $mod['route'] }}" style="text-decoration:none;color:inherit;display:block;height:100%;">
                 @else
-                <div class="h-100">
+                <div style="height:100%;">
                 @endif
-                    <div class="h-100" style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.5rem;position:relative;overflow:hidden;transition:transform .22s,box-shadow .22s;cursor:{{ $mod['status'] === 'active' ? 'pointer' : 'default' }};"
-                         onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--card-shadow)';if('{{ $mod['status'] }}' === 'active'){this.style.borderColor='var(--secondary)';}"
-                         onmouseleave="this.style.transform='';this.style.boxShadow='';this.style.borderColor='var(--border)';">
+                    <div style="background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:1.6rem;height:100%;position:relative;overflow:hidden;transition:transform var(--transition-slow),box-shadow var(--transition-slow),border-color var(--transition);"
+                         class="module-card {{ $mod['status'] === 'active' ? 'module-active' : '' }}">
 
-                        <div style="width:48px;height:48px;background:{{ $mod['bg'] }};border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;">
-                            <i class="bi {{ $mod['icon'] }}" style="font-size:1.3rem;color:{{ $mod['color'] }};"></i>
+                        {{-- Background decoration --}}
+                        <div style="position:absolute;width:100px;height:100px;background:{{ $mod['gradient'] }};border-radius:50%;right:-20px;top:-20px;opacity:.5;pointer-events:none;"></div>
+
+                        {{-- Icon --}}
+                        <div style="width:52px;height:52px;border-radius:16px;background:{{ $mod['gradient'] }};display:flex;align-items:center;justify-content:center;margin-bottom:1.1rem;box-shadow:0 4px 12px rgba(0,0,0,.06);">
+                            <i class="bi {{ $mod['icon'] }}" style="font-size:1.4rem;color:{{ $mod['icon_color'] }};"></i>
                         </div>
 
-                        <h3 style="font-size:.95rem;font-weight:700;color:var(--secondary);margin-bottom:.35rem;">{{ $mod['title'] }}</h3>
-                        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">{{ $mod['desc'] }}</p>
+                        {{-- Tag --}}
+                        <div style="display:inline-block;background:{{ $mod['gradient'] }};color:{{ $mod['icon_color'] }};border-radius:6px;padding:.15rem .55rem;font-size:.65rem;font-weight:800;letter-spacing:.5px;margin-bottom:.6rem;">{{ $mod['tag'] }}</div>
 
-                        @if ($mod['status'] === 'active')
-                        <span style="display:inline-flex;align-items:center;gap:.35rem;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:.25rem .7rem;font-size:.72rem;font-weight:700;">
-                            <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i> Active
-                        </span>
-                        @elseif ($mod['status'] === 'coming-soon')
-                        <span style="display:inline-flex;align-items:center;gap:.35rem;background:var(--primary-light);color:var(--primary);border-radius:20px;padding:.25rem .7rem;font-size:.72rem;font-weight:700;">
-                            <i class="bi bi-clock-history" style="font-size:.7rem;"></i> Coming soon
-                        </span>
-                        @endif
+                        <h3 style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:.4rem;letter-spacing:-.2px;">{{ $mod['title'] }}</h3>
+                        <p style="font-size:.81rem;color:var(--text-muted);margin-bottom:1.1rem;line-height:1.55;">{{ $mod['desc'] }}</p>
+
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            @if ($mod['status'] === 'active')
+                            <span style="display:inline-flex;align-items:center;gap:.35rem;background:#dcfce7;color:#166534;border-radius:99px;padding:.26rem .75rem;font-size:.71rem;font-weight:700;">
+                                <i class="bi bi-check-circle-fill" style="font-size:.65rem;"></i> Active
+                            </span>
+                            <span style="color:{{ $mod['icon_color'] }};font-size:.85rem;transition:transform var(--transition);" class="card-arrow">
+                                <i class="bi bi-arrow-right-circle-fill"></i>
+                            </span>
+                            @elseif ($mod['status'] === 'inactive')
+                            <span style="display:inline-flex;align-items:center;gap:.35rem;background:#f3f4f6;color:var(--text-muted);border-radius:99px;padding:.26rem .75rem;font-size:.71rem;font-weight:700;">
+                                <i class="bi bi-clock-history" style="font-size:.65rem;"></i> Coming Soon
+                            </span>
+                            @endif
+                        </div>
                     </div>
                 @if ($mod['status'] === 'active')
                 </a>
@@ -155,8 +173,20 @@
 
 @endsection
 
-@push('scripts')
+@push('styles')
+<style>
+    .module-card { cursor: default; }
+    .module-active { cursor: pointer; }
+    .module-active:hover {
+        transform: translateY(-5px) !important;
+        box-shadow: 0 8px 32px rgba(11,46,109,.12), 0 2px 8px rgba(0,0,0,.06) !important;
+        border-color: var(--secondary) !important;
+    }
+    .module-active:hover .card-arrow {
+        transform: translateX(4px);
+    }
+</style>
 @endpush
 
-
-
+@push('scripts')
+@endpush

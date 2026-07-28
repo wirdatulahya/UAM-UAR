@@ -1,39 +1,28 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Approval Access Matrix')
 
 @section('content')
 
-{{-- ─── Navbar ─────────────────────────────────────────────────────── --}}
-<nav class="app-navbar">
-    <div class="container-fluid px-4">
-        <div class="d-flex align-items-center justify-content-between">
+{{-- ─── App Shell ─────────────────────────────────────────────────────── --}}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-            <div class="d-flex align-items-center gap-2">
-                {{-- Brand --}}
-                <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
-                    <div class="brand-dot">
-                        <i class="bi bi-shield-lock-fill"></i>
-                    </div>
-                    <div>
-                        <div class="brand-text-main">AccessHub</div>
-                        <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
-                    </div>
-                </a>
-            </div>
+{{-- Sidebar (Fixed full-height) --}}
+<x-sidebar />
 
-            {{-- Right — Profile Dropdown --}}
-            <x-navbar-right />
-            </div>
+{{-- Content Wrapper --}}
+<div class="app-content-wrapper">
+
+    {{-- Topbar --}}
+    <header class="app-topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
-    </div>
-</nav>
-
-{{-- ─── App Shell (Sidebar + Main) ────────────────────────────────── --}}
-<div class="d-flex" style="min-height:calc(100vh - 57px);">
-
-    {{-- Sidebar --}}
-    <x-sidebar />
+        {{-- Right — Profile Dropdown --}}
+        <x-navbar-right />
+    </header>
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">

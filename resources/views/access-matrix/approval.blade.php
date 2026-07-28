@@ -1,38 +1,28 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Request Access Matrix')
 
 @section('content')
 {{-- Navbar --}}
-<nav class="app-navbar">
-    <div class="container-fluid px-4">
-        <div class="d-flex align-items-center justify-content-between">
+{{-- ─── App Shell ─────────────────────────────────────────────────────── --}}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-            <div class="d-flex align-items-center gap-2">
+{{-- Sidebar (Fixed full-height) --}}
+<x-sidebar />
 
-                {{-- Brand --}}
-            <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
-                <div class="brand-dot">
-                    <i class="bi bi-shield-lock-fill"></i>
-                </div>
-                <div>
-                    <div class="brand-text-main">AccessHub</div>
-                    <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
-                </div>
-            </a>
-            </div>
+{{-- Content Wrapper --}}
+<div class="app-content-wrapper">
 
-            {{-- Right — Profile Dropdown --}}
-            <x-navbar-right />
-
+    {{-- Topbar --}}
+    <header class="app-topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
-    </div>
-</nav>
-
-<div class="d-flex" style="min-height:calc(100vh - 57px);">
-
-    {{-- Sidebar --}}
-    <x-sidebar />
+        {{-- Right — Profile Dropdown --}}
+        <x-navbar-right />
+    </header>
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
@@ -91,37 +81,39 @@
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in animate-in-delay-2" style="gap:1rem;flex-wrap:wrap;">
             <form method="GET" action="{{ route('access-matrix.request.sap') }}" id="filterForm"
                   class="d-flex align-items-center gap-3 flex-wrap" style="flex:1;">
-                <select name="application" class="form-select" style="width:200px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
+                <select name="application" class="form-select" style="width:200px;font-size:.85rem;"
                         onchange="document.getElementById('filterForm').submit()">
                     <option value="">Choose Application</option>
                     @foreach($availableApplications as $app)
                         <option value="{{ $app }}" {{ $filterApplication === $app ? 'selected' : '' }}>{{ $app }}</option>
                     @endforeach
                 </select>
-                <select name="year" class="form-select" style="width:130px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
+                <select name="year" class="form-select" style="width:120px;font-size:.85rem;"
                         onchange="document.getElementById('filterForm').submit()">
                     <option value="">Year</option>
                     @foreach($availableYears as $yr)
                         <option value="{{ $yr }}" {{ $filterYear === $yr ? 'selected' : '' }}>{{ $yr }}</option>
                     @endforeach
                 </select>
-                <select name="period" class="form-select" style="width:130px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
+                <select name="period" class="form-select" style="width:120px;font-size:.85rem;"
                         onchange="document.getElementById('filterForm').submit()">
                     <option value="">Period</option>
                     @foreach($availablePeriods as $per)
                         <option value="{{ $per }}" {{ $filterPeriod === $per ? 'selected' : '' }}>{{ $per }}</option>
                     @endforeach
                 </select>
-                <button type="submit" class="btn btn-primary d-flex align-items-center gap-2"
-                        style="background:#0066cc;border:none;border-radius:8px;padding:.45rem 1.25rem;font-weight:600;font-size:.85rem;">
-                    <i class="bi bi-search" style="font-size:.8rem;"></i> SEARCH
+                <button type="submit"
+                        style="display:inline-flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,var(--secondary),var(--secondary-dark));color:#fff;border:none;border-radius:var(--input-radius);padding:.52rem 1.15rem;font-weight:700;font-size:.83rem;cursor:pointer;box-shadow:0 4px 12px rgba(11,46,109,.25);transition:transform var(--transition),box-shadow var(--transition);"
+                        onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(11,46,109,.35)'"
+                        onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 12px rgba(11,46,109,.25)'">
+                    <i class="bi bi-search"></i> Search
                 </button>
                 @if($filterApplication || $filterYear || $filterPeriod || $search)
                     <a href="{{ route('access-matrix.request.sap') }}"
-                       style="display:inline-flex;align-items:center;gap:.3rem;padding:.45rem .9rem;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
-                       onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
-                       onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
-                        <i class="bi bi-x-lg"></i> Clear
+                       style="display:inline-flex;align-items:center;gap:.3rem;padding:.52rem .9rem;border-radius:var(--input-radius);border:1.5px solid var(--border);font-size:.83rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
+                       onmouseenter="this.style.borderColor='var(--primary)';this.style.color='var(--primary)';this.style.background='var(--primary-light)'"
+                       onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background=''">
+                        <i class="bi bi-x-circle"></i> Reset
                     </a>
                 @endif
             </form>
@@ -155,15 +147,15 @@
 
                 <div class="table-responsive">
                     <table class="table table-hover mb-0" style="font-size:.85rem;color:var(--text);">
-                        <thead style="background:#fcfcfc;">
-                            <tr>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);width:5%;">No</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Application</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Period</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Modul</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Requested By</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);">Status</th>
-                                <th style="padding:1rem 1.25rem;font-weight:700;color:#333;border-bottom:1px solid var(--border);text-align:center;">Action</th>
+                        <thead>
+                            <tr style="background:linear-gradient(135deg,var(--secondary-light),#fff);">
+                                <th style="padding:.85rem 1.25rem;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);width:5%;">No</th>
+                                <th style="padding:.85rem 1.25rem;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);">Application</th>
+                                <th style="padding:.85rem 1.25rem;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);">Period</th>
+                                <th style="padding:.85rem 1.25rem;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);">Module</th>
+                                <th style="padding:.85rem 1.25rem;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);">Requested By</th>
+                                <th style="padding:.85rem 1.25rem;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);">Status</th>
+                                <th style="padding:.85rem 1.25rem;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);text-align:center;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -258,7 +250,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" style="padding:3.5rem 1rem;text-align:center;">
+                                <td colspan="7" style="padding:4rem 1rem;text-align:center;">
                                     <div style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
                                         <button type="button"
                                             data-bs-toggle="modal"
@@ -272,8 +264,8 @@
                                             <i class="bi bi-plus-lg" style="font-size:1.75rem;color:#fff;line-height:1;"></i>
                                         </button>
                                         <div>
-                                            <p style="font-size:.92rem;font-weight:700;color:var(--secondary);margin:0 0 .2rem;">No requests yet</p>
-                                            <p style="font-size:.8rem;color:var(--text-muted);margin:0;">Click the button above to create your first UAM request.</p>
+                                            <h3 style="font-size:1rem;font-weight:800;color:var(--secondary);margin:0 0 .3rem;">No requests found</h3>
+                                            <p style="font-size:.82rem;color:var(--text-muted);margin:0;">Click the button above to create your first UAM request.</p>
                                         </div>
                                     </div>
                                 </td>

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\MasterDataController;
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AccessMatrixController;
@@ -114,16 +115,39 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | User Management (Admin Only)
+    | User Management & Master Data (Admin Only)
     |--------------------------------------------------------------------------
     */
     Route::middleware(['role:admin'])->group(function () {
+        // ── Master Data ──────────────────────────────────────────────────────
+        Route::prefix('master-data')->name('master-data.')->group(function () {
+            // BPO
+            Route::get('/bpo',              [MasterDataController::class, 'bpoIndex'])  ->name('bpo');
+            Route::post('/bpo',             [MasterDataController::class, 'bpoStore'])  ->name('bpo.store');
+            Route::put('/bpo/{bpo}',        [MasterDataController::class, 'bpoUpdate']) ->name('bpo.update');
+            Route::delete('/bpo/{bpo}',     [MasterDataController::class, 'bpoDestroy'])->name('bpo.destroy');
+
+            // Unit
+            Route::get('/unit',             [MasterDataController::class, 'unitIndex'])   ->name('unit');
+            Route::post('/unit',            [MasterDataController::class, 'unitStore'])   ->name('unit.store');
+            Route::put('/unit/{unit}',      [MasterDataController::class, 'unitUpdate'])  ->name('unit.update');
+            Route::delete('/unit/{unit}',   [MasterDataController::class, 'unitDestroy']) ->name('unit.destroy');
+        });
+
+        // ── User Management ──────────────────────────────────────────────────
         Route::get('/users', [\App\Http\Controllers\UserController::class, 'index'])->name('users.index');
         Route::post('/users', [\App\Http\Controllers\UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [\App\Http\Controllers\UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [\App\Http\Controllers\UserController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{user}/reset-password', [\App\Http\Controllers\UserController::class, 'resetPassword'])->name('users.reset-password');
         Route::post('/users/{user}/toggle-status', [\App\Http\Controllers\UserController::class, 'toggleStatus'])->name('users.toggle-status');
+    });
+
+    // ── Master Data JSON API (authenticated, any role) ───────────────────────
+    // Used by Add Role dropdown; protected behind auth only (no admin req)
+    Route::prefix('api/master-data')->name('api.master-data.')->group(function () {
+        Route::get('/bpos',              [MasterDataController::class, 'apiBpos'])  ->name('bpos');
+        Route::get('/bpos/{bpo}/units',  [MasterDataController::class, 'apiUnits']) ->name('units');
     });
 
     /*

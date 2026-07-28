@@ -681,27 +681,65 @@ class AccessMatrixController extends Controller
             return back()->withErrors(['file' => 'The file appears to be empty.']);
         }
 
-        // ── 2. Detect the header row ──────────────────────────────────────────
-        $norm = fn($v) => trim(preg_replace('/_+/', '_', preg_replace('/[^a-z0-9]+/', '_', strtolower(trim((string)($v ?? ''))))), '_');
+        // ── 2. Detect the header row & build column map ──────────────────────────
+        // Normalize to lowercase with spaces (space-separated words)
+        $norm = fn($v) => trim(preg_replace('/\s+/', ' ', preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim((string)($v ?? ''))))));
 
+        // Unified alias map covering ALL six required logical fields.
+        // Keys are normalized header values; values are the logical field name.
         $aliases = [
-            'role'              => 'role', 'roles'              => 'role',
-            'hak_akses'         => 'role', 'hakakses'           => 'role',
-            'hak_akses_role'    => 'role', 'nama_role'          => 'role',
-            'nama_akses'        => 'role', 'akses'              => 'role',
-            'description_role'  => 'description_role', 'description'  => 'description_role',
-            'role_description'  => 'description_role', 'keterangan'   => 'description_role',
-            'keterangan_role'   => 'description_role', 'deskripsi'    => 'description_role',
-            'deskripsi_role'    => 'description_role', 'desc_role'    => 'description_role',
-            'desc'              => 'description_role', 'ket'          => 'description_role',
-            'notes'             => 'description_role', 'note'         => 'description_role',
-            'tcode'             => 'tcode', 't_code'            => 'tcode',
-            'transaction_code'  => 'tcode', 'transaction'       => 'tcode',
-            'tcodes'            => 'tcode', 'transaction_codes' => 'tcode',
+            // ── role ──────────────────────────────────────────────────────────
+            'role'                   => 'role',
+            'roles'                  => 'role',
+            'hak akses'              => 'role',
+            'hak akses role'         => 'role',
+            'nama role'              => 'role',
+            'nama akses'             => 'role',
+            'akses'                  => 'role',
+            // ── description_role ──────────────────────────────────────────────
+            'description role'       => 'description_role',
+            'description_role'       => 'description_role',
+            'role description'       => 'description_role',
+            'keterangan'             => 'description_role',
+            'keterangan role'        => 'description_role',
+            'deskripsi'              => 'description_role',
+            'deskripsi role'         => 'description_role',
+            'desc role'              => 'description_role',
+            'desc'                   => 'description_role',
+            'ket'                    => 'description_role',
+            'notes'                  => 'description_role',
+            'note'                   => 'description_role',
+            'description'            => 'description_role',
+            // ── tcode ─────────────────────────────────────────────────────────
+            'tcode'                  => 'tcode',
+            't code'                 => 'tcode',
+            't_code'                 => 'tcode',
+            'transaction code'       => 'tcode',
+            'transaction_code'       => 'tcode',
+            'transaction'            => 'tcode',
+            'tcodes'                 => 'tcode',
+            'transaction codes'      => 'tcode',
+            'transaction_codes'      => 'tcode',
+            // ── bpo ───────────────────────────────────────────────────────────
+            'bpo'                    => 'bpo',
+            'business process owner' => 'bpo',
+            'business_process_owner' => 'bpo',
+            // ── unit ──────────────────────────────────────────────────────────
+            'unit'                   => 'unit',
+            'unit kerja'             => 'unit',
+            'nama unit'              => 'unit',
+            // ── user_access_matrix ────────────────────────────────────────────
+            'user access matrix'     => 'user_access_matrix',
+            'user_access_matrix'     => 'user_access_matrix',
+            'access matrix'          => 'user_access_matrix',
+            'matrix'                 => 'user_access_matrix',
+            'access owner'           => 'user_access_matrix',
+            'application owner'      => 'user_access_matrix',
+            'ao'                     => 'user_access_matrix',
         ];
 
         $headerRowIdx = -1;
-        $colMap       = [];
+        $colMap       = [];   // [columnIndex => logicalFieldName]
         $bestScore    = 0;
 
         for ($i = 0; $i < count($raw); $i++) {
@@ -710,8 +748,11 @@ class AccessMatrixController extends Controller
             foreach (array_values((array)$raw[$i]) as $idx => $cell) {
                 $n = $norm($cell);
                 if (isset($aliases[$n])) {
-                    $score++;
-                    $tempMap[$idx] = $aliases[$n];
+                    // Only record the first occurrence of each logical field per row
+                    if (!in_array($aliases[$n], $tempMap, true)) {
+                        $score++;
+                        $tempMap[$idx] = $aliases[$n];
+                    }
                 }
             }
             if ($score > $bestScore) {
@@ -723,90 +764,97 @@ class AccessMatrixController extends Controller
 
         if ($headerRowIdx < 0 || !in_array('role', $colMap, true) || !in_array('tcode', $colMap, true)) {
             return back()->withErrors([
-                'file' => 'Could not detect the data table. Expected columns for "Role" (or Hak Akses) and "TCODE".',
+                'file' => 'Could not detect the data table. The worksheet must have a header row containing at least "Role" and "TCODE" columns.',
             ]);
         }
 
-        // ── 3. Find Unit, BPO, and Application Owner Headers ──────────────────────
+        // Build a fingerprint of the exact (lowercased, stripped) header cell values.
+        // Used later to skip any data row that is actually a repeated header row.
+        $headerRowCells   = array_values((array)($raw[$headerRowIdx] ?? []));
+        $headerFingerprint = [];  // [logicalField => normalizedHeaderValue]
+        foreach ($colMap as $idx => $field) {
+            $raw_val = trim((string)($headerRowCells[$idx] ?? ''));
+            if ($raw_val !== '') {
+                $headerFingerprint[$field] = strtolower(trim(preg_replace('/\s+/', ' ',
+                    preg_replace('/[^a-z0-9]+/', ' ', $raw_val)
+                )));
+            }
+        }
+
+        // ── 3. Determine matrix/AO column strategy ───────────────────────────────
+        //
+        // New mode:    'user_access_matrix' found as a named column in the header row.
+        //              Unit and BPO are also named columns; read values per data row.
+        //
+        // Legacy mode: 'user_access_matrix' column absent.
+        //              Fall back to multi-column AO detection (columns after TCODE,
+        //              with Unit/BPO taken from labelled rows above the header row).
+        //
         $tcodeColIdx = array_search('tcode', $colMap);
-
-        $unitRowIdx = -1;
-        $bpoRowIdx  = -1;
-        for ($i = 0; $i < $headerRowIdx; $i++) {
-            $row = array_values((array)($raw[$i] ?? []));
-            foreach ($row as $cell) {
-                $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim((string)($cell ?? '')))));
-                if (in_array($lower, ['unit', 'unit kerja', 'nama unit'])) {
-                    $unitRowIdx = $i;
-                    break;
-                }
-                if (in_array($lower, ['bpo', 'business process owner'])) {
-                    $bpoRowIdx = $i;
-                    break;
-                }
-            }
-        }
-
-        if ($unitRowIdx < 0 && $headerRowIdx >= 2) {
-            $unitRowIdx = $headerRowIdx - 2;
-        }
-        if ($bpoRowIdx < 0 && $headerRowIdx >= 1) {
-            $bpoRowIdx = $headerRowIdx - 1;
-        }
-
-        $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
-        $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
-
-        $startIdx = $tcodeColIdx + 1;
-
-        $fillRowLocalized = function (array $row, int $start, array $labels) {
-            for ($c = $start; $c < count($row); $c++) {
-                $val   = trim((string)($row[$c] ?? ''));
-                $clean = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($val)));
-                if (in_array($clean, $labels, true)) {
-                    $row[$c] = '';
-                }
-            }
-            $curr = '';
-            for ($c = $start; $c < count($row); $c++) {
-                $val = trim((string)($row[$c] ?? ''));
-                if ($val !== '') {
-                    $curr = $val;
-                } else {
-                    $row[$c] = $curr;
-                }
-            }
-            $curr = '';
-            for ($c = count($row) - 1; $c >= $start; $c--) {
-                $val = trim((string)($row[$c] ?? ''));
-                if ($val !== '') {
-                    $curr = $val;
-                } else {
-                    $row[$c] = $curr;
-                }
-            }
-            return $row;
-        };
-
-        $unitRowCleaned = $fillRowLocalized($unitRow, $startIdx, ['unit', 'unit kerja', 'nama unit']);
-        $bpoRowCleaned  = $fillRowLocalized($bpoRow, $startIdx, ['bpo', 'business process owner', 'business_process_owner']);
+        $uamColIdx   = array_search('user_access_matrix', $colMap);  // false = legacy mode
 
         $matrixAoCols = [];
         $aoUnitMap    = [];
         $aoBpoMap     = [];
 
-        if ($tcodeColIdx !== false) {
+        if ($uamColIdx === false && $tcodeColIdx !== false) {
+            // ── Legacy multi-column AO detection ─────────────────────────────────
+            // Unit and BPO may live in labelled rows above the header row.
+            $startIdx   = $tcodeColIdx + 1;
+            $unitRowIdx = -1;
+            $bpoRowIdx  = -1;
+
+            for ($i = 0; $i < $headerRowIdx; $i++) {
+                $row = array_values((array)($raw[$i] ?? []));
+                foreach ($row as $cell) {
+                    $lower = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower(trim((string)($cell ?? '')))));
+                    if ($unitRowIdx < 0 && in_array($lower, ['unit', 'unit kerja', 'nama unit'])) {
+                        $unitRowIdx = $i;
+                    }
+                    if ($bpoRowIdx < 0 && in_array($lower, ['bpo', 'business process owner'])) {
+                        $bpoRowIdx = $i;
+                    }
+                }
+            }
+
+            // Position-based fallback if labels were not found
+            if ($unitRowIdx < 0 && $headerRowIdx >= 2) $unitRowIdx = $headerRowIdx - 2;
+            if ($bpoRowIdx  < 0 && $headerRowIdx >= 1) $bpoRowIdx  = $headerRowIdx - 1;
+
+            $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
+            $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
+
+            // Forward-fill merged cell values and strip label cells
+            $fillRowLocalized = function (array $row, int $start, array $labels) {
+                for ($c = $start; $c < count($row); $c++) {
+                    $val   = trim((string)($row[$c] ?? ''));
+                    $clean = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($val)));
+                    if (in_array($clean, $labels, true)) {
+                        $row[$c] = '';
+                    }
+                }
+                $curr = '';
+                for ($c = $start; $c < count($row); $c++) {
+                    $val = trim((string)($row[$c] ?? ''));
+                    if ($val !== '') { $curr = $val; } else { $row[$c] = $curr; }
+                }
+                $curr = '';
+                for ($c = count($row) - 1; $c >= $start; $c--) {
+                    $val = trim((string)($row[$c] ?? ''));
+                    if ($val !== '') { $curr = $val; } else { $row[$c] = $curr; }
+                }
+                return $row;
+            };
+
+            $unitRowCleaned = $fillRowLocalized($unitRow, $startIdx, ['unit', 'unit kerja', 'nama unit']);
+            $bpoRowCleaned  = $fillRowLocalized($bpoRow,  $startIdx, ['bpo', 'business process owner', 'business_process_owner']);
+
+            // Forward-fill merged AO header names
             $headerRow = array_values((array)$raw[$headerRowIdx]);
-            
-            // First, fill in empty Application Owner names from the left to handle merged headers
-            $currAo = '';
+            $currAo    = '';
             for ($c = $startIdx; $c < count($headerRow); $c++) {
                 $val = trim((string)($headerRow[$c] ?? ''));
-                if ($val !== '') {
-                    $currAo = $val;
-                } else {
-                    $headerRow[$c] = $currAo;
-                }
+                if ($val !== '') { $currAo = $val; } else { $headerRow[$c] = $currAo; }
             }
 
             for ($c = $startIdx; $c < count($headerRow); $c++) {
@@ -894,26 +942,32 @@ class AccessMatrixController extends Controller
 
 
         // ── 4. Parse data rows ────────────────────────────────────────────────
-        $userId  = Auth::id();
-        $now     = now();
-        $inserts = [];
+        $userId       = Auth::id();
+        $now          = now();
+        $inserts      = [];
         $globalMatrix = [];
-        $dataStarted = false;
+        $dataStarted  = false;
+
         foreach (array_slice($raw, $headerRowIdx + 1) as $row) {
             $row      = array_values((array)$row);
             $nonEmpty = array_filter($row, fn($v) => $v !== null && trim((string)$v) !== '');
-            
+
             if (empty($nonEmpty)) {
                 if ($dataStarted) break; // Stop at first blank row after data
                 continue;
             }
 
+            // Initialise record with all six logical fields
             $record = [
-                'role'             => null,
-                'tcode'            => null,
-                'description_role' => null,
+                'role'               => null,
+                'tcode'              => null,
+                'description_role'   => null,
+                'bpo'                => null,
+                'unit'               => null,
+                'user_access_matrix' => null,
             ];
 
+            // Map cells to logical fields using the discovered column indices
             foreach ($colMap as $idx => $dbCol) {
                 $val = isset($row[$idx]) ? trim((string)$row[$idx]) : '';
                 if ($val !== '') {
@@ -922,32 +976,50 @@ class AccessMatrixController extends Controller
             }
 
             $rLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['role'] ?? '')));
-            
-            // If we hit a footer signature block indicator, stop immediately
+
+            // Stop immediately when a footer signature block is detected
             if (in_array($rLower, ['requestedby', 'acceptedby', 'approvedby', 'nik', 'name', 'nama', 'position', 'jabatan', 'date', 'tanggal'])) {
                 break;
             }
 
-            if (empty($record['role']) || empty($record['tcode'])) continue;
+            // ── Skip repeated / phantom header rows ──────────────────────────
+            // Strategy A: Compare each mapped field's value against the detected
+            //             header fingerprint. If ANY required field matches its
+            //             own header label, this row IS a header — skip it.
+            //             (Catches em-dash in TCODE, mid-sheet header repeats, etc.)
+            $isHeaderRepeat = false;
+            foreach (['role', 'tcode', 'description_role', 'bpo', 'unit'] as $checkField) {
+                if (!isset($headerFingerprint[$checkField])) continue;
+                $cellNorm = strtolower(trim(preg_replace('/\s+/', ' ',
+                    preg_replace('/[^a-z0-9]+/', ' ', trim((string)($record[$checkField] ?? '')))
+                )));
+                if ($cellNorm !== '' && $cellNorm === $headerFingerprint[$checkField]) {
+                    $isHeaderRepeat = true;
+                    break;
+                }
+            }
+            if ($isHeaderRepeat) continue;
 
-            $rLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['role'])));
-            $descLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['description_role'] ?? '')));
-            $tLower = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['tcode'])));
-            
-            $roleAliases = ['role', 'hakakses', 'namarole', 'namaakses'];
-            $descAliases = ['descriptionrole', 'deskripsirole', 'keteranganrole', 'deskripsi', 'keterangan'];
+            // Strategy B: Alias-based fallback (catches header values that differ
+            //             slightly from the detected header, e.g. variant spellings)
+            $roleAliases  = ['role', 'hakakses', 'namarole', 'namaakses'];
+            $descAliases  = ['descriptionrole', 'deskripsirole', 'keteranganrole', 'deskripsi', 'keterangan'];
             $tcodeAliases = ['tcode', 'transactioncode', 'transaction', 'tcodes', 'transactioncodes'];
-            
-            // 1. Skip if the row is the header itself (if ANY of the key columns equal their header name)
-            if (in_array($rLower, $roleAliases) || in_array($descLower, $descAliases) || in_array($tLower, $tcodeAliases)) {
+
+            $rStripped    = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['role'] ?? '')));
+            $descStripped = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['description_role'] ?? '')));
+            $tStripped    = strtolower(trim(preg_replace('/[^a-z0-9]+/', '', $record['tcode'] ?? '')));
+
+            if (in_array($rStripped, $roleAliases) || in_array($descStripped, $descAliases) || in_array($tStripped, $tcodeAliases)) {
                 continue;
             }
 
-            // 2. Validate valid SAP Role format (e.g., ZPS-*, ZMM-*, ZFI-*). 
-            // SAP Roles do not contain spaces and consist of alphanumeric chars, dashes, underscores.
+            if (empty($record['role']) || empty($record['tcode'])) continue;
+
+            // Validate SAP Role format (alphanumeric + dashes/underscores/dots, no spaces)
             $roleVal = trim((string)$record['role']);
             if (!preg_match('/^[A-Za-z0-9_\-\.\*]+$/', $roleVal)) {
-                continue; // Automatically skip rows that do not match the expected Role pattern
+                continue;
             }
 
             $dataStarted = true;
@@ -956,41 +1028,87 @@ class AccessMatrixController extends Controller
             $rowBpos    = [];
             $rowUnits   = [];
 
-            foreach ($matrixAoCols as $colIdx => $ownerName) {
-                $cellVal = $row[$colIdx] ?? null;
-                $isOne   = ($cellVal === 1) || ($cellVal === 1.0) || (is_string($cellVal) && trim($cellVal) === '1');
+            if ($uamColIdx !== false) {
+                // ── New single-column UAM strategy ────────────────────────────
+                // 'User Access Matrix' is a dedicated column holding an AO name.
+                // 'Unit' and 'BPO' are also dedicated columns in the same header row.
+                $aoName  = trim((string)($record['user_access_matrix'] ?? ''));
+                $unitVal = trim((string)($record['unit'] ?? ''));
+                $bpoVal  = trim((string)($record['bpo']  ?? ''));
 
-                if ($isOne) {
-                    $u = trim((string)($aoUnitMap[$colIdx] ?? '')) ?: '—';
-                    $b = trim((string)($aoBpoMap[$colIdx]  ?? '')) ?: '—';
-                    if ($u !== '—') $rowUnits[] = $u;
-                    if ($b !== '—') $rowBpos[]  = $b;
+                if ($aoName !== '') {
+                    $u = $unitVal ?: '—';
+                    $b = $bpoVal  ?: '—';
+                    if ($unitVal !== '') $rowUnits[] = $unitVal;
+                    if ($bpoVal  !== '') $rowBpos[]  = $bpoVal;
 
                     if (!isset($matrixData[$u])) $matrixData[$u] = [];
                     if (!isset($matrixData[$u][$b])) $matrixData[$u][$b] = [];
-                    $matrixData[$u][$b][] = $ownerName;
+                    $matrixData[$u][$b][] = $aoName;
 
-                    // Build global matrix map based on TCODE -> BPO -> Unit -> Application Owner
+                    // Build global matrix: TCODE -> BPO -> Unit -> [AO names]
                     $tcodes = array_map('trim', explode(',', $record['tcode']));
                     foreach ($tcodes as $tc) {
                         if ($tc === '') continue;
                         if (!isset($globalMatrix[$tc])) $globalMatrix[$tc] = [];
                         if (!isset($globalMatrix[$tc][$b])) $globalMatrix[$tc][$b] = [];
                         if (!isset($globalMatrix[$tc][$b][$u])) $globalMatrix[$tc][$b][$u] = [];
-                        
-                        if (!in_array($ownerName, $globalMatrix[$tc][$b][$u], true)) {
-                            $globalMatrix[$tc][$b][$u][] = $ownerName;
+                        if (!in_array($aoName, $globalMatrix[$tc][$b][$u], true)) {
+                            $globalMatrix[$tc][$b][$u][] = $aoName;
+                        }
+                    }
+                }
+            } else {
+                // ── Legacy multi-column AO strategy ───────────────────────────
+                // Columns after TCODE each represent an AO; a '1' means access granted.
+                // Unit/BPO values come from the row-level aggregates built in Step 3.
+                foreach ($matrixAoCols as $colIdx => $ownerName) {
+                    $cellVal = $row[$colIdx] ?? null;
+                    $isOne   = ($cellVal === 1) || ($cellVal === 1.0)
+                               || (is_string($cellVal) && trim($cellVal) === '1');
+
+                    if ($isOne) {
+                        $u = trim((string)($aoUnitMap[$colIdx] ?? '')) ?: '—';
+                        $b = trim((string)($aoBpoMap[$colIdx]  ?? '')) ?: '—';
+                        if ($u !== '—') $rowUnits[] = $u;
+                        if ($b !== '—') $rowBpos[]  = $b;
+
+                        if (!isset($matrixData[$u])) $matrixData[$u] = [];
+                        if (!isset($matrixData[$u][$b])) $matrixData[$u][$b] = [];
+                        $matrixData[$u][$b][] = $ownerName;
+
+                        // Build global matrix: TCODE -> BPO -> Unit -> [AO names]
+                        $tcodes = array_map('trim', explode(',', $record['tcode']));
+                        foreach ($tcodes as $tc) {
+                            if ($tc === '') continue;
+                            if (!isset($globalMatrix[$tc])) $globalMatrix[$tc] = [];
+                            if (!isset($globalMatrix[$tc][$b])) $globalMatrix[$tc][$b] = [];
+                            if (!isset($globalMatrix[$tc][$b][$u])) $globalMatrix[$tc][$b][$u] = [];
+                            if (!in_array($ownerName, $globalMatrix[$tc][$b][$u], true)) {
+                                $globalMatrix[$tc][$b][$u][] = $ownerName;
+                            }
                         }
                     }
                 }
             }
 
+            // Resolve final unit / bpo values:
+            // - New mode:    rowUnits/rowBpos populated from the single UAM column
+            // - Legacy mode: rowUnits/rowBpos populated from the multi-AO column scan
+            // In both cases fall back to the direct column value if the matrix had no hits.
+            $unitFinal = !empty($rowUnits)
+                ? implode(', ', array_unique($rowUnits))
+                : ($record['unit'] ?? null);
+            $bpoFinal  = !empty($rowBpos)
+                ? implode(', ', array_unique($rowBpos))
+                : ($record['bpo']  ?? null);
+
             $inserts[] = [
                 'role'             => $record['role'],
                 'tcode'            => $record['tcode'],
                 'description_role' => $record['description_role'],
-                'unit'             => empty($rowUnits) ? null : implode(', ', array_unique($rowUnits)),
-                'bpo'              => empty($rowBpos)  ? null : implode(', ', array_unique($rowBpos)),
+                'unit'             => $unitFinal,
+                'bpo'              => $bpoFinal,
                 'access_owner'     => null,
                 'matrix_data'      => empty($matrixData) ? null : json_encode($matrixData),
                 'module'           => $module,
@@ -1041,10 +1159,45 @@ class AccessMatrixController extends Controller
             'record_count'  => count($inserts),
         ]);
 
+        // ── 7. Sync Master BPO + Unit from imported data ──────────────────────
+        // Creates new Master BPO / Unit records for any BPO or BPO+Unit
+        // combination found in this import batch that don't already exist.
+        // Existing records are NEVER modified or deleted.
+        try {
+            $bpoBag  = [];
+            $unitBag = [];
+
+            foreach ($inserts as $ins) {
+                $bpoVal  = trim((string)($ins['bpo']  ?? ''));
+                $unitVal = trim((string)($ins['unit'] ?? ''));
+
+                // Support comma-separated values (legacy multi-AO rows)
+                $bpoNames  = array_filter(array_map('trim', explode(',', $bpoVal)),
+                                          fn($s) => $s !== '' && $s !== '—');
+                $unitNames = array_filter(array_map('trim', explode(',', $unitVal)),
+                                          fn($s) => $s !== '' && $s !== '—');
+
+                foreach ($bpoNames as $b) {
+                    $bpoBag[] = $b;
+                }
+                foreach ($bpoNames as $b) {
+                    foreach ($unitNames as $u) {
+                        $unitBag[] = ['bpo' => $b, 'unit' => $u];
+                    }
+                }
+            }
+
+            \App\Http\Controllers\MasterDataController::syncFromImport($bpoBag, $unitBag);
+        } catch (\Throwable $e) {
+            // A sync failure must never break the import result
+            Log::warning('UAM import: Master Data sync failed', ['error' => $e->getMessage()]);
+        }
+
         return redirect()
             ->route('access-matrix.request.sap')
             ->with('success', 'Successfully imported ' . count($inserts) . " record(s) from \"{$fileName}\" — Request \"{$batchName}\" created.");
     }
+
 
     // ─────────────────────────────────────────────────────────────────────────
     // PRIVATE HELPERS

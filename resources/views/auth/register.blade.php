@@ -7,31 +7,15 @@
 
     {{-- ─── Left Decorative Panel ──────────────────────────────────── --}}
     <div class="auth-panel">
+        {{-- Floating shapes --}}
+        <div class="auth-panel-shape" style="width:220px;height:220px;background:rgba(255,255,255,.03);top:10%;left:-60px;animation-duration:7s;"></div>
+        <div class="auth-panel-shape" style="width:120px;height:120px;background:rgba(227,30,36,.08);bottom:15%;right:-30px;animation-duration:5s;animation-delay:1s;"></div>
+
         <div class="auth-panel-logo animate-in">
             <div class="brand-badge">
                 <i class="bi bi-shield-lock-fill"></i>
             </div>
             <h1>AccessHub</h1>
-            <p>PT Telkom Infrastruktur Indonesia</p>
-        </div>
-
-        <div class="auth-panel-features animate-in animate-in-delay-2">
-            <div class="feature-item">
-                <i class="bi bi-person-plus-fill"></i>
-                <span>Quick Account Setup</span>
-            </div>
-            <div class="feature-item">
-                <i class="bi bi-lock-fill"></i>
-                <span>Secured with Bcrypt Hashing</span>
-            </div>
-            <div class="feature-item">
-                <i class="bi bi-people-fill"></i>
-                <span>Role-Based Access Control</span>
-            </div>
-            <div class="feature-item">
-                <i class="bi bi-shield-check-fill"></i>
-                <span>Enterprise-Grade Security</span>
-            </div>
         </div>
     </div>
 
@@ -39,17 +23,17 @@
     <div class="auth-content" style="align-items:flex-start; padding-top: 2.5rem; padding-bottom: 2.5rem;">
         <div class="auth-card" style="max-width:480px;">
 
-            {{-- Header --}}
-            <div class="mb-4 animate-in">
-                <div class="d-flex align-items-center gap-2 mb-3 d-md-none">
-                    <div style="width:36px;height:36px;background:var(--primary);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <i class="bi bi-shield-lock-fill text-white"></i>
-                    </div>
-                    <div>
-                        <div style="font-size:.78rem;font-weight:800;color:var(--secondary);line-height:1.1">AccessHub</div>
-                        <div style="font-size:.65rem;color:var(--text-muted)">PT Telkom Infrastruktur Indonesia</div>
-                    </div>
+            {{-- Mobile Brand --}}
+            <div class="d-flex align-items-center gap-2 mb-4 d-md-none animate-in">
+                <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--primary),#ff5c62);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px var(--primary-glow);">
+                    <i class="bi bi-shield-lock-fill text-white"></i>
                 </div>
+                <div>
+                    <div style="font-size:.8rem;font-weight:800;color:var(--secondary);line-height:1.1">AccessHub</div>
+                </div>
+            </div>
+
+            {{-- Header --}}
                 <h2 class="auth-card-title">Create account</h2>
                 <p class="auth-card-subtitle">Fill in the form below to register your account</p>
             </div>
@@ -221,7 +205,7 @@
                             <option value="ao" {{ old('role') === 'ao' ? 'selected' : '' }}>Final Approver (AO)</option>
                         </select>
                         @error('role')
-                            <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>

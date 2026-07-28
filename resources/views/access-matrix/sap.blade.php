@@ -1,40 +1,28 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'UAM SAP — User Access Matrix')
 
 @section('content')
 
-{{-- ─── Navbar ─────────────────────────────────────────────────────── --}}
-<nav class="app-navbar">
-    <div class="container-fluid px-4">
-        <div class="d-flex align-items-center justify-content-between">
+{{-- ─── App Shell ─────────────────────────────────────────────────────── --}}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-            <div class="d-flex align-items-center gap-2">
+{{-- Sidebar (Fixed full-height) --}}
+<x-sidebar />
 
-                {{-- Brand --}}
-            <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
-                <div class="brand-dot">
-                    <i class="bi bi-shield-lock-fill"></i>
-                </div>
-                <div>
-                    <div class="brand-text-main">AccessHub</div>
-                    <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
-                </div>
-            </a>
-            </div>
+{{-- Content Wrapper --}}
+<div class="app-content-wrapper">
 
-            {{-- Right — Profile Dropdown --}}
-            <x-navbar-right />
-
+    {{-- Topbar --}}
+    <header class="app-topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
-    </div>
-</nav>
-
-{{-- ─── App Shell ──────────────────────────────────────────────────── --}}
-<div class="d-flex" style="min-height:calc(100vh - 57px);">
-
-    {{-- Sidebar --}}
-    <x-sidebar />
+        {{-- Right — Profile Dropdown --}}
+        <x-navbar-right />
+    </header>
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
@@ -91,8 +79,8 @@
         {{-- ── Page Header ── --}}
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 animate-in" style="gap:1rem;">
             <div>
-                <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                    <i class="bi bi-pc-display-horizontal me-2" style="color:var(--primary);"></i>UAM SAP Module
+                <h1 style="font-size:1.6rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;letter-spacing:-.5px;">
+                    UAM SAP Module
                     @if($uamRequest && $uamRequest->module)
                         <span style="font-size:.75rem;font-weight:600;background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .65rem;vertical-align:middle;margin-left:.5rem;">{{ $uamRequest->module }}</span>
                     @endif
@@ -115,8 +103,8 @@
 
         {{-- ── Search Bar ── --}}
 
-        <div class="animate-in animate-in-delay-1 mb-4"
-             style="background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:1.25rem;box-shadow:0 2px 12px rgba(0,0,0,.02);">
+        <div class="animate-in animate-in-delay-1 mb-4 card-premium"
+             style="padding:1.25rem;">
             <form method="GET" action="{{ route('access-matrix.sap') }}" id="searchForm">
                 @if($requestId)
                     <input type="hidden" name="request_id" value="{{ $requestId }}">
@@ -253,7 +241,7 @@
         {{-- ── Results Table ── --}}
         @if(!($isStage2View ?? false))
         <div class="animate-in animate-in-delay-2 mb-4">
-            <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
+            <div class="card-premium">
 
                 {{-- Table Header Bar --}}
                 @php $isApprovalView = isset($uamRequest) && $uamRequest && $uamRequest->status === 'Review' && isset($isApproval) && $isApproval && Auth::user()->role !== 'admin'; @endphp
@@ -290,10 +278,10 @@
                     @if((Auth::user()->isAdmin() || Auth::user()->isPicAo()) && empty($isApproval) && (!isset($uamRequest) || !$uamRequest || (in_array($uamRequest->status, ['Draft', 'Need Revision', 'Return']))))
                         <a href="{{ route('access-matrix.create', array_filter(['request_id' => $requestId ?? null])) }}"
                            id="addRoleBtn"
-                           style="display:inline-flex;align-items:center;gap:.4rem;background:var(--secondary);color:#fff;border:none;border-radius:8px;padding:.42rem 1rem;font-size:.8rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 2px 8px rgba(11,46,109,.18);transition:all .18s;"
-                           onmouseenter="this.style.background='#0a2355';this.style.transform='translateY(-1px)';"
-                           onmouseleave="this.style.background='var(--secondary)';this.style.transform='none';">
-                            <i class="bi bi-plus-lg" style="font-size:.8rem;"></i> Add Role
+                           style="display:inline-flex;align-items:center;gap:.4rem;background:linear-gradient(135deg,var(--secondary),var(--secondary-dark));color:#fff;border:none;border-radius:var(--input-radius);padding:.52rem 1.15rem;font-size:.83rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 4px 12px rgba(11,46,109,.25);transition:transform var(--transition),box-shadow var(--transition);"
+                           onmouseenter="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(11,46,109,.35)';"
+                           onmouseleave="this.style.transform='none';this.style.boxShadow='0 4px 12px rgba(11,46,109,.25)';">
+                            <i class="bi bi-plus-lg"></i> Add Role
                         </a>
                     @endif
 
@@ -312,9 +300,9 @@
                             <col style="width:56px;">         {{-- Expand arrow --}}
                         </colgroup>
                         <thead>
-                            <tr style="background:var(--secondary-light);">
+                            <tr style="background:linear-gradient(135deg,var(--secondary-light),#fff);">
                                 @php
-                                    $thStyle = "padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;";
+                                    $thStyle = "padding:.85rem 1rem;text-align:left;font-size:.72rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;";
                                 @endphp
                                 <th style="{{ $thStyle }}">#</th>
                                 <th style="{{ $thStyle }}">Role</th>

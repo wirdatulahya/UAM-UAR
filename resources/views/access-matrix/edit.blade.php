@@ -1,30 +1,31 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Edit UAM Record')
 
 @section('content')
 
 {{-- Navbar --}}
-<nav class="app-navbar">
-    <div class="container-fluid px-4">
-        <div class="d-flex align-items-center justify-content-between">
-            <a href="{{ route('dashboard') }}" class="navbar-brand-wrapper">
-                <div class="brand-dot"><i class="bi bi-shield-lock-fill"></i></div>
-                <div>
-                    <div class="brand-text-main">AccessHub</div>
-                    <div class="brand-text-sub">PT Telkom Infrastruktur Indonesia</div>
-                </div>
-            </a>
-            <x-navbar-right />
+{{-- ─── App Shell ─────────────────────────────────────────────────────── --}}
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+{{-- Sidebar (Fixed full-height) --}}
+<x-sidebar />
+
+{{-- Content Wrapper --}}
+<div class="app-content-wrapper">
+
+    {{-- Topbar --}}
+    <header class="app-topbar">
+        <div class="topbar-left">
+            <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
-    </div>
-</nav>
+        {{-- Right — Profile Dropdown --}}
+        <x-navbar-right />
+    </header>
 
-<div class="d-flex" style="min-height:calc(100vh - 57px);">
-
-    {{-- Sidebar --}}
-    <x-sidebar />
-
+    {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4">
 
                 <x-breadcrumb :items="[
@@ -37,29 +38,31 @@
         {{-- Page Header --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in">
             <div>
-                <h1 style="font-size:1.35rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                    <i class="bi bi-pencil-square me-2" style="color:var(--primary);"></i>Edit UAM Record
+                <h1 style="font-size:1.6rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;letter-spacing:-.5px;">
+                    Edit UAM Record
                 </h1>
-                <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                    Editing record ID <strong>#{{ $uamRecord->id }}</strong> &nbsp;·&nbsp;
-                    <span style="font-family:monospace;background:#f1f5f9;padding:.15rem .35rem;border-radius:4px;font-size:.78rem;border:1px solid var(--border);">{{ $uamRecord->role }}</span>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">
+                    Editing record ID <strong style="color:var(--primary);">#{{ $uamRecord->id }}</strong> &nbsp;·&nbsp;
+                    <span style="font-family:monospace;background:var(--secondary-light);padding:.2rem .4rem;border-radius:4px;font-size:.8rem;border:1px solid var(--border);color:var(--secondary);font-weight:600;">{{ $uamRecord->role }}</span>
                 </p>
             </div>
             <a href="{{ route('access-matrix.sap', ['search' => $uamRecord->role]) }}"
-               style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
-               onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
-               onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+               style="display:inline-flex;align-items:center;gap:.45rem;background:none;border:1.5px solid var(--border);border-radius:var(--input-radius);padding:.52rem 1.15rem;font-size:.85rem;font-weight:700;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
+               onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';this.style.background='var(--secondary-light)'"
+               onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background=''">
                 <i class="bi bi-arrow-left"></i> Back
             </a>
         </div>
 
         {{-- Form Card --}}
         <div class="animate-in animate-in-delay-1" style="max-width:720px;">
-            <div style="background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow);">
-
-                <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--secondary-light);">
-                    <div style="font-size:.88rem;font-weight:700;color:var(--secondary);">
-                        <i class="bi bi-shield-lock-fill me-2"></i>Role Details
+            <div class="card-premium">
+                <div class="card-header-premium">
+                    <div style="font-size:.9rem;font-weight:800;color:var(--secondary);display:flex;align-items:center;gap:.5rem;">
+                        <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--primary-light),#ffc1c2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--primary);">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        Role Details
                     </div>
                 </div>
 
@@ -179,9 +182,9 @@
                         </div>
 
                         <div class="row g-3 mb-3">
-                            {{-- Application Owner --}}
+                            {{-- User Access Matrix --}}
                             <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">User Access Matrix (AO)</label>
+                                <label for="access_owner" class="form-label">User</label>
                                 <select id="access_owner" name="access_owner" class="form-select @error('access_owner') is-invalid @enderror" data-selected="{{ old('access_owner', $uamRecord->access_owner) }}">
                                     <option value="">-- Select Unit first --</option>
                                 </select>
@@ -324,11 +327,11 @@
 
         const validAos = map[bpoSelect.value][unitSelect.value] || [];
         if (validAos.length === 0) {
-            setOptions(aoSelect, [], '-- No Application Owners found --');
+            setOptions(aoSelect, [], '-- No Users found --');
             return;
         }
 
-        setOptions(aoSelect, validAos, '-- Select Application Owner --', selectedAo);
+        setOptions(aoSelect, validAos, '-- Select User --', selectedAo);
         aoSelect.removeAttribute('data-selected');
     }
 
