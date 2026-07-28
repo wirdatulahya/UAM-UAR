@@ -49,10 +49,20 @@ class MasterDataController extends Controller
 
     public function unitIndex()
     {
-        $bpos  = MasterBpo::active()->orderBy('name')->get();
-        $units = MasterUnit::with('bpo')->orderBy('name')->get();
-        return view('master-data.unit', compact('bpos', 'units'));
+        // Load all BPOs with their units pre-sorted by name.
+        // Used for the grouped table (rowspan per BPO) and the Add/Edit dropdowns.
+        $bposWithUnits = MasterBpo::orderBy('name')
+            ->with(['units' => fn($q) => $q->orderBy('name')])
+            ->get();
+
+        // Flat list of BPOs for the Add/Edit modal dropdowns
+        $bpos = $bposWithUnits;
+
+        $totalUnits = $bposWithUnits->sum(fn($b) => $b->units->count());
+
+        return view('master-data.unit', compact('bpos', 'bposWithUnits', 'totalUnits'));
     }
+
 
     public function unitStore(Request $request)
     {

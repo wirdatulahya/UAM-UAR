@@ -37,12 +37,6 @@
             </button>
         </div>
 
-        {{-- Info banner --}}
-        <div class="animate-in" style="background:var(--secondary-light);border-left:4px solid var(--secondary);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.6rem;font-size:.83rem;color:var(--secondary);">
-            <i class="bi bi-info-circle-fill flex-shrink-0"></i>
-            <span>Unit baru juga dapat ditambahkan secara otomatis saat melakukan <strong>import Excel</strong>. Import tidak akan membuat duplikat data yang sudah ada.</span>
-        </div>
-
         {{-- Alerts --}}
         @if(session('success'))
             <div class="animate-in" style="background:#dcfce7;border-left:4px solid #16a34a;border-radius:10px;color:#166534;font-size:.875rem;padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem;">
@@ -69,62 +63,80 @@
                 <span style="font-size:.9rem;font-weight:800;color:var(--secondary);">
                     <i class="bi bi-diagram-3-fill me-2" style="color:var(--primary);"></i>Daftar Unit
                 </span>
-                <span style="font-size:.78rem;color:var(--text-muted);">Total: {{ $units->count() }} data</span>
+                <span style="font-size:.78rem;color:var(--text-muted);">Total: {{ $totalUnits }} data</span>
             </div>
             <div style="overflow-x:auto;">
                 <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
                     <thead>
                         <tr style="background:var(--secondary-light);">
-                            <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">#</th>
-                            <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">BPO</th>
+                            <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);width:56px;">#</th>
+                            <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);width:30%;">BPO</th>
                             <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">Nama Unit</th>
-                            <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">Status</th>
                             <th style="padding:.75rem 1.25rem;text-align:right;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($units as $unit)
-                        <tr style="border-top:1px solid var(--border);transition:background var(--transition);"
-                            onmouseenter="this.style.background='var(--secondary-light)'"
-                            onmouseleave="this.style.background=''">
-                            <td style="padding:.9rem 1.25rem;color:var(--text-muted);font-size:.8rem;">{{ $loop->iteration }}</td>
-                            <td style="padding:.9rem 1.25rem;">
-                                <span style="background:var(--secondary-light);color:var(--secondary);border-radius:6px;padding:.2rem .6rem;font-size:.78rem;font-weight:700;">{{ $unit->bpo->name }}</span>
-                            </td>
-                            <td style="padding:.9rem 1.25rem;font-weight:700;color:var(--secondary);">{{ $unit->name }}</td>
-                            <td style="padding:.9rem 1.25rem;">
-                                @if($unit->is_active)
-                                    <span class="badge-status badge-status-active"><i class="bi bi-circle-fill" style="font-size:.5rem;"></i> Aktif</span>
-                                @else
-                                    <span class="badge-status" style="background:#fee2e2;color:#991b1b;"><i class="bi bi-circle-fill" style="font-size:.5rem;"></i> Non-aktif</span>
-                                @endif
-                            </td>
-                            <td style="padding:.9rem 1.25rem;text-align:right;">
-                                <div style="display:inline-flex;gap:.5rem;">
-                                    <button onclick="openEditModal({{ $unit->id }}, {{ $unit->master_bpo_id }}, '{{ addslashes($unit->name) }}', {{ $unit->is_active ? 'true' : 'false' }})"
-                                        style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary-light);border:1.5px solid rgba(11,46,109,.15);border-radius:8px;padding:.38rem .8rem;font-size:.78rem;font-weight:700;color:var(--secondary);cursor:pointer;transition:all var(--transition);"
-                                        onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff'"
-                                        onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)'">
-                                        <i class="bi bi-pencil-fill"></i> Edit
-                                    </button>
-                                    <form method="POST" action="{{ route('master-data.unit.destroy', $unit) }}"
-                                          onsubmit="return confirm('Hapus unit {{ $unit->name }}?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                            style="display:inline-flex;align-items:center;gap:.35rem;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:.38rem .8rem;font-size:.78rem;font-weight:700;color:#dc2626;cursor:pointer;transition:all var(--transition);"
-                                            onmouseenter="this.style.background='#dc2626';this.style.color='#fff';this.style.borderColor='#dc2626'"
-                                            onmouseleave="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'">
-                                            <i class="bi bi-trash-fill"></i> Hapus
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
+                        @forelse($bposWithUnits as $bpo)
+                            @if($bpo->units->isEmpty())
+                                {{-- BPO exists but has no units yet --}}
+                                <tr style="border-top:1px solid var(--border);">
+                                    <td style="padding:.9rem 1.25rem;color:var(--text-muted);font-size:.8rem;">—</td>
+                                    <td style="padding:.9rem 1.25rem;">
+                                        <span style="background:var(--secondary-light);color:var(--secondary);border-radius:6px;padding:.2rem .6rem;font-size:.78rem;font-weight:700;">{{ $bpo->name }}</span>
+                                    </td>
+                                    <td colspan="2" style="padding:.9rem 1.25rem;color:var(--text-muted);font-style:italic;font-size:.82rem;">
+                                        Belum ada unit untuk BPO ini.
+                                    </td>
+                                </tr>
+                            @else
+                                @foreach($bpo->units as $unit)
+                                    @php $isFirst = $loop->first; @endphp
+                                    <tr style="border-top:{{ $isFirst ? '2px solid var(--border)' : '1px solid var(--border)' }};transition:background var(--transition);"
+                                        onmouseenter="this.style.background='var(--secondary-light)'"
+                                        onmouseleave="this.style.background=''">
+
+                                        @if($isFirst)
+                                            {{-- Row number spans all units in this BPO group --}}
+                                            <td rowspan="{{ $bpo->units->count() }}"
+                                                style="padding:.9rem 1.25rem;color:var(--text-muted);font-size:.8rem;vertical-align:middle;border-right:1px solid var(--border);">
+                                                {{ $loop->parent->iteration }}
+                                            </td>
+                                            {{-- BPO name cell — spans all unit rows in this group --}}
+                                            <td rowspan="{{ $bpo->units->count() }}"
+                                                style="padding:.9rem 1.25rem;vertical-align:middle;border-right:1px solid var(--border);">
+                                                <span style="background:var(--secondary-light);color:var(--secondary);border-radius:6px;padding:.25rem .75rem;font-size:.82rem;font-weight:700;display:inline-block;">{{ $bpo->name }}</span>
+                                            </td>
+                                        @endif
+
+                                        <td style="padding:.8rem 1.25rem;font-weight:600;color:var(--secondary);">{{ $unit->name }}</td>
+                                        <td style="padding:.8rem 1.25rem;text-align:right;">
+                                            <div style="display:inline-flex;gap:.5rem;">
+                                                <button onclick="openEditModal({{ $unit->id }}, {{ $unit->master_bpo_id }}, '{{ addslashes($unit->name) }}')"
+                                                    style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary-light);border:1.5px solid rgba(11,46,109,.15);border-radius:8px;padding:.35rem .75rem;font-size:.78rem;font-weight:700;color:var(--secondary);cursor:pointer;transition:all var(--transition);"
+                                                    onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff'"
+                                                    onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)'">
+                                                    <i class="bi bi-pencil-fill"></i> Edit
+                                                </button>
+                                                <form method="POST" action="{{ route('master-data.unit.destroy', $unit) }}"
+                                                      onsubmit="return confirm('Hapus unit {{ $unit->name }}?')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit"
+                                                        style="display:inline-flex;align-items:center;gap:.35rem;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:.35rem .75rem;font-size:.78rem;font-weight:700;color:#dc2626;cursor:pointer;transition:all var(--transition);"
+                                                        onmouseenter="this.style.background='#dc2626';this.style.color='#fff';this.style.borderColor='#dc2626'"
+                                                        onmouseleave="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'">
+                                                        <i class="bi bi-trash-fill"></i> Hapus
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @endif
                         @empty
                         <tr>
-                            <td colspan="5" style="padding:3rem;text-align:center;color:var(--text-muted);">
+                            <td colspan="4" style="padding:3rem;text-align:center;color:var(--text-muted);">
                                 <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.4;"></i>
-                                Belum ada data Unit. Tambahkan secara manual atau lakukan import Excel.
+                                Belum ada data. Tambahkan BPO terlebih dahulu, lalu tambahkan Unit.
                             </td>
                         </tr>
                         @endforelse
@@ -152,7 +164,8 @@
             </div>
             <div class="mb-4">
                 <label class="form-label">Nama Unit <span style="color:var(--primary);">*</span></label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. IT-NETWORK" required>
+                <input type="text" name="name" class="form-control" placeholder="e.g. DIGITAL BROADBAND PLANNING					
+" required>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeAddModal()"
@@ -177,16 +190,9 @@
                     @endforeach
                 </select>
             </div>
-            <div class="mb-3">
+            <div class="mb-4">
                 <label class="form-label">Nama Unit <span style="color:var(--primary);">*</span></label>
                 <input type="text" name="name" id="editName" class="form-control" required>
-            </div>
-            <div class="mb-4">
-                <label class="form-label">Status</label>
-                <select name="is_active" id="editIsActive" class="form-select">
-                    <option value="1">Aktif</option>
-                    <option value="0">Non-aktif</option>
-                </select>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeEditModal()"
@@ -204,11 +210,10 @@
     function openAddModal()  { document.getElementById('addModal').style.display  = 'flex'; }
     function closeAddModal() { document.getElementById('addModal').style.display  = 'none'; }
 
-    function openEditModal(id, bpoId, name, isActive) {
-        document.getElementById('editForm').action   = `/master-data/unit/${id}`;
-        document.getElementById('editBpoId').value   = bpoId;
-        document.getElementById('editName').value    = name;
-        document.getElementById('editIsActive').value = isActive ? '1' : '0';
+    function openEditModal(id, bpoId, name) {
+        document.getElementById('editForm').action  = `/master-data/unit/${id}`;
+        document.getElementById('editBpoId').value  = bpoId;
+        document.getElementById('editName').value   = name;
         document.getElementById('editModal').style.display = 'flex';
     }
     function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }

@@ -74,24 +74,16 @@
                             <td style="padding:.9rem 1.25rem;color:var(--text-muted);font-size:.8rem;">{{ $loop->iteration }}</td>
                             <td style="padding:.9rem 1.25rem;font-weight:700;color:var(--secondary);">{{ $bpo->name }}</td>
                             <td style="padding:.9rem 1.25rem;text-align:right;">
-                                <div style="display:inline-flex;gap:.5rem;">
-                                    <button onclick="openEditModal({{ $bpo->id }}, '{{ addslashes($bpo->name) }}')"
-                                        style="display:inline-flex;align-items:center;gap:.35rem;background:var(--secondary-light);border:1.5px solid rgba(11,46,109,.15);border-radius:8px;padding:.38rem .8rem;font-size:.78rem;font-weight:700;color:var(--secondary);cursor:pointer;transition:all var(--transition);"
-                                        onmouseenter="this.style.background='var(--secondary)';this.style.color='#fff'"
-                                        onmouseleave="this.style.background='var(--secondary-light)';this.style.color='var(--secondary)'">
-                                        <i class="bi bi-pencil-fill"></i> Edit
+                                <form method="POST" action="{{ route('master-data.bpo.destroy', $bpo) }}"
+                                      onsubmit="return confirm('Hapus BPO {{ $bpo->name }}? Semua Unit di bawahnya juga akan terhapus.')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                        style="display:inline-flex;align-items:center;gap:.35rem;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:.38rem .8rem;font-size:.78rem;font-weight:700;color:#dc2626;cursor:pointer;transition:all var(--transition);"
+                                        onmouseenter="this.style.background='#dc2626';this.style.color='#fff';this.style.borderColor='#dc2626'"
+                                        onmouseleave="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'">
+                                        <i class="bi bi-trash-fill"></i> Hapus
                                     </button>
-                                    <form method="POST" action="{{ route('master-data.bpo.destroy', $bpo) }}"
-                                          onsubmit="return confirm('Hapus BPO {{ $bpo->name }}? Semua Unit di bawahnya juga akan terhapus.')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                            style="display:inline-flex;align-items:center;gap:.35rem;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:.38rem .8rem;font-size:.78rem;font-weight:700;color:#dc2626;cursor:pointer;transition:all var(--transition);"
-                                            onmouseenter="this.style.background='#dc2626';this.style.color='#fff';this.style.borderColor='#dc2626'"
-                                            onmouseleave="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'">
-                                            <i class="bi bi-trash-fill"></i> Hapus
-                                        </button>
-                                    </form>
-                                </div>
+                                </form>
                             </td>
                         </tr>
                         @empty
@@ -117,7 +109,8 @@
             @csrf
             <div class="mb-4">
                 <label class="form-label">Nama BPO <span style="color:var(--primary);">*</span></label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. IT-INFRA" required autofocus>
+                <input type="text" name="name" class="form-control" placeholder="e.g. SM DIGITAL BROADBAND PLANNING					
+" required autofocus>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeAddModal()"
@@ -128,40 +121,13 @@
     </div>
 </div>
 
-{{-- Edit Modal --}}
-<div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
-    <div style="background:#fff;border-radius:18px;padding:2rem;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:scaleIn .25s ease;">
-        <h3 style="font-size:1.1rem;font-weight:800;color:var(--secondary);margin:0 0 1.25rem;">Edit BPO</h3>
-        <form method="POST" id="editForm" action="">
-            @csrf @method('PUT')
-            <div class="mb-4">
-                <label class="form-label">Nama BPO <span style="color:var(--primary);">*</span></label>
-                <input type="text" name="name" id="editName" class="form-control" required>
-            </div>
-            <div style="display:flex;gap:.75rem;justify-content:flex-end;">
-                <button type="button" onclick="closeEditModal()"
-                    style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;color:var(--text-muted);cursor:pointer;">Batal</button>
-                <button type="submit" class="btn-primary-custom" style="width:auto;padding:.5rem 1.5rem;font-size:.875rem;">Simpan Perubahan</button>
-            </div>
-        </form>
-    </div>
-</div>
-
 @endsection
 
 @push('scripts')
 <script>
-    function openAddModal()  { document.getElementById('addModal').style.display  = 'flex'; }
-    function closeAddModal() { document.getElementById('addModal').style.display  = 'none'; }
-
-    function openEditModal(id, name) {
-        document.getElementById('editForm').action = `/master-data/bpo/${id}`;
-        document.getElementById('editName').value  = name;
-        document.getElementById('editModal').style.display = 'flex';
-    }
-    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+    function openAddModal()  { document.getElementById('addModal').style.display = 'flex'; }
+    function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
 
     document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeAddModal(); });
-    document.getElementById('editModal').addEventListener('click', function(e) { if(e.target===this) closeEditModal(); });
 </script>
 @endpush
