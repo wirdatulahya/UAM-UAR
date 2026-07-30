@@ -633,6 +633,7 @@ class AccessMatrixController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function import(Request $request)
     {
+        $mergeCells = [];
         $request->validate([
             'application' => ['required', 'string', 'max:255'],
             'module'      => ['required', 'string', 'max:255'],
@@ -662,6 +663,7 @@ class AccessMatrixController extends Controller
         try {
             $spreadsheet = IOFactory::load($file->getRealPath());
             $sheet       = $spreadsheet->getActiveSheet();
+            $mergeCells  = $sheet->getMergeCells();
             if ($ext !== 'csv') {
                 $this->expandMergedCells($sheet);
             }
@@ -674,11 +676,11 @@ class AccessMatrixController extends Controller
             $range = 'A1:' . $highestColumn . $highestRow;
             $raw = array_values($sheet->rangeToArray($range, null, false, true, false));
         } catch (\Throwable $e) {
-            return back()->withErrors(['file' => 'Could not parse the file: ' . $e->getMessage()]);
+            return back()->withErrors(['file' => 'File upload failed.']);
         }
 
         if (empty($raw)) {
-            return back()->withErrors(['file' => 'The file appears to be empty.']);
+            return back()->withErrors(['file' => 'Invalid file format.']);
         }
 
         // ── 2. Detect the header row & build column map ──────────────────────────
@@ -763,9 +765,7 @@ class AccessMatrixController extends Controller
         }
 
         if ($headerRowIdx < 0 || !in_array('role', $colMap, true) || !in_array('tcode', $colMap, true)) {
-            return back()->withErrors([
-                'file' => 'Could not detect the data table. The worksheet must have a header row containing at least "Role" and "TCODE" columns.',
-            ]);
+            return back()->withErrors(['file' => 'Invalid file format.']);
         }
 
         // Build a fingerprint of the exact (lowercased, stripped) header cell values.
@@ -824,30 +824,50 @@ class AccessMatrixController extends Controller
             $unitRow = $unitRowIdx >= 0 ? array_values((array)($raw[$unitRowIdx] ?? [])) : [];
             $bpoRow  = $bpoRowIdx  >= 0 ? array_values((array)($raw[$bpoRowIdx]  ?? [])) : [];
 
-            // Forward-fill merged cell values and strip label cells
-            $fillRowLocalized = function (array $row, int $start, array $labels) {
-                for ($c = $start; $c < count($row); $c++) {
-                    $val   = trim((string)($row[$c] ?? ''));
-                    $clean = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($val)));
-                    if (in_array($clean, $labels, true)) {
-                        $row[$c] = '';
+            // ── Strict Merged Cell Resolution ────────────────────────────────────
+            // Instead of guessing or forward-filling, we resolve values based on the literal
+            // structural boundaries of merged cells in the Excel template.
+            
+            $resolveMergedCellValue = function (int $rowIdx, int $colIdx, array $labels) use ($mergeCells, $raw) {
+                if ($rowIdx < 0) return '';
+                
+                $excelCol = $colIdx + 1;
+                $excelRow = $rowIdx + 1;
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($excelCol);
+                $cellCoord = $colLetter . $excelRow;
+                
+                foreach ($mergeCells as $range) {
+                    if (\PhpOffice\PhpSpreadsheet\Cell\Coordinate::coordinateIsInsideRange($range, $cellCoord)) {
+                        [$topLeft, $bottomRight] = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::rangeBoundaries($range);
+                        $originCol = $topLeft[0] - 1;
+                        $originRow = $topLeft[1] - 1;
+                        
+                        $val = trim((string)($raw[$originRow][$originCol] ?? ''));
+                        $clean = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($val)));
+                        if (in_array($clean, $labels, true)) {
+                            return '';
+                        }
+                        return $val;
                     }
                 }
-                $curr = '';
-                for ($c = $start; $c < count($row); $c++) {
-                    $val = trim((string)($row[$c] ?? ''));
-                    if ($val !== '') { $curr = $val; } else { $row[$c] = $curr; }
+                
+                // If the cell is completely unmerged, it only possesses its own value.
+                $val = trim((string)($raw[$rowIdx][$colIdx] ?? ''));
+                $clean = trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower($val)));
+                if (in_array($clean, $labels, true)) {
+                    return '';
                 }
-                $curr = '';
-                for ($c = count($row) - 1; $c >= $start; $c--) {
-                    $val = trim((string)($row[$c] ?? ''));
-                    if ($val !== '') { $curr = $val; } else { $row[$c] = $curr; }
-                }
-                return $row;
+                return $val;
             };
 
-            $unitRowCleaned = $fillRowLocalized($unitRow, $startIdx, ['unit', 'unit kerja', 'nama unit']);
-            $bpoRowCleaned  = $fillRowLocalized($bpoRow,  $startIdx, ['bpo', 'business process owner', 'business_process_owner']);
+            $headerRow = array_values((array)$raw[$headerRowIdx]);
+            $unitRowCleaned = [];
+            $bpoRowCleaned = [];
+            
+            for ($c = 0; $c < count($headerRow); $c++) {
+                $unitRowCleaned[$c] = $resolveMergedCellValue($unitRowIdx, $c, ['unit', 'unit kerja', 'nama unit']);
+                $bpoRowCleaned[$c]  = $resolveMergedCellValue($bpoRowIdx,  $c, ['bpo', 'business process owner', 'business_process_owner']);
+            }
 
             // Forward-fill merged AO header names
             $headerRow = array_values((array)$raw[$headerRowIdx]);
@@ -1092,16 +1112,15 @@ class AccessMatrixController extends Controller
                 }
             }
 
-            // Resolve final unit / bpo values:
-            // - New mode:    rowUnits/rowBpos populated from the single UAM column
-            // - Legacy mode: rowUnits/rowBpos populated from the multi-AO column scan
-            // In both cases fall back to the direct column value if the matrix had no hits.
-            $unitFinal = !empty($rowUnits)
-                ? implode(', ', array_unique($rowUnits))
-                : ($record['unit'] ?? null);
-            $bpoFinal  = !empty($rowBpos)
-                ? implode(', ', array_unique($rowBpos))
-                : ($record['bpo']  ?? null);
+            if ($uamColIdx !== false) {
+                // New mode: from dedicated columns
+                $unitFinal = $record['unit'] ?? null;
+                $bpoFinal  = $record['bpo'] ?? null;
+            } else {
+                // Legacy mode: strictly from merged header (ignore data columns)
+                $unitFinal = !empty($rowUnits) ? implode(' | ', array_unique($rowUnits)) : null;
+                $bpoFinal  = !empty($rowBpos)  ? implode(' | ', array_unique($rowBpos))  : null;
+            }
 
             $inserts[] = [
                 'role'             => $record['role'],
@@ -1120,7 +1139,7 @@ class AccessMatrixController extends Controller
         }
 
         if (empty($inserts)) {
-            return back()->withErrors(['file' => 'No valid data rows containing Role and TCODE found.']);
+            return back()->withErrors(['file' => 'Import failed. Please check the file contents.']);
         }
 
         // ── 5. Create UAM Request record ──────────────────────────────────────
@@ -1171,18 +1190,12 @@ class AccessMatrixController extends Controller
                 $bpoVal  = trim((string)($ins['bpo']  ?? ''));
                 $unitVal = trim((string)($ins['unit'] ?? ''));
 
-                // Support comma-separated values (legacy multi-AO rows)
-                $bpoNames  = array_filter(array_map('trim', explode(',', $bpoVal)),
-                                          fn($s) => $s !== '' && $s !== '—');
-                $unitNames = array_filter(array_map('trim', explode(',', $unitVal)),
-                                          fn($s) => $s !== '' && $s !== '—');
-
-                foreach ($bpoNames as $b) {
-                    $bpoBag[] = $b;
-                }
-                foreach ($bpoNames as $b) {
-                    foreach ($unitNames as $u) {
-                        $unitBag[] = ['bpo' => $b, 'unit' => $u];
+                // Do not split by commas or text separators, as BPO names may legally contain them
+                // e.g. "SM BACKBONE, CLOUD & DEFA PLANNING"
+                if ($bpoVal !== '' && $bpoVal !== '—') {
+                    $bpoBag[] = $bpoVal;
+                    if ($unitVal !== '' && $unitVal !== '—') {
+                        $unitBag[] = ['bpo' => $bpoVal, 'unit' => $unitVal];
                     }
                 }
             }
@@ -1195,7 +1208,7 @@ class AccessMatrixController extends Controller
 
         return redirect()
             ->route('access-matrix.request.sap')
-            ->with('success', 'Successfully imported ' . count($inserts) . " record(s) from \"{$fileName}\" — Request \"{$batchName}\" created.");
+            ->with('success', 'File uploaded successfully. ' . count($inserts) . ' records imported.');
     }
 
 
@@ -1241,9 +1254,7 @@ class AccessMatrixController extends Controller
             'description_role' => ['nullable', 'string'],
             'tcode'            => ['nullable', 'array'],
             'tcode.*'          => ['nullable', 'string', 'max:50'],
-            'unit'             => ['nullable', 'string', 'max:255'],
-            'bpo'              => ['nullable', 'string', 'max:255'],
-            'access_owner'     => ['nullable', 'string', 'max:255'],
+            'mappings'         => ['required', 'string'],
             'module'           => ['sometimes', 'nullable', 'string', 'max:255'],
             'period'           => ['sometimes', 'nullable', 'string', 'in:Q1,Q2,Q3'],
             'request_id'       => ['nullable', 'integer', 'exists:uam_requests,id'],
@@ -1256,13 +1267,47 @@ class AccessMatrixController extends Controller
         $module = $uamRequest ? $uamRequest->module : ($validated['module'] ?? null);
         $period = $uamRequest ? $uamRequest->period : ($validated['period'] ?? null);
 
+        // Process Mappings JSON payload
+        $mappingsJson = json_decode($validated['mappings'], true);
+        if (!is_array($mappingsJson)) {
+            $mappingsJson = [];
+        }
+
+        $matrixData = [];
+        $bpoList = [];
+        $unitList = [];
+
+        foreach ($mappingsJson as $map) {
+            $b = trim($map['bpo'] ?? '');
+            $u = trim($map['unit'] ?? '');
+            
+            if ($b !== '' && !in_array($b, $bpoList)) $bpoList[] = $b;
+            if ($u !== '' && !in_array($u, $unitList)) $unitList[] = $u;
+
+            if ($b !== '' && $u !== '' && !empty($map['users']) && is_array($map['users'])) {
+                if (!isset($matrixData[$u])) $matrixData[$u] = [];
+                if (!isset($matrixData[$u][$b])) $matrixData[$u][$b] = [];
+                
+                foreach ($map['users'] as $user) {
+                    $usr = trim($user);
+                    if ($usr !== '') {
+                        $matrixData[$u][$b][] = $usr;
+                    }
+                }
+            }
+        }
+
+        $bpoFinal = !empty($bpoList) ? implode(' | ', $bpoList) : null;
+        $unitFinal = !empty($unitList) ? implode(' | ', $unitList) : null;
+
         // Build the base record fields (everything except tcode)
         $base = [
             'role'             => $validated['role'],
             'description_role' => $validated['description_role'] ?? null,
-            'unit'             => $validated['unit'] ?? null,
-            'bpo'              => $validated['bpo'] ?? null,
-            'access_owner'     => $validated['access_owner'] ?? null,
+            'unit'             => $unitFinal,
+            'bpo'              => $bpoFinal,
+            'access_owner'     => null,
+            'matrix_data'      => empty($matrixData) ? null : $matrixData,
             'module'           => $module,
             'period'           => $period,
             'request_id'       => $requestId,

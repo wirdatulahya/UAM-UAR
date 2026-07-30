@@ -114,6 +114,10 @@
                class="sidebar-sub-item {{ request()->routeIs('master-data.unit') ? 'active' : '' }}">
                 Unit
             </a>
+            <a href="{{ route('master-data.user') }}"
+               class="sidebar-sub-item {{ request()->routeIs('master-data.user') ? 'active' : '' }}">
+                User
+            </a>
         </div>
     </div>
 

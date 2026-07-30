@@ -132,6 +132,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/unit',            [MasterDataController::class, 'unitStore'])   ->name('unit.store');
             Route::put('/unit/{unit}',      [MasterDataController::class, 'unitUpdate'])  ->name('unit.update');
             Route::delete('/unit/{unit}',   [MasterDataController::class, 'unitDestroy']) ->name('unit.destroy');
+
+            // User
+            Route::get('/user',             [MasterDataController::class, 'userIndex'])   ->name('user');
+            Route::post('/user',            [MasterDataController::class, 'userStore'])   ->name('user.store');
+            Route::put('/user/{user}',      [MasterDataController::class, 'userUpdate'])  ->name('user.update');
+            Route::delete('/user/{user}',   [MasterDataController::class, 'userDestroy']) ->name('user.destroy');
         });
 
         // ── User Management ──────────────────────────────────────────────────

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MasterBpo;
 use App\Models\MasterUnit;
+use App\Models\MasterUser;
 use Illuminate\Http\Request;
 
 class MasterDataController extends Controller
@@ -103,6 +104,43 @@ class MasterDataController extends Controller
         return back()->with('success', 'Unit berhasil dihapus.');
     }
 
+    // ─── User ─────────────────────────────────────────────────────────────────
+
+    public function userIndex()
+    {
+        $users = MasterUser::orderBy('name')->get();
+        return view('master-data.user', compact('users'));
+    }
+
+    public function userStore(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255|unique:master_users,name',
+        ]);
+
+        MasterUser::create($data);
+
+        return back()->with('success', 'User "' . $data['name'] . '" berhasil ditambahkan.');
+    }
+
+    public function userUpdate(Request $request, MasterUser $user)
+    {
+        $data = $request->validate([
+            'name'      => 'required|string|max:255|unique:master_users,name,' . $user->id,
+            'is_active' => 'boolean',
+        ]);
+
+        $user->update($data);
+
+        return back()->with('success', 'User berhasil diperbarui.');
+    }
+
+    public function userDestroy(MasterUser $user)
+    {
+        $user->delete();
+        return back()->with('success', 'User berhasil dihapus.');
+    }
+
     // ─── JSON API for dropdowns ──────────────────────────────────────────────
 
     /**
@@ -123,35 +161,41 @@ class MasterDataController extends Controller
         return response()->json($units);
     }
 
+    /**
+     * Return all active Users as JSON.
+     */
+    public function apiUsers()
+    {
+        $users = MasterUser::active()->orderBy('name')->get(['id', 'name']);
+        return response()->json($users);
+    }
+
     // ─── Sync from Import ────────────────────────────────────────────────────
 
     /**
-     * Sync BPO + Unit records extracted from an Excel import.
-     * 
-     * - Creates new BPO records if the name doesn't exist yet.
-     * - Creates new Unit records if the BPO + Unit name combo doesn't exist yet.
-     * - Never updates or deletes existing records.
+     * Sync BPO, Unit, and User records extracted from an Excel import.
      *
      * @param array $bpoBag   List of BPO name strings  ['IT-INFRA', 'NETWORK', ...]
      * @param array $unitBag  List of ['bpo' => '...', 'unit' => '...'] pairs
+     * @param array $userBag  List of User names extracted from headers
      */
-    public static function syncFromImport(array $bpoBag, array $unitBag): void
+    public static function syncFromImport(array $bpoBag, array $unitBag, array $userBag = []): void
     {
-        // 1. Upsert BPOs (insert only if name not present)
+        // 1. Upsert BPOs
         foreach (array_unique($bpoBag) as $bpoName) {
             $bpoName = trim($bpoName);
-            if ($bpoName === '' || $bpoName === '—') continue;
+            if (!self::isValidMasterName($bpoName)) continue;
 
             MasterBpo::firstOrCreate(['name' => $bpoName]);
         }
 
-        // 2. Upsert Units (insert only if bpo+unit combo not present)
+        // 2. Upsert Units
         foreach ($unitBag as $pair) {
             $bpoName  = trim($pair['bpo']  ?? '');
             $unitName = trim($pair['unit'] ?? '');
 
-            if ($bpoName === '' || $bpoName === '—') continue;
-            if ($unitName === '' || $unitName === '—') continue;
+            if (!self::isValidMasterName($bpoName))  continue;
+            if (!self::isValidMasterName($unitName))  continue;
 
             $bpo = MasterBpo::where('name', $bpoName)->first();
             if (!$bpo) continue;
@@ -161,5 +205,74 @@ class MasterDataController extends Controller
                 'name'          => $unitName,
             ]);
         }
+        
+        // 3. Upsert Users
+        foreach (array_unique($userBag) as $userName) {
+            $userName = trim($userName);
+            if (!self::isValidMasterName($userName)) continue;
+            
+            MasterUser::firstOrCreate(['name' => $userName]);
+        }
+    }
+
+    /**
+     * Determine whether a raw string from an Excel cell is a plausible
+     * BPO or Unit name (not a batch name, header label, or garbage value).
+     *
+     * Rules that cause rejection:
+     *  - Empty or placeholder values  ('', '—', '-')
+     *  - Too long  (> 80 characters — real BPO/Unit names are short)
+     *  - Contains known non-BPO keywords (case-insensitive)
+     *  - Looks like a UAM batch name  (starts with "UAM_" or contains " V1"/" V2" pattern)
+     *  - Looks like a quarter/year period ("Q1 2026", "Q3 2027", …)
+     *  - A single word repeated ≥ 3 times  ("SM SM SM SM")
+     *  - Purely numeric
+     */
+    private static function isValidMasterName(string $value): bool
+    {
+        if ($value === '' || $value === '—' || $value === '-') return false;
+
+        // Too long
+        if (mb_strlen($value) > 80) return false;
+
+        // Purely numeric
+        if (is_numeric($value)) return false;
+
+        $lower = strtolower($value);
+
+        // Known non-BPO keywords that appear in Excel headers or batch names
+        $blacklistKeywords = [
+            'user access matrix',
+            'access matrix',
+            'application owner',
+            'access owner',
+            'role',
+            'tcode',
+            'transaction code',
+            'description',
+            'keterangan',
+            'deskripsi',
+            'requested by',
+            'approved by',
+            'accepted by',
+            'jabatan',
+            'position',
+        ];
+        foreach ($blacklistKeywords as $kw) {
+            if (str_contains($lower, $kw)) return false;
+        }
+
+        // Batch-name pattern: starts with "UAM_" or contains " - V1 / V2 / V3"
+        if (preg_match('/^uam_/i', $value)) return false;
+        if (preg_match('/\bv\d+\b/i', $value) && preg_match('/\bsap\b/i', $value)) return false;
+
+        // Period pattern: "Q1 2026", "Q3 2027", etc.
+        if (preg_match('/\bQ[1-4]\s+\d{4}\b/i', $value)) return false;
+
+        // Repeated-word pattern: "SM SM SM SM" — split, unique, if unique count ≤ 2 but total > 2
+        $words = preg_split('/\s+/', trim($value));
+        if (count($words) >= 3 && count(array_unique($words)) <= 1) return false;
+
+        return true;
     }
 }

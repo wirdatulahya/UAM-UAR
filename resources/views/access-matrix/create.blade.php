@@ -181,40 +181,73 @@
                             @enderror
                         </div>
 
-                        <div class="row g-3 mb-3">
-                            {{-- BPO -- pulled from Master Data --}}
-                            <div class="col-12 col-sm-6">
-                                <label for="bpo" class="form-label">BPO</label>
-                                <select id="bpo" name="bpo" class="form-select @error('bpo') is-invalid @enderror">
-                                    <option value="">-- Pilih BPO --</option>
-                                </select>
-                                @error('bpo')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                        {{-- Access Mappings Section --}}
+                        <div class="mb-4">
+                            <label class="form-label" style="display:flex;align-items:center;gap:.5rem;">
+                                <i class="bi bi-diagram-3-fill" style="color:var(--secondary);"></i> Access Mappings <span style="color:var(--primary);">*</span>
+                            </label>
+                            
+                            {{-- Container for Saved Mappings --}}
+                            <div id="savedMappingsList" style="display:flex;flex-direction:column;gap:.75rem;margin-bottom:1rem;">
+                                <!-- Mappings will be injected here -->
                             </div>
 
-                            {{-- UNIT -- filtered by selected BPO --}}
-                            <div class="col-12 col-sm-6">
-                                <label for="unit" class="form-label">UNIT</label>
-                                <select id="unit" name="unit" class="form-select @error('unit') is-invalid @enderror" disabled>
-                                    <option value="">-- Pilih BPO dahulu --</option>
-                                </select>
-                                @error('unit')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
+                            {{-- Hidden input to store JSON mappings payload --}}
+                            <input type="hidden" name="mappings" id="mappingsPayload" value="{{ old('mappings', '[]') }}">
+                            @error('mappings')
+                                <div style="color:#dc2626;font-size:.8rem;margin-bottom:1rem;"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                            @enderror
 
-                        <div class="row g-3 mb-3">
-                            {{-- User Access Matrix -- filtered by BPO + Unit from matrix map --}}
-                            <div class="col-12 col-sm-6">
-                                <label for="access_owner" class="form-label">User</label>
-                                <select id="access_owner" name="access_owner" class="form-select @error('access_owner') is-invalid @enderror" disabled>
-                                    <option value="">-- Pilih Unit dahulu --</option>
-                                </select>
-                                @error('access_owner')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                            {{-- Mapping Builder Card --}}
+                            <div class="mapping-builder-card" style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:12px;padding:1.25rem;">
+                                <div style="font-size:.85rem;font-weight:700;color:var(--secondary);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">
+                                    <span><i class="bi bi-plus-circle-dotted"></i> Build Mapping</span>
+                                </div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-12 col-sm-6">
+                                        <label for="builder_bpo" class="form-label" style="font-size:.75rem;margin-bottom:.2rem;">BPO</label>
+                                        <select id="builder_bpo" class="form-select">
+                                            <option value="">-- Pilih BPO --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <label for="builder_unit" class="form-label" style="font-size:.75rem;margin-bottom:.2rem;">UNIT</label>
+                                        <select id="builder_unit" class="form-select" disabled>
+                                            <option value="">-- Pilih BPO dahulu --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <label class="form-label mb-0" style="font-size:.75rem;">Users</label>
+                                        <button type="button" onclick="addBuilderUserRow()"
+                                            title="Add another User"
+                                            style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#22c55e;color:#fff;border:none;cursor:pointer;flex-shrink:0;transition:transform .15s;">
+                                            <i class="bi bi-plus" style="font-size:1rem;line-height:1;"></i>
+                                        </button>
+                                    </div>
+                                    <div id="builderUserList" style="display:flex;flex-direction:column;gap:.45rem;">
+                                        <div class="builder-user-row" style="display:flex;align-items:center;gap:.4rem;">
+                                            <div style="position:relative;flex:1;" class="user-input-wrapper">
+                                                <select class="form-select user-input-field">
+                                                    <option value="">-- Pilih User --</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" class="remove-user-btn" onclick="removeBuilderUserRow(this)" disabled
+                                                style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fde8e9;color:#c0392b;border:1px solid #fca5a5;cursor:not-allowed;opacity:.35;flex-shrink:0;">
+                                                <i class="bi bi-x-lg" style="font-size:.68rem;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" id="addMappingBtn" class="btn btn-sm" onclick="saveCurrentMapping()"
+                                            style="background:var(--secondary);color:#fff;border-radius:8px;padding:.4rem 1.25rem;font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;gap:.4rem;transition:all var(--transition);">
+                                        <i class="bi bi-save"></i> Save Mapping
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -245,7 +278,12 @@
     // Profile dropdown handled globally by Bootstrap
 
     // Save button spinner + TCODE dynamic rows
-    document.getElementById('createForm').addEventListener('submit', function () {
+    document.getElementById('createForm').addEventListener('submit', function (e) {
+        if (mappings.length === 0) {
+            e.preventDefault();
+            alert('Please add at least one Access Mapping before saving the role.');
+            return;
+        }
         const btn = document.getElementById('saveBtn');
         btn.disabled  = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving…';
@@ -299,19 +337,28 @@
     // Run once on load to set initial state
     syncTcodeButtons();
 
-    // ── 1. Pre-fill old values (from validation failure) ─────────────────────
-    const OLD_BPO  = '{{ old('bpo') }}';
-    const OLD_UNIT = '{{ old('unit') }}';
-    const OLD_AO   = '{{ old('access_owner') }}';
+    // ── MAPPINGS LOGIC ──────────────────────────────────────────────────────────
+    let mappings = [];
+    const mappingsPayload = document.getElementById('mappingsPayload');
+    const savedMappingsList = document.getElementById('savedMappingsList');
+    const builderBpo = document.getElementById('builder_bpo');
+    const builderUnit = document.getElementById('builder_unit');
+    const builderUserList = document.getElementById('builderUserList');
+    const requestId = '{{ $requestId ?? ($uamRequest->id ?? "") }}';
+    
+    // Load initial mappings from old input
+    try {
+        const initial = JSON.parse(mappingsPayload.value);
+        if (Array.isArray(initial)) {
+            mappings = initial;
+            renderMappings();
+        }
+    } catch (e) {}
 
-    const bpoSelect  = document.getElementById('bpo');
-    const unitSelect = document.getElementById('unit');
-    const aoSelect   = document.getElementById('access_owner');
-
-    // ── 2. Load all active BPOs from Master Data ─────────────────────────────
-    // Store BPO objects (with id) so we can fetch units by id later
     let allBpos = [];
+    let allUsers = [];
 
+    // Load BPOs
     fetch('/api/master-data/bpos')
         .then(r => r.json())
         .then(bpos => {
@@ -321,110 +368,171 @@
                 o.value = b.name;
                 o.dataset.id = b.id;
                 o.textContent = b.name;
-                bpoSelect.appendChild(o);
+                builderBpo.appendChild(o);
             });
-            // Restore old value after validation failure
-            if (OLD_BPO) {
-                bpoSelect.value = OLD_BPO;
-                const selOpt = bpoSelect.querySelector(`option[value="${OLD_BPO}"]`);
-                if (selOpt) loadUnits(selOpt.dataset.id, OLD_UNIT);
-            }
-        })
-        .catch(err => console.error('Error loading BPOs:', err));
+        });
 
-    // ── 3. When BPO changes → load Units ─────────────────────────────────────
-    bpoSelect.addEventListener('change', function () {
+    // Load Users
+    fetch('/api/master-data/users')
+        .then(r => r.json())
+        .then(users => {
+            allUsers = users;
+            // Populate the initial user row
+            const selects = document.querySelectorAll('.user-input-field');
+            selects.forEach(sel => {
+                users.forEach(u => {
+                    const o = document.createElement('option');
+                    o.value = u.name;
+                    o.textContent = u.name;
+                    sel.appendChild(o);
+                });
+            });
+        });
+
+    // Builder BPO Change
+    builderBpo.addEventListener('change', function () {
         const selOpt = this.options[this.selectedIndex];
         const bpoId  = selOpt ? selOpt.dataset.id : null;
 
-        unitSelect.innerHTML = '<option value="">-- Pilih Unit --</option>';
-        unitSelect.disabled = true;
-        aoSelect.innerHTML = '<option value="">-- Pilih Unit dahulu --</option>';
-        aoSelect.disabled = true;
+        builderUnit.innerHTML = '<option value="">-- Pilih Unit --</option>';
+        builderUnit.disabled = true;
 
         if (!bpoId) return;
-        loadUnits(bpoId, null);
-    });
 
-    function loadUnits(bpoId, preselectUnit) {
         fetch(`/api/master-data/bpos/${bpoId}/units`)
             .then(r => r.json())
             .then(units => {
-                unitSelect.innerHTML = '<option value="">-- Pilih Unit --</option>';
+                builderUnit.innerHTML = '<option value="">-- Pilih Unit --</option>';
                 units.forEach(u => {
                     const o = document.createElement('option');
                     o.value = u.name;
                     o.textContent = u.name;
-                    if (preselectUnit && u.name === preselectUnit) o.selected = true;
-                    unitSelect.appendChild(o);
+                    builderUnit.appendChild(o);
                 });
-                unitSelect.disabled = false;
-                if (preselectUnit && unitSelect.value === preselectUnit) {
-                    loadAos(bpoSelect.value, preselectUnit, OLD_AO);
-                }
-            })
-            .catch(err => console.error('Error loading Units:', err));
-    }
-
-    // ── 4. When Unit changes → filter Users from the matrix map ──────────────
-    let globalMatrix = {};
-    const requestId = '{{ $requestId ?? ($uamRequest->id ?? "") }}';
-
-    if (requestId) {
-        fetch(`/access-matrix/request/${requestId}/matrix-map`)
-            .then(r => r.json())
-            .then(data => { if (data.success) globalMatrix = data.matrix || {}; })
-            .catch(err => console.error('Error fetching matrix map:', err));
-    }
-
-    unitSelect.addEventListener('change', function () {
-        const bpoCode  = bpoSelect.value;
-        const unitCode = this.value;
-        aoSelect.innerHTML = '<option value="">-- Pilih User --</option>';
-        aoSelect.disabled = true;
-        if (!unitCode) return;
-        loadAos(bpoCode, unitCode, null);
+                builderUnit.disabled = false;
+            });
     });
 
-    function loadAos(bpoCode, unitCode, preselectAo) {
-        const tcodes = Array.from(document.querySelectorAll('input[name="tcode[]"]'))
-                           .map(i => i.value.trim()).filter(v => v !== '');
-
-        let validAos = null;
-        if (tcodes.length > 0) {
-            for (const tc of tcodes) {
-                const aos = (globalMatrix[tc] &&
-                             globalMatrix[tc][bpoCode] &&
-                             globalMatrix[tc][bpoCode][unitCode])
-                    ? globalMatrix[tc][bpoCode][unitCode]
-                    : [];
-                if (validAos === null) validAos = [...aos];
-                else validAos = validAos.filter(a => aos.includes(a));
-            }
-        }
-
-        const aoList = validAos ? [...new Set(validAos)].sort() : [];
-
-        aoSelect.innerHTML = aoList.length === 0
-            ? '<option value="">-- Tidak ada user untuk kombinasi ini --</option>'
-            : '<option value="">-- Pilih User --</option>';
-
-        aoList.forEach(ao => {
-            const o = document.createElement('option');
-            o.value = ao;
-            o.textContent = ao;
-            if (preselectAo && ao === preselectAo) o.selected = true;
-            aoSelect.appendChild(o);
+    // Builder User Rows
+    function addBuilderUserRow() {
+        const list = document.getElementById('builderUserList');
+        const row  = document.createElement('div');
+        row.className = 'builder-user-row';
+        row.style.cssText = 'display:flex;align-items:center;gap:.4rem;';
+        
+        let selectHtml = `<select class="form-select user-input-field"><option value="">-- Pilih User --</option>`;
+        allUsers.forEach(u => {
+            selectHtml += `<option value="${u.name}">${u.name}</option>`;
         });
-        aoSelect.disabled = aoList.length === 0;
+        selectHtml += `</select>`;
+
+        row.innerHTML = `
+            <div style="position:relative;flex:1;" class="user-input-wrapper">
+                ${selectHtml}
+            </div>
+            <button type="button" class="remove-user-btn" onclick="removeBuilderUserRow(this)"
+                style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fde8e9;color:#c0392b;border:1px solid #fca5a5;cursor:pointer;flex-shrink:0;">
+                <i class="bi bi-x-lg" style="font-size:.68rem;"></i>
+            </button>`;
+        list.appendChild(row);
+        syncUserButtons();
     }
 
-    // Re-calculate AOs when TCODE input changes
-    document.getElementById('tcodeList').addEventListener('input', function (e) {
-        if (e.target.tagName === 'INPUT' && unitSelect.value) {
-            loadAos(bpoSelect.value, unitSelect.value, aoSelect.value);
+    function removeBuilderUserRow(btn) {
+        btn.closest('.builder-user-row').remove();
+        syncUserButtons();
+    }
+
+    function syncUserButtons() {
+        const rows = document.querySelectorAll('#builderUserList .builder-user-row');
+        rows.forEach(function(row) {
+            const removeBtn = row.querySelector('.remove-user-btn');
+            if (removeBtn) {
+                const only = rows.length === 1;
+                removeBtn.disabled     = only;
+                removeBtn.style.opacity = only ? '.35' : '1';
+                removeBtn.style.cursor  = only ? 'not-allowed' : 'pointer';
+            }
+        });
+    }
+    syncUserButtons();
+
+    // Save Mapping
+    function saveCurrentMapping() {
+        const bpo = builderBpo.value.trim();
+        const unit = builderUnit.value.trim();
+        
+        if (!bpo || !unit) {
+            alert('Please select BPO and Unit.');
+            return;
         }
-    });
+
+        const userInputs = document.querySelectorAll('.user-input-field');
+        const users = [];
+        userInputs.forEach(i => {
+            const v = i.value.trim();
+            if (v) users.push(v);
+        });
+
+        if (users.length === 0) {
+            alert('Please add at least one User.');
+            return;
+        }
+
+        mappings.push({ bpo, unit, users: [...new Set(users)] });
+        updateMappingsPayload();
+        renderMappings();
+
+        // Reset builder
+        builderBpo.value = '';
+        builderUnit.innerHTML = '<option value="">-- Pilih BPO dahulu --</option>';
+        builderUnit.disabled = true;
+        
+        // Reset user list to 1 empty row
+        const userList = document.getElementById('builderUserList');
+        userList.innerHTML = '';
+        addBuilderUserRow();
+    }
+
+    function removeMapping(index) {
+        mappings.splice(index, 1);
+        updateMappingsPayload();
+        renderMappings();
+    }
+
+    function updateMappingsPayload() {
+        mappingsPayload.value = JSON.stringify(mappings);
+    }
+
+    function renderMappings() {
+        savedMappingsList.innerHTML = '';
+        if (mappings.length === 0) {
+            savedMappingsList.style.display = 'none';
+            return;
+        }
+        savedMappingsList.style.display = 'flex';
+
+        mappings.forEach((m, idx) => {
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1rem;display:flex;justify-content:space-between;align-items:flex-start;box-shadow:0 1px 3px rgba(0,0,0,0.05);';
+            
+            const usersHtml = m.users.map(u => `<div style="font-size:.78rem;background:#f1f5f9;color:#334155;padding:.2rem .6rem;border-radius:4px;display:inline-block;margin-right:.3rem;margin-top:.3rem;"><i class="bi bi-person-fill"></i> ${u}</div>`).join('');
+            
+            card.innerHTML = `
+                <div>
+                    <div style="font-size:.7rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.2rem;">${m.bpo}</div>
+                    <div style="font-size:.85rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">${m.unit}</div>
+                    <div>${usersHtml}</div>
+                </div>
+                <button type="button" onclick="removeMapping(${idx})" title="Delete Mapping"
+                        style="background:none;border:none;color:#ef4444;cursor:pointer;padding:.3rem;border-radius:6px;transition:background .15s;"
+                        onmouseenter="this.style.background='#fef2f2'" onmouseleave="this.style.background='none'">
+                    <i class="bi bi-trash-fill"></i>
+                </button>
+            `;
+            savedMappingsList.appendChild(card);
+        });
+    }
 </script>
 @endpush
 
