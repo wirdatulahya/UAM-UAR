@@ -48,7 +48,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:admin,pic_ao'])->group(function () {
         Route::post('/access-matrix/copy-baseline', [AccessMatrixController::class, 'copyFromBaseline'])->name('access-matrix.copy-baseline');
         Route::get('/access-matrix/request', [AccessMatrixController::class, 'requestModules'])->name('access-matrix.request.index');
+        Route::post('/access-matrix/applications', [AccessMatrixController::class, 'storeApplication'])->name('access-matrix.application.store');
         Route::get('/access-matrix/request/sap', [AccessMatrixController::class, 'approval'])->name('access-matrix.request.sap');
+        Route::get('/access-matrix/request/{app}', [AccessMatrixController::class, 'approval'])->name('access-matrix.request.app');
         Route::post('/access-matrix/request/{uamRequest}/submit', [AccessMatrixController::class, 'submitRequest'])->name('access-matrix.submit');
         Route::post('/access-matrix/request/{uamRequest}/sign', [AccessMatrixController::class, 'signRequest'])->name('access-matrix.sign');
         Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])->name('access-matrix.import');
@@ -71,6 +73,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:manager,admin'])->group(function () {
         Route::get('/access-matrix/uam-request', [AccessMatrixController::class, 'acceptModules'])->name('access-matrix.uam-request.index');
         Route::get('/access-matrix/uam-request/sap', [AccessMatrixController::class, 'uamRequestList'])->name('access-matrix.uam-request.sap');
+        Route::get('/access-matrix/uam-request/{app}', [AccessMatrixController::class, 'uamRequestList'])->name('access-matrix.uam-request.app');
     });
 
     Route::middleware(['role:manager'])->group(function () {
@@ -82,6 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:ao,admin'])->group(function () {
         Route::get('/access-matrix/approval', [AccessMatrixController::class, 'approvalLanding'])->name('access-matrix.approval.index');
         Route::get('/access-matrix/approval/sap', [AccessMatrixController::class, 'approvalList'])->name('access-matrix.approval.sap');
+        Route::get('/access-matrix/approval/{app}', [AccessMatrixController::class, 'approvalList'])->name('access-matrix.approval.app');
     });
 
     Route::middleware(['role:ao'])->group(function () {

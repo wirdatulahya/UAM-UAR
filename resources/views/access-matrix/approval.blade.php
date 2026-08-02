@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Request Access Matrix')
 
@@ -30,7 +30,7 @@
                 <x-breadcrumb :items="[
             ['label' => 'Dashboard', 'url' => route('dashboard')],
             ['label' => 'Request Access Matrix', 'url' => route('access-matrix.request.index')],
-            ['label' => 'UAM SAP'],
+            ['label' => $currentApp->name ?? 'UAM SAP'],
         ]" />
 
         {{-- Flash Messages --}}
@@ -60,13 +60,14 @@
         <div class="mb-4 animate-in d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Request Access Matrix</h1>
-                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Manage user access matrix requests and batches</p>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Manage {{ $currentApp->name ?? 'access matrix' }} requests and batches</p>
             </div>
             <div class="d-flex align-items-center gap-2">
-                @if(\App\Models\UamRequest::count() > 0)
-                <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete ALL UAM data? This cannot be undone.');">
+                @if($requests->count() > 0)
+                <form method="POST" action="{{ route('access-matrix.clear') }}" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete ALL data for {{ $currentApp->name ?? 'this application' }}? This cannot be undone.');">
                     @csrf
                     @method('DELETE')
+                    <input type="hidden" name="app_slug" value="{{ $currentApp->slug ?? 'sap' }}">
                     <button type="submit" class="btn d-flex align-items-center gap-2" style="background:#fde8e9;color:#c0392b;border:none;border-radius:8px;padding:.5rem 1.25rem;font-weight:600;font-size:.85rem;transition:filter var(--transition);" onmouseenter="this.style.filter='brightness(0.95)'" onmouseleave="this.style.filter=''">
                         <i class="bi bi-trash-fill"></i> Delete Data
                     </button>
@@ -79,7 +80,7 @@
 
         {{-- ── Filters & Search ──────────────────────────────────────────────── --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in animate-in-delay-2" style="gap:1rem;flex-wrap:wrap;">
-            <form method="GET" action="{{ route('access-matrix.request.sap') }}" id="filterForm"
+            <form method="GET" action="{{ route('access-matrix.request.app', ['app' => $currentApp->slug ?? 'sap']) }}" id="filterForm"
                   class="d-flex align-items-center gap-3 flex-wrap" style="flex:1;">
                 <select name="application" class="form-select" style="width:200px;font-size:.85rem;"
                         onchange="document.getElementById('filterForm').submit()">
@@ -109,7 +110,7 @@
                     <i class="bi bi-search"></i> Search
                 </button>
                 @if($filterApplication || $filterYear || $filterPeriod || $search)
-                    <a href="{{ route('access-matrix.request.sap') }}"
+                    <a href="{{ route('access-matrix.request.app', ['app' => $currentApp->slug ?? 'sap']) }}"
                        style="display:inline-flex;align-items:center;gap:.3rem;padding:.52rem .9rem;border-radius:var(--input-radius);border:1.5px solid var(--border);font-size:.83rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
                        onmouseenter="this.style.borderColor='var(--primary)';this.style.color='var(--primary)';this.style.background='var(--primary-light)'"
                        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';this.style.background=''">
@@ -320,11 +321,12 @@
 
                         <form method="POST" action="{{ route('access-matrix.import') }}" enctype="multipart/form-data" id="importForm">
                             @csrf
+                            <input type="hidden" name="app_slug" value="{{ $currentApp->slug ?? 'sap' }}">
                             {{-- Metadata Fields --}}
                             <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
                                 <div style="flex:1 1 30%;">
                                     <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Application <span class="text-danger">*</span></label>
-                                    <input type="text" name="application" class="form-control" required placeholder="e.g. SAP S/4HANA" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
+                                    <input type="text" name="application" class="form-control" required value="{{ $currentApp->name ?? 'UAM SAP' }}" style="font-size:.85rem;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--border);">
                                 </div>
                                 <div style="flex:1 1 30%;">
                                     <label class="form-label" style="font-size:.8rem;font-weight:700;color:var(--secondary);margin-bottom:.4rem;">Module <span class="text-danger">*</span></label>

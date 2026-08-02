@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'UAM SAP — User Access Matrix')
 
@@ -51,23 +51,26 @@
         @endif
 
                 @php
+            $appName = $currentApp->name ?? ($uamRequest ? ($uamRequest->application ?? 'UAM SAP') : 'UAM SAP');
+            $appSlug = $currentApp->slug ?? 'sap';
+
             $isApproval = request('source') === 'approval';
             $isStage2   = request('source') === 'stage2';
 
             if ($isStage2) {
                 $moduleRoute = route('access-matrix.approval.index');
                 $moduleName  = 'Approval Access Matrix';
-                $tableRoute  = route('access-matrix.approval.sap');
+                $tableRoute  = route('access-matrix.approval.app', ['app' => $appSlug]);
             } else {
                 $moduleRoute = $isApproval ? route('access-matrix.uam-request.index') : route('access-matrix.request.index');
                 $moduleName  = $isApproval ? 'Accept' : 'Request Access Matrix';
-                $tableRoute  = $isApproval ? route('access-matrix.uam-request.sap') : route('access-matrix.request.sap');
+                $tableRoute  = $isApproval ? route('access-matrix.uam-request.app', ['app' => $appSlug]) : route('access-matrix.request.app', ['app' => $appSlug]);
             }
 
             $breadcrumbItems = [
                 ['label' => 'Dashboard', 'url' => route('dashboard')],
                 ['label' => $moduleName, 'url' => $moduleRoute],
-                ['label' => 'UAM SAP', 'url' => $tableRoute],
+                ['label' => $appName, 'url' => $tableRoute],
                 array_filter([
                     'label' => 'Request Details',
                     'badge' => ($uamRequest && $uamRequest->module) ? $uamRequest->module : null,
@@ -80,7 +83,7 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 animate-in" style="gap:1rem;">
             <div>
                 <h1 style="font-size:1.6rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;letter-spacing:-.5px;">
-                    UAM SAP Module
+                    {{ $appName }} Module
                     @if($uamRequest && $uamRequest->module)
                         <span style="font-size:.75rem;font-weight:600;background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .65rem;vertical-align:middle;margin-left:.5rem;">{{ $uamRequest->module }}</span>
                     @endif

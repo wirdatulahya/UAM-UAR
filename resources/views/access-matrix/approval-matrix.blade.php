@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Approval Access Matrix')
 
@@ -30,7 +30,7 @@
                 <x-breadcrumb :items="[
             ['label' => 'Dashboard', 'url' => route('dashboard')],
             ['label' => 'Approval Access Matrix', 'url' => route('access-matrix.approval.index')],
-            ['label' => 'UAM SAP'],
+            ['label' => $currentApp->name ?? 'UAM SAP'],
         ]" />
 
         {{-- Flash Messages --}}
@@ -60,13 +60,13 @@
         <div class="mb-4 animate-in d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Approval Access Matrix</h1>
-                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Final review of accepted requests</p>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Final review of {{ $currentApp->name ?? 'access matrix' }} accepted requests</p>
             </div>
         </div>
 
         {{-- ── Filters & Search ──────────────────────────────────────────────── --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in animate-in-delay-2" style="gap:1rem;flex-wrap:wrap;">
-            <form method="GET" action="{{ route('access-matrix.approval.sap') }}" id="filterForm"
+            <form method="GET" action="{{ route('access-matrix.approval.app', ['app' => $currentApp->slug ?? 'sap']) }}" id="filterForm"
                   class="d-flex align-items-center gap-3 flex-wrap" style="flex:1;">
                 <select name="application" class="form-select" style="width:200px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
                         onchange="document.getElementById('filterForm').submit()">
@@ -94,7 +94,7 @@
                     <i class="bi bi-search" style="font-size:.8rem;"></i> SEARCH
                 </button>
                 @if($filterApplication || $filterYear || $filterPeriod || $search)
-                    <a href="{{ route('access-matrix.approval.sap') }}"
+                    <a href="{{ route('access-matrix.approval.app', ['app' => $currentApp->slug ?? 'sap']) }}"
                        style="display:inline-flex;align-items:center;gap:.3rem;padding:.45rem .9rem;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
                        onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">

@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Dashboard')
 
@@ -59,14 +59,13 @@
                             AccessHub &nbsp;·&nbsp; PT Telkom Infrastruktur Indonesia
                         </p>
                         <div class="d-flex flex-wrap gap-2">
-                            <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
-                                <i class="bi bi-person-badge"></i>{{ Auth::user()->username }}
-                            </span>
-                            <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
-                                <i class="bi bi-envelope"></i>{{ Auth::user()->email }}
-                            </span>
+                            @if(Auth::user()->nik)
+                                <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
+                                    <i class="bi bi-person-badge"></i>{{ Auth::user()->nik }}
+                                </span>
+                            @endif
                             <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(227,30,36,.25);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(227,30,36,.3);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
-                                <i class="bi bi-shield-fill"></i>{{ ucfirst(str_replace('_', ' ', Auth::user()->role)) }}
+                                <i class="bi bi-shield-fill"></i>{{ Auth::user()->role === 'pic_ao' ? 'PIC AO' : (Auth::user()->role === 'ao' ? 'AO' : ucfirst(Auth::user()->role)) }}
                             </span>
                         </div>
                     </div>

@@ -145,7 +145,6 @@
             </div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name">{{ Auth::user()->name }}</div>
-                <div class="sidebar-user-role">{{ Auth::user()->role }}</div>
             </div>
         </div>
     </div>

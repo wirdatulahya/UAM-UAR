@@ -101,9 +101,8 @@
                     @endif
                 </div>
             </div>
-            <div class="d-none d-sm-flex flex-column align-items-start">
-                <span style="font-size:.82rem;font-weight:700;color:var(--secondary);line-height:1.2;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ Auth::user()->name }}</span>
-                <span style="font-size:.65rem;color:var(--text-muted);font-weight:500;text-transform:capitalize;">{{ Auth::user()->role }}</span>
+            <div class="d-none d-sm-flex align-items-center">
+                <span style="font-size:.82rem;font-weight:700;color:var(--secondary);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ Auth::user()->name }}</span>
             </div>
             <i class="bi bi-chevron-down d-none d-sm-block" style="font-size:.65rem;color:var(--text-muted);"></i>
         </button>
