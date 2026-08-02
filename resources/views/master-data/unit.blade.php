@@ -156,7 +156,7 @@
             <div class="mb-3">
                 <label class="form-label">BPO <span style="color:var(--primary);">*</span></label>
                 <select name="master_bpo_id" class="form-select" required>
-                    <option value="">-- Pilih BPO --</option>
+                    <option value="">Pilih BPO</option>
                     @foreach($bpos as $bpo)
                         <option value="{{ $bpo->id }}">{{ $bpo->name }}</option>
                     @endforeach
@@ -164,8 +164,7 @@
             </div>
             <div class="mb-4">
                 <label class="form-label">Nama Unit <span style="color:var(--primary);">*</span></label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. DIGITAL BROADBAND PLANNING					
-" required>
+                <input type="text" name="name" class="form-control" placeholder="e.g. DIGITAL BROADBAND PLANNING" required>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeAddModal()"

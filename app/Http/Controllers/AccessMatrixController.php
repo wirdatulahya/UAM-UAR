@@ -880,7 +880,14 @@ class AccessMatrixController extends Controller
             for ($c = $startIdx; $c < count($headerRow); $c++) {
                 $aoName = trim((string)($headerRow[$c] ?? ''));
                 if (isset($colMap[$c])) continue;
-                if ($aoName === '') $aoName = '—';
+                if ($aoName === '' || $aoName === '—') continue;
+
+                $aoNorm = strtolower(trim(preg_replace('/[^a-z0-9]+/', ' ', $aoName)));
+                if (in_array($aoNorm, ['total', 'total role', 'total roles', 'grand total', 'subtotal', 'sub total', 'total access', 'total user', 'total users', 'jumlah', 'jumlah role', 'jumlah user'], true)
+                    || preg_match('/^(total|grand\s+total|subtotal|sub\s+total|jumlah)\b/i', $aoName)) {
+                    continue;
+                }
+
                 $matrixAoCols[$c] = $aoName;
                 $aoUnitMap[$c]    = trim((string)($unitRowCleaned[$c] ?? ''));
                 $aoBpoMap[$c]     = trim((string)($bpoRowCleaned[$c]  ?? ''));
@@ -1178,29 +1185,79 @@ class AccessMatrixController extends Controller
             'record_count'  => count($inserts),
         ]);
 
-        // ── 7. Sync Master BPO + Unit from imported data ──────────────────────
-        // Creates new Master BPO / Unit records for any BPO or BPO+Unit
-        // combination found in this import batch that don't already exist.
+        // ── 7. Sync Master BPO, Unit, and User from imported data ────────────
+        // Creates new Master BPO / Unit / User records for any BPO, Unit, or User
+        // found in this import batch that don't already exist.
         // Existing records are NEVER modified or deleted.
         try {
             $bpoBag  = [];
             $unitBag = [];
+            $userBag = [];
 
-            foreach ($inserts as $ins) {
-                $bpoVal  = trim((string)($ins['bpo']  ?? ''));
-                $unitVal = trim((string)($ins['unit'] ?? ''));
+            // 1) Extract from matrix column headers (legacy multi-column mode)
+            // This is the authoritative source for BPO, Unit, and User mappings.
+            if (!empty($matrixAoCols)) {
+                foreach ($matrixAoCols as $colIdx => $headerAo) {
+                    $bpoName  = trim((string)($aoBpoMap[$colIdx]  ?? ''));
+                    $unitName = trim((string)($aoUnitMap[$colIdx] ?? ''));
+                    $userName = trim((string)$headerAo);
 
-                // Do not split by commas or text separators, as BPO names may legally contain them
-                // e.g. "SM BACKBONE, CLOUD & DEFA PLANNING"
-                if ($bpoVal !== '' && $bpoVal !== '—') {
-                    $bpoBag[] = $bpoVal;
-                    if ($unitVal !== '' && $unitVal !== '—') {
-                        $unitBag[] = ['bpo' => $bpoVal, 'unit' => $unitVal];
+                    if ($bpoName !== '' && $bpoName !== '—') {
+                        $bpoBag[] = $bpoName;
+                        if ($unitName !== '' && $unitName !== '—') {
+                            $unitBag[] = ['bpo' => $bpoName, 'unit' => $unitName];
+                        }
+                    }
+                    if ($userName !== '' && $userName !== '—') {
+                        $userBag[] = $userName;
                     }
                 }
             }
 
-            \App\Http\Controllers\MasterDataController::syncFromImport($bpoBag, $unitBag);
+            // 2) Extract from single-column mode records if applicable
+            if ($uamColIdx !== false) {
+                foreach ($inserts as $ins) {
+                    $bpoVal  = trim((string)($ins['bpo']  ?? ''));
+                    $unitVal = trim((string)($ins['unit'] ?? ''));
+                    $aoVal   = trim((string)($ins['user_access_matrix'] ?? ($ins['access_owner'] ?? '')));
+
+                    if ($bpoVal !== '' && $bpoVal !== '—') {
+                        $bpoBag[] = $bpoVal;
+                        if ($unitVal !== '' && $unitVal !== '—') {
+                            $unitBag[] = ['bpo' => $bpoVal, 'unit' => $unitVal];
+                        }
+                    }
+                    if ($aoVal !== '' && $aoVal !== '—') {
+                        $userBag[] = $aoVal;
+                    }
+                }
+            }
+
+            // 3) Extract additional access owner strings if present
+            foreach ($inserts as $ins) {
+                if (!empty($ins['access_owner']) && $ins['access_owner'] !== '—') {
+                    $owners = str_contains($ins['access_owner'], '|')
+                        ? array_map('trim', explode('|', $ins['access_owner']))
+                        : [$ins['access_owner']];
+                    foreach ($owners as $ow) {
+                        if ($ow !== '' && $ow !== '—') {
+                            $userBag[] = $ow;
+                        }
+                    }
+                }
+            }
+
+            // 4) Extract from top metadata (Access Owner) if present
+            if (!empty($aoName) && $aoName !== '—') {
+                $cleanAo = trim($aoName);
+                if (preg_match('/^SM\s+/i', $cleanAo)) {
+                    $bpoBag[] = $cleanAo;
+                } else {
+                    $userBag[] = $cleanAo;
+                }
+            }
+
+            \App\Http\Controllers\MasterDataController::syncFromImport($bpoBag, $unitBag, $userBag);
         } catch (\Throwable $e) {
             // A sync failure must never break the import result
             Log::warning('UAM import: Master Data sync failed', ['error' => $e->getMessage()]);

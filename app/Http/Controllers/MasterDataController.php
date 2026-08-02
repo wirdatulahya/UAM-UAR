@@ -183,22 +183,26 @@ class MasterDataController extends Controller
     {
         // 1. Upsert BPOs
         foreach (array_unique($bpoBag) as $bpoName) {
-            $bpoName = trim($bpoName);
+            $bpoName = preg_replace('/\s+/', ' ', trim((string)$bpoName));
             if (!self::isValidMasterName($bpoName)) continue;
 
             MasterBpo::firstOrCreate(['name' => $bpoName]);
         }
 
         // 2. Upsert Units
+        $seenUnits = [];
         foreach ($unitBag as $pair) {
-            $bpoName  = trim($pair['bpo']  ?? '');
-            $unitName = trim($pair['unit'] ?? '');
+            $bpoName  = preg_replace('/\s+/', ' ', trim((string)($pair['bpo']  ?? '')));
+            $unitName = preg_replace('/\s+/', ' ', trim((string)($pair['unit'] ?? '')));
 
             if (!self::isValidMasterName($bpoName))  continue;
-            if (!self::isValidMasterName($unitName))  continue;
+            if (!self::isValidMasterName($unitName)) continue;
 
-            $bpo = MasterBpo::where('name', $bpoName)->first();
-            if (!$bpo) continue;
+            $pairKey = $bpoName . '|||' . $unitName;
+            if (isset($seenUnits[$pairKey])) continue;
+            $seenUnits[$pairKey] = true;
+
+            $bpo = MasterBpo::firstOrCreate(['name' => $bpoName]);
 
             MasterUnit::firstOrCreate([
                 'master_bpo_id' => $bpo->id,
@@ -208,7 +212,7 @@ class MasterDataController extends Controller
         
         // 3. Upsert Users
         foreach (array_unique($userBag) as $userName) {
-            $userName = trim($userName);
+            $userName = preg_replace('/\s+/', ' ', trim((string)$userName));
             if (!self::isValidMasterName($userName)) continue;
             
             MasterUser::firstOrCreate(['name' => $userName]);
@@ -217,30 +221,25 @@ class MasterDataController extends Controller
 
     /**
      * Determine whether a raw string from an Excel cell is a plausible
-     * BPO or Unit name (not a batch name, header label, or garbage value).
-     *
-     * Rules that cause rejection:
-     *  - Empty or placeholder values  ('', '—', '-')
-     *  - Too long  (> 80 characters — real BPO/Unit names are short)
-     *  - Contains known non-BPO keywords (case-insensitive)
-     *  - Looks like a UAM batch name  (starts with "UAM_" or contains " V1"/" V2" pattern)
-     *  - Looks like a quarter/year period ("Q1 2026", "Q3 2027", …)
-     *  - A single word repeated ≥ 3 times  ("SM SM SM SM")
-     *  - Purely numeric
+     * BPO, Unit, or User name (not a batch name, header label, or garbage value).
      */
     private static function isValidMasterName(string $value): bool
     {
+        $value = trim($value);
         if ($value === '' || $value === '—' || $value === '-') return false;
 
-        // Too long
-        if (mb_strlen($value) > 80) return false;
+        $lower = strtolower($value);
+        if (in_array($lower, ['null', 'n/a', 'na', 'none', 'undefined', '—', '-', '1', '0', 'true', 'false'])) {
+            return false;
+        }
+
+        // Too short or too long
+        if (mb_strlen($value) < 2 || mb_strlen($value) > 80) return false;
 
         // Purely numeric
         if (is_numeric($value)) return false;
 
-        $lower = strtolower($value);
-
-        // Known non-BPO keywords that appear in Excel headers or batch names
+        // Known non-master keywords that appear in Excel headers, footers, or batch names
         $blacklistKeywords = [
             'user access matrix',
             'access matrix',
@@ -257,10 +256,56 @@ class MasterDataController extends Controller
             'accepted by',
             'jabatan',
             'position',
+            'signature',
+            'sign',
+            'tanggal',
+            'status',
+            'change type',
+            'change details',
+            'action',
+            'total',
+            'total role',
+            'total roles',
+            'grand total',
+            'sub total',
+            'subtotal',
+            'total user',
+            'total users',
+            'total access',
+            'total tcode',
+            'total tcodes',
+            'jumlah',
+            'jumlah role',
+            'jumlah roles',
+            'jumlah user',
+            'jumlah users',
+            'jumlah akses',
+            'sum',
         ];
         foreach ($blacklistKeywords as $kw) {
-            if (str_contains($lower, $kw)) return false;
+            if ($lower === $kw || str_starts_with($lower, $kw . ':') || str_starts_with($lower, $kw . ' :')) {
+                return false;
+            }
+            if (in_array($kw, [
+                'user access matrix',
+                'access matrix',
+                'transaction code',
+                'change details',
+                'change type',
+                'total role',
+                'total user',
+                'total access',
+                'grand total',
+                'jumlah role',
+                'jumlah user',
+                'jumlah akses',
+            ])) {
+                if (str_contains($lower, $kw)) return false;
+            }
         }
+
+        // Total/summary pattern: starts with "total", "grand total", "jumlah", "subtotal"
+        if (preg_match('/^(total|grand\s+total|jumlah|subtotal|sub\s+total)\b/i', $value)) return false;
 
         // Batch-name pattern: starts with "UAM_" or contains " - V1 / V2 / V3"
         if (preg_match('/^uam_/i', $value)) return false;

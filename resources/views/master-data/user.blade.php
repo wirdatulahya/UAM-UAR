@@ -53,7 +53,7 @@
         <div class="card-premium animate-in animate-in-delay-1">
             <div class="card-header-premium d-flex align-items-center justify-content-between">
                 <span style="font-size:.9rem;font-weight:800;color:var(--secondary);">
-                    <i class="bi bi-building me-2" style="color:var(--primary);"></i>Daftar User
+                    <i class="bi bi-people-fill me-2" style="color:var(--primary);"></i>Daftar User
                 </span>
                 <span style="font-size:.78rem;color:var(--text-muted);">Total: {{ $users->count() }} data</span>
             </div>
@@ -75,7 +75,7 @@
                             <td style="padding:.9rem 1.25rem;font-weight:700;color:var(--secondary);">{{ $user->name }}</td>
                             <td style="padding:.9rem 1.25rem;text-align:right;">
                                 <form method="POST" action="{{ route('master-data.user.destroy', $user) }}"
-                                      onsubmit="return confirm('Hapus User {{ $user->name }}? Semua Unit di bawahnya juga akan terhapus.')">
+                                      onsubmit="return confirm('Hapus User {{ $user->name }}?')">
                                     @csrf @method('DELETE')
                                     <button type="submit"
                                         style="display:inline-flex;align-items:center;gap:.35rem;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:.38rem .8rem;font-size:.78rem;font-weight:700;color:#dc2626;cursor:pointer;transition:all var(--transition);"
@@ -109,8 +109,7 @@
             @csrf
             <div class="mb-4">
                 <label class="form-label">Nama User <span style="color:var(--primary);">*</span></label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. SM DIGITAL BROADBAND PLANNING					
-" required autofocus>
+                <input type="text" name="name" class="form-control" placeholder="e.g. OFF 1 OPTICAL TRANSPORT PLANNING" required autofocus>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeAddModal()"

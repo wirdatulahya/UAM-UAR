@@ -109,8 +109,7 @@
             @csrf
             <div class="mb-4">
                 <label class="form-label">Nama BPO <span style="color:var(--primary);">*</span></label>
-                <input type="text" name="name" class="form-control" placeholder="e.g. SM DIGITAL BROADBAND PLANNING					
-" required autofocus>
+                <input type="text" name="name" class="form-control" placeholder="e.g. SM DIGITAL BROADBAND PLANNING" required autofocus>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeAddModal()"

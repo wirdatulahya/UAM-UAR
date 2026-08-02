@@ -154,6 +154,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api/master-data')->name('api.master-data.')->group(function () {
         Route::get('/bpos',              [MasterDataController::class, 'apiBpos'])  ->name('bpos');
         Route::get('/bpos/{bpo}/units',  [MasterDataController::class, 'apiUnits']) ->name('units');
+        Route::get('/users',             [MasterDataController::class, 'apiUsers']) ->name('users');
     });
 
     /*
