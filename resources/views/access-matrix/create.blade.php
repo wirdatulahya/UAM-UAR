@@ -207,13 +207,13 @@
                                     <div class="col-12 col-sm-6">
                                         <label for="builder_bpo" class="form-label" style="font-size:.75rem;margin-bottom:.2rem;">BPO</label>
                                         <select id="builder_bpo" class="form-select">
-                                            <option value="">Pilih BPO</option>
+                                            <option value="">Select BPO</option>
                                         </select>
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label for="builder_unit" class="form-label" style="font-size:.75rem;margin-bottom:.2rem;">UNIT</label>
                                         <select id="builder_unit" class="form-select" disabled>
-                                            <option value="">Pilih BPO terlebih dahulu</option>
+                                            <option value="">Select BPO first</option>
                                         </select>
                                     </div>
                                 </div>
@@ -231,7 +231,7 @@
                                         <div class="builder-user-row" style="display:flex;align-items:center;gap:.4rem;">
                                             <div style="position:relative;flex:1;" class="user-input-wrapper">
                                                 <select class="form-select user-input-field">
-                                                    <option value="">Pilih User</option>
+                                                    <option value="">Select User</option>
                                                 </select>
                                             </div>
                                             <button type="button" class="remove-user-btn" onclick="removeBuilderUserRow(this)" disabled
@@ -394,7 +394,7 @@
         const selOpt = this.options[this.selectedIndex];
         const bpoId  = selOpt ? selOpt.dataset.id : null;
 
-        builderUnit.innerHTML = '<option value="">Pilih Unit</option>';
+        builderUnit.innerHTML = '<option value="">Select Unit</option>';
         builderUnit.disabled = true;
 
         if (!bpoId) return;
@@ -402,7 +402,7 @@
         fetch(`/api/master-data/bpos/${bpoId}/units`)
             .then(r => r.json())
             .then(units => {
-                builderUnit.innerHTML = '<option value="">Pilih Unit</option>';
+                builderUnit.innerHTML = '<option value="">Select Unit</option>';
                 units.forEach(u => {
                     const o = document.createElement('option');
                     o.value = u.name;
@@ -420,7 +420,7 @@
         row.className = 'builder-user-row';
         row.style.cssText = 'display:flex;align-items:center;gap:.4rem;';
         
-        let selectHtml = `<select class="form-select user-input-field"><option value="">Pilih User</option>`;
+        let selectHtml = `<select class="form-select user-input-field"><option value="">Select User</option>`;
         allUsers.forEach(u => {
             selectHtml += `<option value="${u.name}">${u.name}</option>`;
         });
@@ -485,7 +485,7 @@
 
         // Reset builder
         builderBpo.value = '';
-        builderUnit.innerHTML = '<option value="">Pilih BPO terlebih dahulu</option>';
+        builderUnit.innerHTML = '<option value="">Select BPO first</option>';
         builderUnit.disabled = true;
         
         // Reset user list to 1 empty row

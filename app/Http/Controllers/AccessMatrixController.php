@@ -17,6 +17,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class AccessMatrixController extends Controller
 {
     // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
     // MODULES — Landing pages for Request and Approval sections
     // ─────────────────────────────────────────────────────────────────────────
     public function requestModules()
@@ -33,9 +34,16 @@ class AccessMatrixController extends Controller
             $applications = UamApplication::where('status', 'active')->orderBy('id')->get();
         }
 
+        foreach ($applications as $app) {
+            $appIdentifiers = $this->getAppIdentifiers($app);
+            $app->pending_count = UamRequest::whereIn('application', $appIdentifiers)->where('status', 'Draft')->count();
+            $latestReq = UamRequest::whereIn('application', $appIdentifiers)->latest('updated_at')->first();
+            $app->last_updated = $latestReq ? $latestReq->updated_at : null;
+        }
+
         $lastUpdatedRecord = UamRecord::orderBy('updated_at', 'desc')->first();
         $lastUpdated = $lastUpdatedRecord ? $lastUpdatedRecord->updated_at : null;
-        $pendingCount = \App\Models\UamRequest::where('status', 'Draft')->count();
+        $pendingCount = UamRequest::where('status', 'Draft')->count();
         
         return view('access-matrix.modules', [
             'type' => 'request', 
@@ -48,9 +56,27 @@ class AccessMatrixController extends Controller
     public function acceptModules()
     {
         $applications = UamApplication::where('status', 'active')->orderBy('id')->get();
+        if ($applications->isEmpty()) {
+            UamApplication::create([
+                'name' => 'UAM SAP',
+                'slug' => 'sap',
+                'description' => 'Submit and manage user access matrix requests for SAP modules.',
+                'icon' => 'bi-pc-display-horizontal',
+                'status' => 'active',
+            ]);
+            $applications = UamApplication::where('status', 'active')->orderBy('id')->get();
+        }
+
+        foreach ($applications as $app) {
+            $appIdentifiers = $this->getAppIdentifiers($app);
+            $app->pending_count = UamRequest::whereIn('application', $appIdentifiers)->where('status', 'Review')->count();
+            $latestReq = UamRequest::whereIn('application', $appIdentifiers)->latest('updated_at')->first();
+            $app->last_updated = $latestReq ? $latestReq->updated_at : null;
+        }
+
         $lastUpdatedRecord = UamRecord::where('module', 'SAP')->orderBy('updated_at', 'desc')->first();
         $lastUpdated = $lastUpdatedRecord ? $lastUpdatedRecord->updated_at : null;
-        $pendingCount = \App\Models\UamRequest::where('status', 'Review')->count();
+        $pendingCount = UamRequest::where('status', 'Review')->count();
         
         return view('access-matrix.modules', [
             'type' => 'accept', 
@@ -63,9 +89,27 @@ class AccessMatrixController extends Controller
     public function approvalLanding()
     {
         $applications = UamApplication::where('status', 'active')->orderBy('id')->get();
+        if ($applications->isEmpty()) {
+            UamApplication::create([
+                'name' => 'UAM SAP',
+                'slug' => 'sap',
+                'description' => 'Submit and manage user access matrix requests for SAP modules.',
+                'icon' => 'bi-pc-display-horizontal',
+                'status' => 'active',
+            ]);
+            $applications = UamApplication::where('status', 'active')->orderBy('id')->get();
+        }
+
+        foreach ($applications as $app) {
+            $appIdentifiers = $this->getAppIdentifiers($app);
+            $app->pending_count = UamRequest::whereIn('application', $appIdentifiers)->where('status', 'Stage 2')->count();
+            $latestReq = UamRequest::whereIn('application', $appIdentifiers)->latest('updated_at')->first();
+            $app->last_updated = $latestReq ? $latestReq->updated_at : null;
+        }
+
         $lastUpdatedRecord = UamRecord::where('module', 'SAP')->orderBy('updated_at', 'desc')->first();
         $lastUpdated = $lastUpdatedRecord ? $lastUpdatedRecord->updated_at : null;
-        $pendingCount = \App\Models\UamRequest::where('status', 'Stage 2')->count();
+        $pendingCount = UamRequest::where('status', 'Stage 2')->count();
         
         return view('access-matrix.modules', [
             'type' => 'approval', 
@@ -101,6 +145,30 @@ class AccessMatrixController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'UAM Application "' . trim($request->name) . '" has been successfully registered.');
+    }
+
+    public function destroyApplication($id)
+    {
+        $app = UamApplication::findOrFail($id);
+        $appName = $app->name;
+        $appIdentifiers = $this->getAppIdentifiers($app);
+
+        // Delete associated requests, records, and history for this application
+        $reqIds = UamRequest::whereIn('application', $appIdentifiers)->pluck('id');
+        if ($reqIds->isNotEmpty()) {
+            UamApprovalHistory::whereIn('uam_request_id', $reqIds)->delete();
+            UamRecord::whereIn('request_id', $reqIds)->delete();
+            UamRequest::whereIn('id', $reqIds)->delete();
+        }
+
+        // Also clean up baseline records if SAP
+        if ($app->slug === 'sap' || strtoupper($app->name) === 'UAM SAP') {
+            UamRecord::where('module', 'SAP')->delete();
+        }
+
+        $app->delete();
+
+        return redirect()->back()->with('success', 'UAM Application "' . $appName . '" has been successfully deleted.');
     }
 
     /**
@@ -904,6 +972,7 @@ class AccessMatrixController extends Controller
             'unit kerja'             => 'unit',
             'nama unit'              => 'unit',
             // ── user_access_matrix ────────────────────────────────────────────
+            'user'                   => 'user_access_matrix',
             'user access matrix'     => 'user_access_matrix',
             'user_access_matrix'     => 'user_access_matrix',
             'access matrix'          => 'user_access_matrix',
@@ -2105,7 +2174,7 @@ class AccessMatrixController extends Controller
 
         // Fallback: if no owners found, add a placeholder column
         if ($currentColIndex == 4) {
-            $sheet->setCellValue($coord::stringFromColumnIndex(4) . '2', 'Application Owner');
+            $sheet->setCellValue($coord::stringFromColumnIndex(4) . '2', 'User');
             $sheet->mergeCells($coord::stringFromColumnIndex(4) . '2:' . $coord::stringFromColumnIndex(4) . '4');
             $currentColIndex++;
         }

@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/access-matrix/copy-baseline', [AccessMatrixController::class, 'copyFromBaseline'])->name('access-matrix.copy-baseline');
         Route::get('/access-matrix/request', [AccessMatrixController::class, 'requestModules'])->name('access-matrix.request.index');
         Route::post('/access-matrix/applications', [AccessMatrixController::class, 'storeApplication'])->name('access-matrix.application.store');
+        Route::delete('/access-matrix/applications/{id}', [AccessMatrixController::class, 'destroyApplication'])->name('access-matrix.application.destroy');
         Route::get('/access-matrix/request/sap', [AccessMatrixController::class, 'approval'])->name('access-matrix.request.sap');
         Route::get('/access-matrix/request/{app}', [AccessMatrixController::class, 'approval'])->name('access-matrix.request.app');
         Route::post('/access-matrix/request/{uamRequest}/submit', [AccessMatrixController::class, 'submitRequest'])->name('access-matrix.submit');

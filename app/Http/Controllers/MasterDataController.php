@@ -25,7 +25,7 @@ class MasterDataController extends Controller
 
         MasterBpo::create($data);
 
-        return back()->with('success', 'BPO "' . $data['name'] . '" berhasil ditambahkan.');
+        return back()->with('success', 'BPO "' . $data['name'] . '" added successfully.');
     }
 
     public function bpoUpdate(Request $request, MasterBpo $bpo)
@@ -37,13 +37,13 @@ class MasterDataController extends Controller
 
         $bpo->update($data);
 
-        return back()->with('success', 'BPO berhasil diperbarui.');
+        return back()->with('success', 'BPO updated successfully.');
     }
 
     public function bpoDestroy(MasterBpo $bpo)
     {
         $bpo->delete();
-        return back()->with('success', 'BPO berhasil dihapus.');
+        return back()->with('success', 'BPO deleted successfully.');
     }
 
     // ─── Unit ─────────────────────────────────────────────────────────────────
@@ -77,12 +77,12 @@ class MasterDataController extends Controller
                              ->exists();
 
         if ($exists) {
-            return back()->withErrors(['name' => 'Unit ini sudah ada di bawah BPO yang dipilih.'])->withInput();
+            return back()->withErrors(['name' => 'This unit already exists under the selected BPO.'])->withInput();
         }
 
         MasterUnit::create($data);
 
-        return back()->with('success', 'Unit "' . $data['name'] . '" berhasil ditambahkan.');
+        return back()->with('success', 'Unit "' . $data['name'] . '" added successfully.');
     }
 
     public function unitUpdate(Request $request, MasterUnit $unit)
@@ -95,13 +95,13 @@ class MasterDataController extends Controller
 
         $unit->update($data);
 
-        return back()->with('success', 'Unit berhasil diperbarui.');
+        return back()->with('success', 'Unit updated successfully.');
     }
 
     public function unitDestroy(MasterUnit $unit)
     {
         $unit->delete();
-        return back()->with('success', 'Unit berhasil dihapus.');
+        return back()->with('success', 'Unit deleted successfully.');
     }
 
     // ─── User ─────────────────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ class MasterDataController extends Controller
 
         MasterUser::create($data);
 
-        return back()->with('success', 'User "' . $data['name'] . '" berhasil ditambahkan.');
+        return back()->with('success', 'User "' . $data['name'] . '" added successfully.');
     }
 
     public function userUpdate(Request $request, MasterUser $user)
@@ -132,13 +132,13 @@ class MasterDataController extends Controller
 
         $user->update($data);
 
-        return back()->with('success', 'User berhasil diperbarui.');
+        return back()->with('success', 'User updated successfully.');
     }
 
     public function userDestroy(MasterUser $user)
     {
         $user->delete();
-        return back()->with('success', 'User berhasil dihapus.');
+        return back()->with('success', 'User deleted successfully.');
     }
 
     // ─── JSON API for dropdowns ──────────────────────────────────────────────

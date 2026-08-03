@@ -27,13 +27,13 @@
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in">
             <div>
                 <h1 style="font-size:1.6rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;letter-spacing:-.5px;">Master Unit</h1>
-                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Kelola data Unit yang berelasi dengan BPO.</p>
+                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Manage Unit master data linked to BPO.</p>
             </div>
             <button onclick="openAddModal()"
                 style="display:inline-flex;align-items:center;gap:.5rem;background:linear-gradient(135deg,var(--primary),#ff5c62);color:#fff;border:none;border-radius:12px;padding:.6rem 1.3rem;font-size:.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px var(--primary-glow);transition:all var(--transition);"
                 onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px var(--primary-glow)'"
                 onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 14px var(--primary-glow)'">
-                <i class="bi bi-plus-lg"></i> Tambah Unit
+                <i class="bi bi-plus-lg"></i> Add Unit
             </button>
         </div>
 
@@ -53,7 +53,7 @@
         @if($bpos->isEmpty())
             <div class="animate-in" style="background:#fefce8;border-left:4px solid #ca8a04;border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:.6rem;font-size:.83rem;color:#854d0e;">
                 <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-                <span>Belum ada data BPO. Tambahkan BPO terlebih dahulu sebelum membuat Unit.</span>
+                <span>No BPO data yet. Please add a BPO first before creating a Unit.</span>
             </div>
         @endif
 
@@ -61,9 +61,9 @@
         <div class="card-premium animate-in animate-in-delay-1">
             <div class="card-header-premium d-flex align-items-center justify-content-between">
                 <span style="font-size:.9rem;font-weight:800;color:var(--secondary);">
-                    <i class="bi bi-diagram-3-fill me-2" style="color:var(--primary);"></i>Daftar Unit
+                    <i class="bi bi-diagram-3-fill me-2" style="color:var(--primary);"></i>Unit List
                 </span>
-                <span style="font-size:.78rem;color:var(--text-muted);">Total: {{ $totalUnits }} data</span>
+                <span style="font-size:.78rem;color:var(--text-muted);">Total: {{ $totalUnits }} records</span>
             </div>
             <div style="overflow-x:auto;">
                 <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
@@ -71,8 +71,8 @@
                         <tr style="background:var(--secondary-light);">
                             <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);width:56px;">#</th>
                             <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);width:30%;">BPO</th>
-                            <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">Nama Unit</th>
-                            <th style="padding:.75rem 1.25rem;text-align:right;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">Aksi</th>
+                            <th style="padding:.75rem 1.25rem;text-align:left;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">Unit Name</th>
+                            <th style="padding:.75rem 1.25rem;text-align:right;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -85,7 +85,7 @@
                                         <span style="background:var(--secondary-light);color:var(--secondary);border-radius:6px;padding:.2rem .6rem;font-size:.78rem;font-weight:700;">{{ $bpo->name }}</span>
                                     </td>
                                     <td colspan="2" style="padding:.9rem 1.25rem;color:var(--text-muted);font-style:italic;font-size:.82rem;">
-                                        Belum ada unit untuk BPO ini.
+                                        No units found for this BPO.
                                     </td>
                                 </tr>
                             @else
@@ -118,13 +118,13 @@
                                                     <i class="bi bi-pencil-fill"></i> Edit
                                                 </button>
                                                 <form method="POST" action="{{ route('master-data.unit.destroy', $unit) }}"
-                                                      onsubmit="return confirm('Hapus unit {{ $unit->name }}?')">
+                                                      onsubmit="return confirm('Delete unit {{ $unit->name }}?')">
                                                     @csrf @method('DELETE')
                                                     <button type="submit"
                                                         style="display:inline-flex;align-items:center;gap:.35rem;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;padding:.35rem .75rem;font-size:.78rem;font-weight:700;color:#dc2626;cursor:pointer;transition:all var(--transition);"
                                                         onmouseenter="this.style.background='#dc2626';this.style.color='#fff';this.style.borderColor='#dc2626'"
                                                         onmouseleave="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'">
-                                                        <i class="bi bi-trash-fill"></i> Hapus
+                                                        <i class="bi bi-trash-fill"></i> Delete
                                                     </button>
                                                 </form>
                                             </div>
@@ -136,7 +136,7 @@
                         <tr>
                             <td colspan="4" style="padding:3rem;text-align:center;color:var(--text-muted);">
                                 <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.4;"></i>
-                                Belum ada data. Tambahkan BPO terlebih dahulu, lalu tambahkan Unit.
+                                No data yet. Please add a BPO first, then add Units.
                             </td>
                         </tr>
                         @endforelse
@@ -150,26 +150,26 @@
 {{-- Add Modal --}}
 <div id="addModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
     <div style="background:#fff;border-radius:18px;padding:2rem;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:scaleIn .25s ease;">
-        <h3 style="font-size:1.1rem;font-weight:800;color:var(--secondary);margin:0 0 1.25rem;">Tambah Unit Baru</h3>
+        <h3 style="font-size:1.1rem;font-weight:800;color:var(--secondary);margin:0 0 1.25rem;">Add New Unit</h3>
         <form method="POST" action="{{ route('master-data.unit.store') }}">
             @csrf
             <div class="mb-3">
                 <label class="form-label">BPO <span style="color:var(--primary);">*</span></label>
                 <select name="master_bpo_id" class="form-select" required>
-                    <option value="">Pilih BPO</option>
+                    <option value="">Select BPO</option>
                     @foreach($bpos as $bpo)
                         <option value="{{ $bpo->id }}">{{ $bpo->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="mb-4">
-                <label class="form-label">Nama Unit <span style="color:var(--primary);">*</span></label>
+                <label class="form-label">Unit Name <span style="color:var(--primary);">*</span></label>
                 <input type="text" name="name" class="form-control" placeholder="e.g. DIGITAL BROADBAND PLANNING" required>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeAddModal()"
-                    style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;color:var(--text-muted);cursor:pointer;">Batal</button>
-                <button type="submit" class="btn-primary-custom" style="width:auto;padding:.5rem 1.5rem;font-size:.875rem;">Simpan</button>
+                    style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;color:var(--text-muted);cursor:pointer;">Cancel</button>
+                <button type="submit" class="btn-primary-custom" style="width:auto;padding:.5rem 1.5rem;font-size:.875rem;">Save</button>
             </div>
         </form>
     </div>
@@ -190,13 +190,13 @@
                 </select>
             </div>
             <div class="mb-4">
-                <label class="form-label">Nama Unit <span style="color:var(--primary);">*</span></label>
+                <label class="form-label">Unit Name <span style="color:var(--primary);">*</span></label>
                 <input type="text" name="name" id="editName" class="form-control" required>
             </div>
             <div style="display:flex;gap:.75rem;justify-content:flex-end;">
                 <button type="button" onclick="closeEditModal()"
-                    style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;color:var(--text-muted);cursor:pointer;">Batal</button>
-                <button type="submit" class="btn-primary-custom" style="width:auto;padding:.5rem 1.5rem;font-size:.875rem;">Simpan Perubahan</button>
+                    style="background:none;border:1.5px solid var(--border);border-radius:10px;padding:.5rem 1.25rem;font-size:.875rem;font-weight:600;color:var(--text-muted);cursor:pointer;">Cancel</button>
+                <button type="submit" class="btn-primary-custom" style="width:auto;padding:.5rem 1.5rem;font-size:.875rem;">Save Changes</button>
             </div>
         </form>
     </div>
@@ -217,7 +217,7 @@
     }
     function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
 
-    document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeAddModal(); });
+    document.getElementById('addModal').addEventListener('click',  function(e) { if(e.target===this) closeAddModal();  });
     document.getElementById('editModal').addEventListener('click', function(e) { if(e.target===this) closeEditModal(); });
 </script>
 @endpush
