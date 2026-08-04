@@ -68,25 +68,14 @@
         </div>
     </div>
 
-    {{-- UAR Collapse --}}
-    <a href="#uarCollapse"
-       data-bs-toggle="collapse"
-       class="sidebar-nav-item collapsed"
-       role="button"
-       aria-expanded="false"
-       aria-controls="uarCollapse"
+    {{-- UAR (User Access Review) --}}
+    <a href="{{ route('uar.index') }}"
+       class="sidebar-nav-item {{ request()->routeIs('uar.*') ? 'active' : '' }}"
        data-sidebar-tooltip="User Access Review">
         <i class="bi bi-clipboard2-check-fill sidebar-icon"></i>
-        <span class="sidebar-item-text" style="flex:1;line-height:1.2;">User Access Review</span>
-        <i class="bi bi-chevron-down sidebar-chevron"></i>
+        <span class="sidebar-item-text">User Access Review</span>
     </a>
-    <div class="collapse" id="uarCollapse">
-        <div class="sidebar-sub-group">
-            <span class="sidebar-sub-item" style="cursor:default;opacity:.5;">
-                <i class="bi bi-clock-history" style="font-size:.75rem;margin-right:.3rem;"></i>Coming Soon
-            </span>
-        </div>
-    </div>
+
 
     @if(Auth::user()->isAdmin())
     {{-- ADMINISTRATION --}}

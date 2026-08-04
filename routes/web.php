@@ -6,6 +6,7 @@ use App\Http\Controllers\MasterDataController;
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AccessMatrixController;
+use App\Http\Controllers\UarController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -162,13 +163,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/users',             [MasterDataController::class, 'apiUsers']) ->name('users');
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Future Modules — add routes here as the application grows
-    |--------------------------------------------------------------------------
-    | - User Access Review (UAR)
-    | - Monitoring
-    | - Reports
-    |--------------------------------------------------------------------------
-    */
+    // ── User Access Review (UAR) Module ──────────────────────────────
+    Route::prefix('uar')->name('uar.')->group(function () {
+        Route::get('/',                          [UarController::class, 'index'])->name('index');
+        Route::get('/create',                    [UarController::class, 'create'])->name('create');
+        Route::post('/import',                   [UarController::class, 'import'])->name('import');
+        Route::get('/{uarSession}',              [UarController::class, 'show'])->name('show');
+        Route::post('/{uarSession}/bulk-accept', [UarController::class, 'bulkAccept'])->name('bulk-accept');
+        Route::post('/{uarSession}/complete',    [UarController::class, 'complete'])->name('complete');
+        Route::get('/{uarSession}/export-excel', [UarController::class, 'exportExcel'])->name('export-excel');
+        Route::get('/{uarSession}/export-pdf',   [UarController::class, 'exportPdf'])->name('export-pdf');
+        Route::delete('/{uarSession}',           [UarController::class, 'destroy'])->name('destroy');
+        Route::post('/record/{record}/update',   [UarController::class, 'updateRecord'])->name('record.update');
+    });
 });
