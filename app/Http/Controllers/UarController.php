@@ -213,7 +213,7 @@ class UarController extends Controller
             $session->refreshStats();
             DB::commit();
 
-            return redirect()->route('uar.show', $session->id)
+            return redirect()->route('uar.index')
                 ->with('success', "Excel file imported successfully! A total of {$session->total_records} records have been evaluated automatically by the system.");
 
         } catch (\Exception $e) {

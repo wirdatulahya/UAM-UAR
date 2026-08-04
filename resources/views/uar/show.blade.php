@@ -330,13 +330,8 @@
 
             {{-- Pagination --}}
             @if($records->hasPages())
-                <div class="p-3 border-top bg-light bg-opacity-25 d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
-                    <div class="text-muted small">
-                        Showing <span class="fw-semibold text-dark">{{ $records->firstItem() }}</span> to <span class="fw-semibold text-dark">{{ $records->lastItem() }}</span> of <span class="fw-semibold text-dark">{{ $records->total() }}</span> records
-                    </div>
-                    <div class="pagination-wrapper">
-                        {{ $records->links('pagination::bootstrap-5') }}
-                    </div>
+                <div class="p-3 border-top bg-light bg-opacity-25">
+                    {{ $records->links('pagination::bootstrap-5') }}
                 </div>
             @endif
         </div>
