@@ -237,7 +237,7 @@ class UarController extends Controller
     }
 
     /**
-     * Display the interactive UAR review workspace (grouped by Employee).
+     * Display the interactive UAR review workspace (grouped by Employee with Role-level review).
      */
     public function show(UarSession $uarSession, Request $request)
     {
@@ -248,8 +248,6 @@ class UarController extends Controller
             ->selectRaw('COUNT(*) as total_tcodes')
             ->selectRaw('COUNT(DISTINCT role_name) as total_roles')
             ->selectRaw('MAX(last_logon) as latest_logon')
-            ->selectRaw('MAX(final_review_result) as employee_review')
-            ->selectRaw('MAX(system_review_result) as system_review')
             ->selectRaw('MAX(is_overridden) as has_override')
             ->groupBy('user_id', 'full_name', 'jabatan');
 
@@ -286,35 +284,48 @@ class UarController extends Controller
 
         $employees = $employeeQuery->paginate(20)->withQueryString();
 
-        // Get detailed records for current page employees
-        $userIds = $employees->pluck('user_id')->filter()->unique();
-        $detailedRecords = $uarSession->records()
-            ->whereIn('user_id', $userIds)
-            ->orderBy('role_name')
-            ->orderBy('tcode')
-            ->get()
-            ->groupBy(function ($item) {
-                return $item->user_id ?: $item->full_name;
-            });
+        // Get detailed records for current page employees grouped by employee then by role
+        $detailedRecords = collect();
+        if ($employees->isNotEmpty()) {
+            $detailedRecords = $uarSession->records()
+                ->where(function($q) use ($employees) {
+                    foreach ($employees as $emp) {
+                        $q->orWhere(function($subQ) use ($emp) {
+                            if (!empty($emp->user_id)) {
+                                $subQ->where('user_id', $emp->user_id);
+                            } else {
+                                $subQ->where('full_name', $emp->full_name);
+                            }
+                        });
+                    }
+                })
+                ->orderBy('role_name')
+                ->orderBy('tcode')
+                ->get()
+                ->groupBy(function ($item) {
+                    return $item->user_id ?: $item->full_name;
+                });
+        }
 
-        // Employee-level summary counts
-        $empSummaryQuery = $uarSession->records()
-            ->select('user_id', 'full_name')
-            ->selectRaw('MAX(final_review_result) as employee_review')
+        // Role-level summary counts
+        $roleSummaryQuery = $uarSession->records()
+            ->select('user_id', 'full_name', 'role_name')
+            ->selectRaw('MAX(final_review_result) as role_review')
             ->selectRaw('MAX(system_review_result) as system_review')
             ->selectRaw('MAX(is_overridden) as has_override')
-            ->groupBy('user_id', 'full_name')
+            ->groupBy('user_id', 'full_name', 'role_name')
             ->get();
 
         $summary = [
             'total_records'       => $uarSession->total_records,
-            'total_employees'     => $empSummaryQuery->count(),
-            'active_employees'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Active'))->count(),
-            'delete_employees'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Delete'))->count(),
-            'delete_90'           => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - for not logging in > 90 day')->count(),
-            'delete_mutation'     => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - due to mutation and/or promotion/ retirement')->count(),
-            'delete_uam'          => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - because it doesn’t match UAM')->count(),
-            'overridden'          => $empSummaryQuery->filter(fn($e) => (bool)$e->has_override)->count(),
+            'total_roles'         => $roleSummaryQuery->count(),
+            'total_employees'     => $uarSession->records()->distinct('user_id')->count('user_id') ?: $uarSession->records()->distinct('full_name')->count('full_name'),
+            'active_roles'        => $roleSummaryQuery->filter(fn($e) => str_starts_with($e->role_review ?? '', 'Active'))->count(),
+            'delete_roles'        => $roleSummaryQuery->filter(fn($e) => str_starts_with($e->role_review ?? '', 'Delete'))->count(),
+            'delete_90'           => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - for not logging in > 90 day')->count(),
+            'delete_mutation'     => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - due to mutation and/or promotion/ retirement')->count(),
+            'delete_uam'          => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - because it doesn’t match UAM')->count(),
+            'overridden'          => $roleSummaryQuery->filter(fn($e) => (bool)$e->has_override)->count(),
         ];
 
         $reviewOptions = UarRecord::REVIEW_OPTIONS;
@@ -323,7 +334,78 @@ class UarController extends Controller
     }
 
     /**
-     * AJAX update of all records for an employee in this session.
+     * AJAX update of all records for a specific User + Role in this session.
+     */
+    public function updateRoleReview(Request $request, UarSession $uarSession)
+    {
+        $data = $request->validate([
+            'user_id'             => 'required|string',
+            'role_name'           => 'required|string',
+            'final_review_result' => 'nullable|string|in:' . implode(',', array_keys(UarRecord::REVIEW_OPTIONS)),
+            'reviewer_notes'      => 'nullable|string|max:500',
+        ]);
+
+        $userId   = $data['user_id'];
+        $roleName = $data['role_name'];
+        $newVal   = !empty($data['final_review_result']) ? $data['final_review_result'] : null;
+
+        // Fetch records for this employee & role in this session
+        $records = $uarSession->records()
+            ->where(function($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->orWhere('full_name', $userId);
+            })
+            ->where('role_name', $roleName)
+            ->get();
+
+        $hasOverride = false;
+        foreach ($records as $record) {
+            $isOverridden = ($newVal !== null && $newVal !== $record->system_review_result);
+            if ($isOverridden) {
+                $hasOverride = true;
+            }
+
+            $record->update([
+                'final_review_result' => $newVal,
+                'reviewer_notes'      => $data['reviewer_notes'] ?? $record->reviewer_notes,
+                'is_overridden'       => $isOverridden,
+            ]);
+        }
+
+        $uarSession->refreshStats();
+
+        // Recalculate summary counts for live update
+        $roleSummaryQuery = $uarSession->records()
+            ->select('user_id', 'full_name', 'role_name')
+            ->selectRaw('MAX(final_review_result) as role_review')
+            ->selectRaw('MAX(system_review_result) as system_review')
+            ->selectRaw('MAX(is_overridden) as has_override')
+            ->groupBy('user_id', 'full_name', 'role_name')
+            ->get();
+
+        return response()->json([
+            'success'          => true,
+            'message'          => $newVal ? "Review updated for role '{$roleName}' ({$records->count()} T-Codes)." : 'Review decision cleared.',
+            'user_id'          => $userId,
+            'role_name'        => $roleName,
+            'final_result'     => $newVal,
+            'is_overridden'    => $hasOverride,
+            'records_count'    => $records->count(),
+            'badge'            => $newVal ? (UarRecord::REVIEW_OPTIONS[$newVal] ?? []) : null,
+            'session_stats'    => [
+                'total_roles'      => $roleSummaryQuery->count(),
+                'total_records'    => $uarSession->total_records,
+                'active_roles'     => $roleSummaryQuery->filter(fn($e) => str_starts_with($e->role_review ?? '', 'Active'))->count(),
+                'delete_roles'     => $roleSummaryQuery->filter(fn($e) => str_starts_with($e->role_review ?? '', 'Delete'))->count(),
+                'delete_90'        => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - for not logging in > 90 day')->count(),
+                'delete_uam'       => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - because it doesn’t match UAM')->count(),
+                'overridden'       => $roleSummaryQuery->filter(fn($e) => (bool)$e->has_override)->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * AJAX update of all records for an employee in this session (legacy fallback).
      */
     public function updateEmployeeReview(Request $request, UarSession $uarSession)
     {
@@ -359,15 +441,6 @@ class UarController extends Controller
 
         $uarSession->refreshStats();
 
-        // Recalculate employee summary counts for live update
-        $empSummaryQuery = $uarSession->records()
-            ->select('user_id', 'full_name')
-            ->selectRaw('MAX(final_review_result) as employee_review')
-            ->selectRaw('MAX(system_review_result) as system_review')
-            ->selectRaw('MAX(is_overridden) as has_override')
-            ->groupBy('user_id', 'full_name')
-            ->get();
-
         return response()->json([
             'success'          => true,
             'message'          => $newVal ? "Review updated for employee ({$records->count()} items)." : 'Review decision cleared.',
@@ -376,15 +449,6 @@ class UarController extends Controller
             'is_overridden'    => $hasOverride,
             'records_count'    => $records->count(),
             'badge'            => $newVal ? (UarRecord::REVIEW_OPTIONS[$newVal] ?? []) : null,
-            'session_stats'    => [
-                'total_employees'  => $empSummaryQuery->count(),
-                'total_records'    => $uarSession->total_records,
-                'active_employees' => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Active'))->count(),
-                'delete_employees' => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Delete'))->count(),
-                'delete_90'        => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - for not logging in > 90 day')->count(),
-                'delete_uam'       => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - because it doesn’t match UAM')->count(),
-                'overridden'       => $empSummaryQuery->filter(fn($e) => (bool)$e->has_override)->count(),
-            ],
         ]);
     }
 

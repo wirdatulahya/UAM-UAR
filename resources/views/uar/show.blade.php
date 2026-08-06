@@ -67,32 +67,44 @@
                         {{ $uarSession->name }}
                     </h2>
                     <p class="text-muted small mb-0">
-                        Uploaded by <span class="fw-semibold text-dark">{{ $uarSession->uploader->name ?? 'System' }}</span> on {{ $uarSession->created_at->format('d M Y, H:i') }} &bull; Source: <span class="fw-medium">{{ $uarSession->source_type }}</span> &bull; <span class="fw-semibold text-dark">{{ $summary['total_employees'] ?? $employees->total() }}</span> Employees ({{ number_format($summary['total_records'] ?? $uarSession->total_records) }} Access Records)
+                        Uploaded by <span class="fw-semibold text-dark">{{ $uarSession->uploader->name ?? 'System' }}</span> on {{ $uarSession->created_at->format('d M Y, H:i') }} &bull; Source: <span class="fw-medium">{{ $uarSession->source_type }}</span> &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_employees']) }}</span> Employees &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_roles']) }}</span> Roles ({{ number_format($summary['total_records']) }} T-Codes)
                     </p>
+                </div>
+
+                {{-- Action Buttons --}}
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-inline-flex flex-wrap gap-2">
+                        <a href="{{ route('uar.export-excel', $uarSession->id) }}" class="btn btn-sm btn-outline-success rounded-3 px-3 py-2 fw-semibold">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+                        </a>
+                        <a href="{{ route('uar.export-pdf', $uarSession->id) }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-3 px-3 py-2 fw-semibold">
+                            <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- ── Metrics & Filter Cards ────────────────────────────────── --}}
         <div class="row g-3 mb-4">
-            {{-- Total Employees --}}
+            {{-- Total Roles --}}
             <div class="col-6 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', $uarSession->id) }}" class="text-decoration-none">
                     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all hover-scale {{ !request('filter') ? 'border-2 border-primary' : '' }}" style="background:#fff;">
-                        <div class="text-muted small fw-semibold">Total Employees</div>
-                        <div class="fs-4 fw-bold text-dark mt-1" id="statTotal">{{ number_format($summary['total_employees']) }}</div>
-                        <div class="text-muted small" style="font-size:.72rem;">{{ number_format($summary['total_records']) }} Access Items</div>
+                        <div class="text-muted small fw-semibold">Total Roles</div>
+                        <div class="fs-4 fw-bold text-dark mt-1" id="statTotal">{{ number_format($summary['total_roles']) }}</div>
+                        <div class="text-muted small" style="font-size:.72rem;">{{ number_format($summary['total_employees']) }} Employees</div>
                     </div>
                 </a>
             </div>
 
-            {{-- Active --}}
+            {{-- Active Roles --}}
             <div class="col-6 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'active']) }}" class="text-decoration-none">
                     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 {{ request('filter') === 'active' ? 'border-2 border-success' : '' }}" style="background:#fff;border-left:4px solid #10b981 !important;">
                         <div class="text-success small fw-semibold">🟢 Active (Retained)</div>
-                        <div class="fs-4 fw-bold text-success mt-1" id="statActive">{{ number_format($summary['active_employees']) }}</div>
-                        <div class="text-muted small" style="font-size:.72rem;">Approved Employees</div>
+                        <div class="fs-4 fw-bold text-success mt-1" id="statActive">{{ number_format($summary['active_roles']) }}</div>
+                        <div class="text-muted small" style="font-size:.72rem;">Approved Roles</div>
                     </div>
                 </a>
             </div>
@@ -145,7 +157,7 @@
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                                 <input type="text" name="search" class="form-control border-start-0" 
-                                       placeholder="Search Employee ID, Name, Role, or TCode..." 
+                                       placeholder="Search Employee, Role, or T-Code..." 
                                        value="{{ request('search') }}">
                                 @if(request('search'))
                                     <a href="{{ route('uar.show', [$uarSession->id, 'filter' => request('filter')]) }}" class="btn btn-outline-secondary btn-sm" title="Clear Search">
@@ -162,15 +174,15 @@
                             <span class="text-muted small me-1">Filter:</span>
                             <a href="{{ route('uar.show', $uarSession->id) }}" 
                                class="btn btn-xs rounded-pill px-2.5 py-1 {{ !request('filter') ? 'btn-primary' : 'btn-light border' }}" style="font-size:.75rem;">
-                                All ({{ $summary['total_employees'] }})
+                                All ({{ $summary['total_roles'] }} Roles)
                             </a>
                             <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'active']) }}" 
                                class="btn btn-xs rounded-pill px-2.5 py-1 {{ request('filter') === 'active' ? 'btn-success' : 'btn-light border' }}" style="font-size:.75rem;">
-                                Active ({{ $summary['active_employees'] }})
+                                Active ({{ $summary['active_roles'] }})
                             </a>
                             <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'delete_all']) }}" 
                                class="btn btn-xs rounded-pill px-2.5 py-1 {{ request('filter') === 'delete_all' ? 'btn-danger' : 'btn-light border' }}" style="font-size:.75rem;">
-                                Delete ({{ $summary['delete_employees'] }})
+                                Delete ({{ $summary['delete_roles'] }})
                             </a>
                             <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'overridden']) }}" 
                                class="btn btn-xs rounded-pill px-2.5 py-1 {{ request('filter') === 'overridden' ? 'btn-info text-white' : 'btn-light border' }}" style="font-size:.75rem;">
@@ -181,7 +193,7 @@
                 </div>
             </div>
 
-            {{-- Table --}}
+            {{-- Main Table --}}
             <div class="table-responsive" style="max-height: 750px; overflow-y: auto;">
                 <table class="table table-hover align-middle mb-0" style="font-size:.825rem;">
                     <thead class="sticky-top" style="background:#071f4d;color:#fff;font-weight:600;font-size:.75rem;letter-spacing:.4px;">
@@ -189,17 +201,10 @@
                             <th class="ps-3 py-3" style="width:45px;">No</th>
                             <th class="py-3" style="min-width:200px;">Employee (ID & Name)</th>
                             <th class="py-3" style="min-width:180px;">Position</th>
-                            <th class="py-3" style="min-width:140px;">Access Scope</th>
-                            <th class="py-3 text-center" style="min-width:110px;">Latest LOGON</th>
-                            <th class="py-3 text-center" style="min-width:170px;">
-                                Review by System
-                            </th>
-                            <th class="py-3 text-center" style="min-width:230px;">
-                                BPO Review Result
-                            </th>
-                            <th class="pe-3 py-3 text-center" style="width:50px;">
-                                Details
-                            </th>
+                            <th class="py-3" style="min-width:160px;">Access Scope</th>
+                            <th class="py-3 text-center" style="min-width:120px;">Latest LOGON</th>
+                            <th class="py-3 text-center" style="min-width:160px;">Roles Overview</th>
+                            <th class="pe-3 py-3 text-center" style="width:140px;">Review Roles</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y">
@@ -207,12 +212,22 @@
                             @php
                                 $empKey = $emp->user_id ?: $emp->full_name;
                                 $empRecords = $detailedRecords->get($empKey, collect());
+                                $groupedRoles = $empRecords->groupBy('role_name');
                                 $rowId = 'emp-' . md5($empKey);
                                 $rowNumber = ($employees->currentPage() - 1) * $employees->perPage() + $index + 1;
                                 $isInactive = (strtolower($emp->latest_logon) === 'not in use' || str_contains(strtolower($emp->latest_logon), 'never'));
+                                
+                                // Quick status counters for this employee's roles
+                                $empActiveRoles = 0;
+                                $empDeleteRoles = 0;
+                                foreach($groupedRoles as $rName => $rRecs) {
+                                    $rev = $rRecs->first()->final_review_result ?? '';
+                                    if (str_starts_with($rev, 'Active')) $empActiveRoles++;
+                                    elseif (str_starts_with($rev, 'Delete')) $empDeleteRoles++;
+                                }
                             @endphp
                             {{-- ── Main Employee Row ──────────────────────── --}}
-                            <tr id="row-{{ $rowId }}" class="{{ $emp->has_override ? 'bg-info bg-opacity-10' : '' }}" style="transition:background .2s;">
+                            <tr id="row-{{ $rowId }}" class="{{ $emp->has_override ? 'bg-info bg-opacity-10' : '' }}" style="transition:background .2s; cursor:pointer;" onclick="toggleSubRows('{{ $rowId }}')">
                                 {{-- No --}}
                                 <td class="ps-3 py-3 text-muted fw-semibold">{{ $rowNumber }}</td>
 
@@ -251,170 +266,221 @@
                                     @endif
                                 </td>
 
-                                {{-- System Recommendation (Summary) --}}
+                                {{-- Roles Overview Summary --}}
                                 <td class="py-3 text-center">
-                                    @if(empty($emp->system_review))
-                                        <span class="text-muted small">—</span>
-                                    @elseif(str_starts_with($emp->system_review, 'Active'))
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fw-semibold d-inline-block" style="font-size:.72rem;max-width:170px;white-space:normal;text-align:left;">
-                                            <i class="bi bi-check-circle-fill me-1"></i> {{ $emp->system_review }}
-                                        </span>
-                                    @else
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fw-semibold d-inline-block" style="font-size:.72rem;max-width:170px;white-space:normal;text-align:left;">
-                                            <i class="bi bi-trash3-fill me-1"></i> {{ $emp->system_review }}
-                                        </span>
-                                    @endif
-                                </td>
-
-                                {{-- BPO Review Result Dropdown --}}
-                                <td class="py-3 text-center">
-                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                        <select class="form-select form-select-sm fw-semibold employee-review-dropdown shadow-sm" 
-                                                data-user-id="{{ $emp->user_id ?: $emp->full_name }}"
-                                                data-row-id="{{ $rowId }}"
-                                                style="font-size:.75rem;min-width:190px;
-                                                @if(empty($emp->employee_review))
-                                                    background-color:#ffffff;color:#64748b;border-color:#cbd5e1;
-                                                @elseif(str_starts_with($emp->employee_review, 'Active'))
-                                                    border-color:#86efac;color:#15803d;background-color:#f0fdf4;
-                                                @else
-                                                    border-color:#fca5a5;color:#b91c1c;background-color:#fef2f2;
-                                                @endif">
-                                            <option value="" {{ empty($emp->employee_review) ? 'selected' : '' }} style="color:#64748b;background-color:#ffffff;">
-                                                -- Select Decision --
-                                            </option>
-                                            <optgroup label="Retain / Active">
-                                                @foreach($reviewOptions as $optVal => $optMeta)
-                                                    @if($optMeta['type'] === 'active')
-                                                        <option value="{{ $optVal }}" {{ $emp->employee_review === $optVal ? 'selected' : '' }} style="color:#15803d;background-color:#ffffff;">
-                                                            {{ $optVal }}
-                                                        </option>
-                                                    @endif
-                                                @endforeach
-                                            </optgroup>
-                                            <optgroup label="Revoke / Delete">
-                                                @foreach($reviewOptions as $optVal => $optMeta)
-                                                    @if($optMeta['type'] === 'delete')
-                                                        <option value="{{ $optVal }}" {{ $emp->employee_review === $optVal ? 'selected' : '' }} style="color:#b91c1c;background-color:#ffffff;">
-                                                            {{ $optVal }}
-                                                        </option>
-                                                    @endif
-                                                @endforeach
-                                            </optgroup>
-                                        </select>
-
-                                        <span id="override-badge-{{ $rowId }}" class="badge bg-info text-white rounded-circle p-1 {{ $emp->has_override ? '' : 'd-none' }}" title="Manually modified from system recommendation">
-                                            <i class="bi bi-pencil-fill" style="font-size:.65rem;"></i>
-                                        </span>
+                                    <div class="d-inline-flex align-items-center gap-1.5" id="summary-badges-{{ $rowId }}">
+                                        @if($empActiveRoles > 0)
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;">
+                                                <i class="bi bi-check-circle-fill me-0.5"></i> {{ $empActiveRoles }} Active
+                                            </span>
+                                        @endif
+                                        @if($empDeleteRoles > 0)
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;">
+                                                <i class="bi bi-trash3-fill me-0.5"></i> {{ $empDeleteRoles }} Delete
+                                            </span>
+                                        @endif
+                                        @if($empActiveRoles === 0 && $empDeleteRoles === 0)
+                                            <span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size:.72rem;">
+                                                Pending Review
+                                            </span>
+                                        @endif
                                     </div>
                                 </td>
 
                                 {{-- Expand / Collapse Button --}}
-                                <td class="pe-3 py-3 text-center">
+                                <td class="pe-3 py-3 text-center" onclick="event.stopPropagation();">
                                     <button type="button" onclick="toggleSubRows('{{ $rowId }}')" id="btn-toggle-{{ $rowId }}"
-                                            class="btn btn-sm btn-light border-0 rounded-circle"
-                                            style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;transition:all .2s;"
-                                            title="Expand / Collapse Roles & T-Codes">
-                                        <i class="bi bi-chevron-down text-secondary" id="icon-sub-{{ $rowId }}" style="transition:transform .25s ease;font-size:.85rem;"></i>
+                                            class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1.5"
+                                            style="font-size:.75rem;transition:all .2s;"
+                                            title="Click to view and review roles">
+                                        <span>Roles</span>
+                                        <i class="bi bi-chevron-down" id="icon-sub-{{ $rowId }}" style="transition:transform .25s ease;font-size:.8rem;"></i>
                                     </button>
                                 </td>
                             </tr>
 
-                            {{-- ── Expandable Details Sub-row (Accordion) ── --}}
+                            {{-- ── Expandable Details Sub-row (Per Role Review Accordion) ── --}}
                             <tr class="subrow-{{ $rowId }}" style="display:none; background:#f8fafc; border-top:1px dashed #cbd5e1; border-bottom:2px solid #e2e8f0;">
-                                <td colspan="8" class="p-3">
+                                <td colspan="7" class="p-3">
                                     <div class="p-2">
-                                        {{-- Header info --}}
+                                        {{-- Header info inside expanded box --}}
                                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
                                             <div class="d-flex align-items-center gap-2">
-                                                <i class="bi bi-diagram-3-fill text-primary"></i>
-                                                <span class="fw-bold text-dark small">
-                                                    Assigned Roles & T-Codes for <span class="text-primary">{{ $emp->full_name }}</span>
-                                                </span>
-                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 font-monospace" style="font-size:.7rem;">
-                                                    ID: {{ $emp->user_id ?: '—' }}
-                                                </span>
+                                                <i class="bi bi-person-lines-fill text-primary fs-5"></i>
+                                                <div>
+                                                    <span class="fw-bold text-dark" style="font-size:.9rem;">
+                                                        Role Access Review for <span class="text-primary">{{ $emp->full_name }}</span>
+                                                    </span>
+                                                    <span class="text-muted small ms-1 font-monospace">(ID: {{ $emp->user_id ?: '—' }})</span>
+                                                </div>
                                             </div>
-                                            <span class="text-muted small" style="font-size:.75rem;">
-                                                Total: <strong>{{ $empRecords->count() }}</strong> T-Code entries across <strong>{{ $empRecords->groupBy('role_name')->count() }}</strong> SAP Role(s)
+                                            <span class="badge bg-light text-muted border px-2.5 py-1 font-monospace" style="font-size:.75rem;">
+                                                {{ $groupedRoles->count() }} Role(s) &bull; {{ $empRecords->count() }} Total T-Codes
                                             </span>
                                         </div>
 
-                                        {{-- Roles Grouping --}}
-                                        @foreach($empRecords->groupBy('role_name') as $roleName => $roleRecs)
-                                            <div class="card border rounded-3 mb-3 shadow-none overflow-hidden" style="background:#fff;border-color:#e2e8f0 !important;">
-                                                {{-- Role Header --}}
-                                                <div class="card-header py-2 px-3 bg-light d-flex flex-wrap align-items-center justify-content-between gap-2" style="font-size:.78rem;border-bottom:1px solid #e2e8f0;">
-                                                    <div>
-                                                        <span class="text-muted small me-1">Role:</span>
-                                                        <span class="font-monospace fw-bold text-dark">{{ $roleName ?: '—' }}</span>
-                                                        @if($roleRecs->first()->role_description)
-                                                            <span class="text-muted ms-2 small">&bull; {{ $roleRecs->first()->role_description }}</span>
-                                                        @endif
-                                                    </div>
-                                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0.5 font-monospace" style="font-size:.7rem;">
-                                                        {{ $roleRecs->count() }} T-Code{{ $roleRecs->count() > 1 ? 's' : '' }}
-                                                    </span>
-                                                </div>
+                                        {{-- ── List of Roles with BPO Review per Role ── --}}
+                                        <div class="d-flex flex-column gap-3">
+                                            @foreach($groupedRoles as $roleName => $roleRecs)
+                                                @php
+                                                    $firstRec = $roleRecs->first();
+                                                    $roleRowId = $rowId . '-role-' . md5($roleName);
+                                                    $roleReview = $firstRec->final_review_result;
+                                                    $systemReview = $firstRec->system_review_result;
+                                                    $systemNotes = $firstRec->system_review_notes;
+                                                    $hasRoleOverride = (bool)$firstRec->is_overridden;
+                                                    $roleLogon = $roleRecs->pluck('last_logon')->filter()->sortDesc()->first() ?: '—';
+                                                    $isRoleInactive = (strtolower($roleLogon) === 'not in use' || str_contains(strtolower($roleLogon), 'never'));
+                                                @endphp
+                                                <div class="card border rounded-3 shadow-sm overflow-hidden" id="card-{{ $roleRowId }}" style="background:#fff;border-color:#e2e8f0 !important;">
+                                                    {{-- Role Card Header --}}
+                                                    <div class="card-header py-2.5 px-3 bg-light bg-opacity-75 d-flex flex-wrap align-items-center justify-content-between gap-3" style="border-bottom:1px solid #e2e8f0;">
+                                                        {{-- Left: Role Name & Info --}}
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size:.68rem;">ROLE</span>
+                                                            <div>
+                                                                <div class="font-monospace fw-bold text-dark" style="font-size:.85rem;">
+                                                                    {{ $roleName ?: '—' }}
+                                                                </div>
+                                                                @if($firstRec->role_description)
+                                                                    <div class="text-muted small mt-0.5" style="font-size:.74rem;">
+                                                                        {{ $firstRec->role_description }}
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
 
-                                                {{-- T-Codes Table --}}
-                                                <div class="table-responsive">
-                                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size:.75rem;">
-                                                        <thead style="background:#f8fafc;color:#475569;font-size:.7rem;font-weight:600;">
-                                                            <tr>
-                                                                <th class="ps-3 py-1.5" style="width:130px;">T-Code</th>
-                                                                <th class="py-1.5">T-Code Description</th>
-                                                                <th class="py-1.5 text-center" style="width:120px;">Last LOGON</th>
-                                                                <th class="pe-3 py-1.5 text-center" style="width:200px;">Review by System</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($roleRecs as $rec)
-                                                                @php
-                                                                    $isSubInactive = (strtolower($rec->last_logon) === 'not in use' || str_contains(strtolower($rec->last_logon), 'never'));
-                                                                @endphp
+                                                        {{-- Right: System Recommendation & BPO Review Dropdown per Role --}}
+                                                        <div class="d-flex flex-wrap align-items-center gap-3">
+                                                            {{-- Role Last Logon --}}
+                                                            <div class="text-end d-none d-md-block">
+                                                                <span class="text-muted" style="font-size:.7rem;">Role Last Logon:</span>
+                                                                <div class="font-monospace fw-medium text-dark" style="font-size:.75rem;">
+                                                                    @if($isRoleInactive)
+                                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5">Not in Use</span>
+                                                                    @else
+                                                                        {{ $roleLogon }}
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+
+                                                            {{-- System Recommendation Badge --}}
+                                                            <div class="text-start">
+                                                                <span class="text-muted d-block" style="font-size:.7rem;">System Recommendation:</span>
+                                                                @if(empty($systemReview))
+                                                                    <span class="text-muted small">—</span>
+                                                                @elseif(str_starts_with($systemReview, 'Active'))
+                                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-semibold" 
+                                                                          data-bs-toggle="tooltip" 
+                                                                          title="{{ $systemNotes ?: 'Active login & valid access' }}"
+                                                                          style="font-size:.72rem;">
+                                                                        <i class="bi bi-check-circle-fill me-1"></i> {{ $systemReview }}
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold" 
+                                                                          data-bs-toggle="tooltip" 
+                                                                          title="{{ $systemNotes ?: 'Flagged for revocation' }}"
+                                                                          style="font-size:.72rem;">
+                                                                        <i class="bi bi-trash3-fill me-1"></i> {{ $systemReview }}
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+
+                                                            {{-- BPO Review Dropdown per Role --}}
+                                                            <div>
+                                                                <span class="text-muted d-block fw-semibold" style="font-size:.7rem;">Review BPO:</span>
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <select class="form-select form-select-sm fw-semibold role-review-dropdown shadow-sm" 
+                                                                            data-user-id="{{ $empKey }}"
+                                                                            data-role-name="{{ $roleName }}"
+                                                                            data-role-card-id="{{ $roleRowId }}"
+                                                                            data-parent-row-id="{{ $rowId }}"
+                                                                            style="font-size:.75rem;min-width:200px;
+                                                                            @if(empty($roleReview))
+                                                                                background-color:#ffffff;color:#64748b;border-color:#cbd5e1;
+                                                                            @elseif(str_starts_with($roleReview, 'Active'))
+                                                                                border-color:#86efac;color:#15803d;background-color:#f0fdf4;
+                                                                            @else
+                                                                                border-color:#fca5a5;color:#b91c1c;background-color:#fef2f2;
+                                                                            @endif">
+                                                                        <option value="" {{ empty($roleReview) ? 'selected' : '' }} style="color:#64748b;background-color:#ffffff;">
+                                                                            -- Select Decision --
+                                                                        </option>
+                                                                        <optgroup label="Retain / Active">
+                                                                            @foreach($reviewOptions as $optVal => $optMeta)
+                                                                                @if($optMeta['type'] === 'active')
+                                                                                    <option value="{{ $optVal }}" {{ $roleReview === $optVal ? 'selected' : '' }} style="color:#15803d;background-color:#ffffff;">
+                                                                                        {{ $optVal }}
+                                                                                    </option>
+                                                                                @endif
+                                                                            @endforeach
+                                                                        </optgroup>
+                                                                        <optgroup label="Revoke / Delete">
+                                                                            @foreach($reviewOptions as $optVal => $optMeta)
+                                                                                @if($optMeta['type'] === 'delete')
+                                                                                    <option value="{{ $optVal }}" {{ $roleReview === $optVal ? 'selected' : '' }} style="color:#b91c1c;background-color:#ffffff;">
+                                                                                        {{ $optVal }}
+                                                                                    </option>
+                                                                                @endif
+                                                                            @endforeach
+                                                                        </optgroup>
+                                                                    </select>
+
+                                                                    <span id="override-badge-{{ $roleRowId }}" class="badge bg-info text-white rounded-circle p-1 {{ $hasRoleOverride ? '' : 'd-none' }}" title="Manually modified from system recommendation">
+                                                                        <i class="bi bi-pencil-fill" style="font-size:.65rem;"></i>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {{-- Inside Role Card: Clean T-Codes List --}}
+                                                    <div class="table-responsive bg-white">
+                                                        <table class="table table-sm table-hover align-middle mb-0" style="font-size:.75rem;">
+                                                            <thead style="background:#f8fafc;color:#475569;font-size:.7rem;font-weight:600;">
                                                                 <tr>
-                                                                    <td class="ps-3 py-1.5">
-                                                                        <span class="badge bg-light text-dark border font-monospace px-2 py-0.5" style="font-size:.72rem;">
-                                                                            {{ $rec->tcode }}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td class="py-1.5 text-dark">
-                                                                        {{ $rec->tcode_description ?: '—' }}
-                                                                    </td>
-                                                                    <td class="py-1.5 text-center">
-                                                                        @if($isSubInactive)
-                                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5 fw-semibold" style="font-size:.68rem;">
-                                                                                Not in Use
-                                                                            </span>
-                                                                        @else
-                                                                            <span class="font-monospace text-dark">{{ $rec->last_logon ?: '—' }}</span>
-                                                                        @endif
-                                                                    </td>
-                                                                    <td class="pe-3 py-1.5 text-center">
-                                                                        @if(str_starts_with($rec->system_review_result, 'Active'))
-                                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 fw-medium" data-bs-toggle="tooltip" title="{{ $rec->system_review_notes }}">
-                                                                                <i class="bi bi-check-circle-fill me-0.5"></i> {{ $rec->system_review_result }}
-                                                                            </span>
-                                                                        @else
-                                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5 fw-medium" data-bs-toggle="tooltip" title="{{ $rec->system_review_notes }}">
-                                                                                <i class="bi bi-trash3-fill me-0.5"></i> {{ $rec->system_review_result }}
-                                                                            </span>
-                                                                        @endif
-                                                                    </td>
+                                                                    <th class="ps-3 py-1.5" style="width:140px;">T-Code</th>
+                                                                    <th class="py-1.5">T-Code Description</th>
+                                                                    <th class="pe-3 py-1.5 text-center" style="width:130px;">Last LOGON</th>
                                                                 </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach($roleRecs as $rec)
+                                                                    @php
+                                                                        $isTcodeInactive = (strtolower($rec->last_logon) === 'not in use' || str_contains(strtolower($rec->last_logon), 'never'));
+                                                                    @endphp
+                                                                    <tr>
+                                                                        <td class="ps-3 py-1.5">
+                                                                            <span class="badge bg-light text-dark border font-monospace px-2 py-0.5" style="font-size:.72rem;">
+                                                                                {{ $rec->tcode }}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td class="py-1.5 text-dark">
+                                                                            {{ $rec->tcode_description ?: '—' }}
+                                                                        </td>
+                                                                        <td class="pe-3 py-1.5 text-center">
+                                                                            @if($isTcodeInactive)
+                                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5 fw-semibold" style="font-size:.68rem;">
+                                                                                    Not in Use
+                                                                                </span>
+                                                                            @else
+                                                                                <span class="font-monospace text-dark">{{ $rec->last_logon ?: '—' }}</span>
+                                                                            @endif
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        @endforeach
+                                            @endforeach
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="7" class="text-center py-5 text-muted">
                                     <i class="bi bi-search fs-3 d-block mb-2 text-secondary"></i>
                                     No access records found matching this filter/search.
                                 </td>
@@ -428,7 +494,7 @@
             @if($employees->hasPages())
                 <div class="p-3 border-top bg-light bg-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <div class="text-muted small" style="font-size:.78rem;">
-                        Showing <span class="fw-semibold text-dark">{{ $employees->firstItem() }}</span> to <span class="fw-semibold text-dark">{{ $employees->lastItem() }}</span> of <span class="fw-semibold text-dark">{{ $employees->total() }}</span> employees ({{ number_format($summary['total']) }} total access items)
+                        Showing <span class="fw-semibold text-dark">{{ $employees->firstItem() }}</span> to <span class="fw-semibold text-dark">{{ $employees->lastItem() }}</span> of <span class="fw-semibold text-dark">{{ $employees->total() }}</span> employees ({{ number_format($summary['total_roles']) }} total roles)
                     </div>
                     <div>
                         {{ $employees->links('pagination::bootstrap-5') }}
@@ -480,7 +546,7 @@
 </div>
 
 <script>
-// Tooltips
+// Bootstrap Tooltips
 document.addEventListener("DOMContentLoaded", function () {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -502,9 +568,11 @@ window.toggleSubRows = function(rowId) {
     }
     if (btn) {
         if (isHidden) {
-            btn.classList.add('bg-primary-subtle', 'text-primary');
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('btn-primary', 'text-white');
         } else {
-            btn.classList.remove('bg-primary-subtle', 'text-primary');
+            btn.classList.remove('btn-primary', 'text-white');
+            btn.classList.add('btn-outline-primary');
         }
     }
 
@@ -513,11 +581,13 @@ window.toggleSubRows = function(rowId) {
     });
 };
 
-// AJAX Handler for Live Dropdown Status Change per Employee
-document.querySelectorAll('.employee-review-dropdown').forEach(function(select) {
+// AJAX Handler for Live Dropdown Status Change per Role
+document.querySelectorAll('.role-review-dropdown').forEach(function(select) {
     select.addEventListener('change', function() {
         const userId = this.getAttribute('data-user-id');
-        const rowId = this.getAttribute('data-row-id');
+        const roleName = this.getAttribute('data-role-name');
+        const roleCardId = this.getAttribute('data-role-card-id');
+        const parentRowId = this.getAttribute('data-parent-row-id');
         const selectedValue = this.value;
         const selectEl = this;
 
@@ -536,7 +606,7 @@ document.querySelectorAll('.employee-review-dropdown').forEach(function(select) 
             selectEl.style.backgroundColor = '#fef2f2';
         }
 
-        fetch(`{{ route('uar.employee-review', $uarSession->id) }}`, {
+        fetch(`{{ route('uar.role-review', $uarSession->id) }}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -545,29 +615,20 @@ document.querySelectorAll('.employee-review-dropdown').forEach(function(select) 
             },
             body: JSON.stringify({
                 user_id: userId,
+                role_name: roleName,
                 final_review_result: selectedValue
             })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Update override badge
-                const overrideBadge = document.getElementById(`override-badge-${rowId}`);
+                // Update override badge on role card
+                const overrideBadge = document.getElementById(`override-badge-${roleCardId}`);
                 if (overrideBadge) {
                     if (data.is_overridden) {
                         overrideBadge.classList.remove('d-none');
                     } else {
                         overrideBadge.classList.add('d-none');
-                    }
-                }
-
-                // Update row highlight
-                const row = document.getElementById(`row-${rowId}`);
-                if (row) {
-                    if (data.is_overridden) {
-                        row.classList.add('bg-info', 'bg-opacity-10');
-                    } else {
-                        row.classList.remove('bg-info', 'bg-opacity-10');
                     }
                 }
 
@@ -577,11 +638,40 @@ document.querySelectorAll('.employee-review-dropdown').forEach(function(select) 
                         const el = document.getElementById(id);
                         if (el && val !== undefined) el.innerText = Number(val).toLocaleString();
                     };
-                    setVal('statTotal', data.session_stats.total_employees);
-                    setVal('statActive', data.session_stats.active_employees);
+                    setVal('statTotal', data.session_stats.total_roles);
+                    setVal('statActive', data.session_stats.active_roles);
                     setVal('statDelete90', data.session_stats.delete_90);
                     setVal('statDeleteUam', data.session_stats.delete_uam);
                     setVal('statOverridden', data.session_stats.overridden);
+                }
+
+                // Update summary badges in parent employee row
+                if (parentRowId) {
+                    const subrowEl = document.querySelector(`.subrow-${parentRowId}`);
+                    if (subrowEl) {
+                        let activeCount = 0;
+                        let deleteCount = 0;
+                        subrowEl.querySelectorAll('.role-review-dropdown').forEach(sel => {
+                            const val = sel.value;
+                            if (val && val.startsWith('Active')) activeCount++;
+                            else if (val && val.startsWith('Delete')) deleteCount++;
+                        });
+
+                        const badgeContainer = document.getElementById(`summary-badges-${parentRowId}`);
+                        if (badgeContainer) {
+                            let badgeHtml = '';
+                            if (activeCount > 0) {
+                                badgeHtml += `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-check-circle-fill me-0.5"></i> ${activeCount} Active</span> `;
+                            }
+                            if (deleteCount > 0) {
+                                badgeHtml += `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-trash3-fill me-0.5"></i> ${deleteCount} Delete</span>`;
+                            }
+                            if (activeCount === 0 && deleteCount === 0) {
+                                badgeHtml = `<span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size:.72rem;">Pending Review</span>`;
+                            }
+                            badgeContainer.innerHTML = badgeHtml;
+                        }
+                    }
                 }
 
                 // Show toast
