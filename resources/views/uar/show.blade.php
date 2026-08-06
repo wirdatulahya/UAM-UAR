@@ -218,13 +218,19 @@
                                 $isInactive = (strtolower($emp->latest_logon) === 'not in use' || str_contains(strtolower($emp->latest_logon), 'never'));
                                 
                                 // Quick status counters for this employee's roles
+                                $totalRolesCount = $groupedRoles->count();
                                 $empActiveRoles = 0;
                                 $empDeleteRoles = 0;
+                                $empReviewedCount = 0;
                                 foreach($groupedRoles as $rName => $rRecs) {
                                     $rev = $rRecs->first()->final_review_result ?? '';
-                                    if (str_starts_with($rev, 'Active')) $empActiveRoles++;
-                                    elseif (str_starts_with($rev, 'Delete')) $empDeleteRoles++;
+                                    if (!empty($rev)) {
+                                        $empReviewedCount++;
+                                        if (str_starts_with($rev, 'Active')) $empActiveRoles++;
+                                        elseif (str_starts_with($rev, 'Delete')) $empDeleteRoles++;
+                                    }
                                 }
+                                $isAllRolesReviewed = ($empReviewedCount === $totalRolesCount && $totalRolesCount > 0);
                             @endphp
                             {{-- ── Main Employee Row ──────────────────────── --}}
                             <tr id="row-{{ $rowId }}" class="{{ $emp->has_override ? 'bg-info bg-opacity-10' : '' }}" style="transition:background .2s; cursor:pointer;" onclick="toggleSubRows('{{ $rowId }}')">
@@ -269,17 +275,22 @@
                                 {{-- Roles Overview Summary --}}
                                 <td class="py-3 text-center">
                                     <div class="d-inline-flex align-items-center gap-1.5" id="summary-badges-{{ $rowId }}">
-                                        @if($empActiveRoles > 0)
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;">
-                                                <i class="bi bi-check-circle-fill me-0.5"></i> {{ $empActiveRoles }} Active
+                                        @if($isAllRolesReviewed)
+                                            @if($empActiveRoles > 0)
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;">
+                                                    <i class="bi bi-check-circle-fill me-0.5"></i> {{ $empActiveRoles }} Active
+                                                </span>
+                                            @endif
+                                            @if($empDeleteRoles > 0)
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;">
+                                                    <i class="bi bi-trash3-fill me-0.5"></i> {{ $empDeleteRoles }} Delete
+                                                </span>
+                                            @endif
+                                        @elseif($empReviewedCount > 0)
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size:.72rem;">
+                                                <i class="bi bi-hourglass-split me-0.5"></i> In Progress ({{ $empReviewedCount }}/{{ $totalRolesCount }})
                                             </span>
-                                        @endif
-                                        @if($empDeleteRoles > 0)
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;">
-                                                <i class="bi bi-trash3-fill me-0.5"></i> {{ $empDeleteRoles }} Delete
-                                            </span>
-                                        @endif
-                                        @if($empActiveRoles === 0 && $empDeleteRoles === 0)
+                                        @else
                                             <span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size:.72rem;">
                                                 Pending Review
                                             </span>
@@ -638,22 +649,35 @@ document.querySelectorAll('.role-review-dropdown').forEach(function(select) {
                     if (subrowEl) {
                         let activeCount = 0;
                         let deleteCount = 0;
-                        subrowEl.querySelectorAll('.role-review-dropdown').forEach(sel => {
+                        let reviewedCount = 0;
+                        const allDropdowns = subrowEl.querySelectorAll('.role-review-dropdown');
+                        const totalRoles = allDropdowns.length;
+
+                        allDropdowns.forEach(sel => {
                             const val = sel.value;
-                            if (val && val.startsWith('Active')) activeCount++;
-                            else if (val && val.startsWith('Delete')) deleteCount++;
+                            if (val) {
+                                reviewedCount++;
+                                if (val.startsWith('Active')) activeCount++;
+                                else if (val.startsWith('Delete')) deleteCount++;
+                            }
                         });
 
                         const badgeContainer = document.getElementById(`summary-badges-${parentRowId}`);
                         if (badgeContainer) {
                             let badgeHtml = '';
-                            if (activeCount > 0) {
-                                badgeHtml += `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-check-circle-fill me-0.5"></i> ${activeCount} Active</span> `;
-                            }
-                            if (deleteCount > 0) {
-                                badgeHtml += `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-trash3-fill me-0.5"></i> ${deleteCount} Delete</span>`;
-                            }
-                            if (activeCount === 0 && deleteCount === 0) {
+                            if (reviewedCount === totalRoles && totalRoles > 0) {
+                                // Semua role sudah diisi keputusannya!
+                                if (activeCount > 0) {
+                                    badgeHtml += `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-check-circle-fill me-0.5"></i> ${activeCount} Active</span> `;
+                                }
+                                if (deleteCount > 0) {
+                                    badgeHtml += `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-trash3-fill me-0.5"></i> ${deleteCount} Delete</span>`;
+                                }
+                            } else if (reviewedCount > 0) {
+                                // Belum lengkap semua role di-review
+                                badgeHtml = `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-hourglass-split me-0.5"></i> In Progress (${reviewedCount}/${totalRoles})</span>`;
+                            } else {
+                                // Belum ada yang di-review
                                 badgeHtml = `<span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size:.72rem;">Pending Review</span>`;
                             }
                             badgeContainer.innerHTML = badgeHtml;
