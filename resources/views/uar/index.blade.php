@@ -73,17 +73,19 @@
                         </div>
                     </div>
                     <div class="fs-3 fw-bolder text-dark mb-0">{{ number_format($globalStats['total_sessions']) }}</div>
+                    <div class="text-muted small mt-1" style="font-size:.72rem;">All UAR Batches</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #6366f1 !important;">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="text-muted small fw-semibold">Total Access Records</span>
+                        <span class="text-muted small fw-semibold">Total Employees</span>
                         <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background:#eef2ff;color:#4f46e5;width:34px;height:34px;">
-                            <i class="bi bi-table fs-6"></i>
+                            <i class="bi bi-people-fill fs-6"></i>
                         </div>
                     </div>
-                    <div class="fs-3 fw-bolder text-dark mb-0">{{ number_format($globalStats['total_records']) }}</div>
+                    <div class="fs-3 fw-bolder text-dark mb-0">{{ number_format($globalStats['total_employees']) }}</div>
+                    <div class="text-muted small mt-1" style="font-size:.72rem;">{{ number_format($globalStats['total_records']) }} Access Items</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
@@ -95,6 +97,7 @@
                         </div>
                     </div>
                     <div class="fs-3 fw-bolder text-success mb-0">{{ number_format($globalStats['total_active']) }}</div>
+                    <div class="text-muted small mt-1" style="font-size:.72rem;">Approved Employees</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
@@ -106,6 +109,7 @@
                         </div>
                     </div>
                     <div class="fs-3 fw-bolder text-danger mb-0">{{ number_format($globalStats['total_delete']) }}</div>
+                    <div class="text-muted small mt-1" style="font-size:.72rem;">Flagged for Deletion</div>
                 </div>
             </div>
         </div>
@@ -152,7 +156,7 @@
                         <tr class="text-uppercase text-muted small fw-bold" style="font-size:.73rem;letter-spacing:.5px;">
                             <th class="ps-4 py-3" style="width:260px;">Session & Module</th>
                             <th class="py-3">BPO & Period</th>
-                            <th class="py-3 text-center" style="width:110px;">Total Access</th>
+                            <th class="py-3 text-center" style="width:140px;">Scope (Employees)</th>
                             <th class="py-3" style="width:220px;">Decision Ratio</th>
                             <th class="py-3 text-center" style="width:120px;">Status</th>
                             <th class="py-3">Created By</th>
@@ -165,6 +169,7 @@
                                 $total = max(1, $session->total_records);
                                 $activePct = round(($session->total_active / $total) * 100);
                                 $deletePct = round(($session->total_delete / $total) * 100);
+                                $empCount = $session->employee_count ?? $session->records()->distinct('user_id')->count('user_id');
                             @endphp
                             <tr>
                                 <td class="ps-4 py-3">
@@ -190,8 +195,8 @@
                                     <div class="text-muted" style="font-size:.78rem;">{{ $session->period }}</div>
                                 </td>
                                 <td class="py-3 text-center">
-                                    <span class="fw-bold text-dark fs-6">{{ number_format($session->total_records) }}</span>
-                                    <div class="text-muted" style="font-size:.72rem;">records</div>
+                                    <span class="fw-bold text-dark fs-6">{{ number_format($empCount) }}</span>
+                                    <div class="text-muted" style="font-size:.72rem;">Employees ({{ number_format($session->total_records) }} items)</div>
                                 </td>
                                 <td class="py-3">
                                     <div class="d-flex justify-content-between small mb-1" style="font-size:.72rem;">

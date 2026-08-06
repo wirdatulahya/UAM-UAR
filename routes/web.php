@@ -174,6 +174,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{uarSession}/export-excel', [UarController::class, 'exportExcel'])->name('export-excel');
         Route::get('/{uarSession}/export-pdf',   [UarController::class, 'exportPdf'])->name('export-pdf');
         Route::delete('/{uarSession}',           [UarController::class, 'destroy'])->name('destroy');
+        Route::post('/{uarSession}/employee-review', [UarController::class, 'updateEmployeeReview'])->name('employee-review');
         Route::post('/record/{record}/update',   [UarController::class, 'updateRecord'])->name('record.update');
     });
 });

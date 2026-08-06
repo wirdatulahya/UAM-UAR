@@ -24,7 +24,13 @@ class UarController extends Controller
      */
     public function index(Request $request)
     {
-        $query = UarSession::with('uploader')->latest();
+        $query = UarSession::with('uploader')
+            ->withCount([
+                'records as employee_count' => function ($q) {
+                    $q->select(DB::raw('COUNT(DISTINCT user_id)'));
+                }
+            ])
+            ->latest();
 
         if ($request->filled('module')) {
             $query->where('module', $request->module);
@@ -42,11 +48,18 @@ class UarController extends Controller
 
         $sessions = $query->paginate(10)->withQueryString();
 
+        $empSummaryQuery = DB::table('uar_records')
+            ->select('uar_session_id', 'user_id', 'full_name')
+            ->selectRaw('MAX(final_review_result) as employee_review')
+            ->groupBy('uar_session_id', 'user_id', 'full_name')
+            ->get();
+
         $globalStats = [
-            'total_sessions' => UarSession::count(),
-            'total_records'  => (int) UarSession::sum('total_records'),
-            'total_active'   => (int) UarSession::sum('total_active'),
-            'total_delete'   => (int) UarSession::sum('total_delete'),
+            'total_sessions'  => UarSession::count(),
+            'total_employees' => $empSummaryQuery->count(),
+            'total_records'   => (int) UarSession::sum('total_records'),
+            'total_active'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Active'))->count(),
+            'total_delete'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Delete'))->count(),
         ];
 
         $modules = UarSession::distinct()->whereNotNull('module')->pluck('module');
@@ -211,10 +224,11 @@ class UarController extends Controller
             }
 
             $session->refreshStats();
+            $empCount = $session->records()->distinct('user_id')->count('user_id');
             DB::commit();
 
             return redirect()->route('uar.index')
-                ->with('success', "Excel file imported successfully! A total of {$session->total_records} records have been evaluated automatically by the system.");
+                ->with('success', "Excel file imported successfully! A total of {$empCount} employees ({$session->total_records} access items) have been evaluated automatically by the system.");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -223,36 +237,44 @@ class UarController extends Controller
     }
 
     /**
-     * Display the interactive UAR review workspace.
+     * Display the interactive UAR review workspace (grouped by Employee).
      */
     public function show(UarSession $uarSession, Request $request)
     {
         $uarSession->load('uploader');
 
-        $query = $uarSession->records();
+        $employeeQuery = $uarSession->records()
+            ->select('user_id', 'full_name', 'jabatan')
+            ->selectRaw('COUNT(*) as total_tcodes')
+            ->selectRaw('COUNT(DISTINCT role_name) as total_roles')
+            ->selectRaw('MAX(last_logon) as latest_logon')
+            ->selectRaw('MAX(final_review_result) as employee_review')
+            ->selectRaw('MAX(system_review_result) as system_review')
+            ->selectRaw('MAX(is_overridden) as has_override')
+            ->groupBy('user_id', 'full_name', 'jabatan');
 
         // Filter by Review Status Category
         if ($request->filled('filter')) {
             $f = $request->filter;
             if ($f === 'active') {
-                $query->where('final_review_result', 'like', 'Active%');
+                $employeeQuery->where('final_review_result', 'like', 'Active%');
             } elseif ($f === 'delete_90') {
-                $query->where('final_review_result', 'Delete - for not logging in > 90 day');
+                $employeeQuery->where('final_review_result', 'Delete - for not logging in > 90 day');
             } elseif ($f === 'delete_mutation') {
-                $query->where('final_review_result', 'Delete - due to mutation and/or promotion/ retirement');
+                $employeeQuery->where('final_review_result', 'Delete - due to mutation and/or promotion/ retirement');
             } elseif ($f === 'delete_uam') {
-                $query->where('final_review_result', 'Delete - because it doesn’t match UAM');
+                $employeeQuery->where('final_review_result', 'Delete - because it doesn’t match UAM');
             } elseif ($f === 'delete_all') {
-                $query->where('final_review_result', 'like', 'Delete%');
+                $employeeQuery->where('final_review_result', 'like', 'Delete%');
             } elseif ($f === 'overridden') {
-                $query->where('is_overridden', true);
+                $employeeQuery->where('is_overridden', true);
             }
         }
 
         // Search in records
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(function ($q) use ($s) {
+            $employeeQuery->where(function ($q) use ($s) {
                 $q->where('user_id', 'like', "%{$s}%")
                   ->orWhere('full_name', 'like', "%{$s}%")
                   ->orWhere('jabatan', 'like', "%{$s}%")
@@ -262,26 +284,112 @@ class UarController extends Controller
             });
         }
 
-        $records = $query->paginate(25)->withQueryString();
+        $employees = $employeeQuery->paginate(20)->withQueryString();
 
-        // Categorized counts for summary badges
+        // Get detailed records for current page employees
+        $userIds = $employees->pluck('user_id')->filter()->unique();
+        $detailedRecords = $uarSession->records()
+            ->whereIn('user_id', $userIds)
+            ->orderBy('role_name')
+            ->orderBy('tcode')
+            ->get()
+            ->groupBy(function ($item) {
+                return $item->user_id ?: $item->full_name;
+            });
+
+        // Employee-level summary counts
+        $empSummaryQuery = $uarSession->records()
+            ->select('user_id', 'full_name')
+            ->selectRaw('MAX(final_review_result) as employee_review')
+            ->selectRaw('MAX(system_review_result) as system_review')
+            ->selectRaw('MAX(is_overridden) as has_override')
+            ->groupBy('user_id', 'full_name')
+            ->get();
+
         $summary = [
-            'total'            => $uarSession->total_records,
-            'active_total'     => $uarSession->total_active,
-            'delete_total'     => $uarSession->total_delete,
-            'delete_90'        => $uarSession->records()->where('final_review_result', 'Delete - for not logging in > 90 day')->count(),
-            'delete_mutation'  => $uarSession->records()->where('final_review_result', 'Delete - due to mutation and/or promotion/ retirement')->count(),
-            'delete_uam'       => $uarSession->records()->where('final_review_result', 'Delete - because it doesn’t match UAM')->count(),
-            'overridden'       => $uarSession->total_overridden,
+            'total_records'       => $uarSession->total_records,
+            'total_employees'     => $empSummaryQuery->count(),
+            'active_employees'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Active'))->count(),
+            'delete_employees'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Delete'))->count(),
+            'delete_90'           => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - for not logging in > 90 day')->count(),
+            'delete_mutation'     => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - due to mutation and/or promotion/ retirement')->count(),
+            'delete_uam'          => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - because it doesn’t match UAM')->count(),
+            'overridden'          => $empSummaryQuery->filter(fn($e) => (bool)$e->has_override)->count(),
         ];
 
         $reviewOptions = UarRecord::REVIEW_OPTIONS;
 
-        return view('uar.show', compact('uarSession', 'records', 'summary', 'reviewOptions'));
+        return view('uar.show', compact('uarSession', 'employees', 'detailedRecords', 'summary', 'reviewOptions'));
     }
 
     /**
-     * AJAX update of record's final review status.
+     * AJAX update of all records for an employee in this session.
+     */
+    public function updateEmployeeReview(Request $request, UarSession $uarSession)
+    {
+        $data = $request->validate([
+            'user_id'             => 'required|string',
+            'final_review_result' => 'nullable|string|in:' . implode(',', array_keys(UarRecord::REVIEW_OPTIONS)),
+            'reviewer_notes'      => 'nullable|string|max:500',
+        ]);
+
+        $userId = $data['user_id'];
+        $newVal = !empty($data['final_review_result']) ? $data['final_review_result'] : null;
+
+        // Fetch records for this employee in this session
+        $records = $uarSession->records()->where('user_id', $userId)->get();
+
+        if ($records->isEmpty()) {
+            $records = $uarSession->records()->where('full_name', $userId)->get();
+        }
+
+        $hasOverride = false;
+        foreach ($records as $record) {
+            $isOverridden = ($newVal !== null && $newVal !== $record->system_review_result);
+            if ($isOverridden) {
+                $hasOverride = true;
+            }
+
+            $record->update([
+                'final_review_result' => $newVal,
+                'reviewer_notes'      => $data['reviewer_notes'] ?? $record->reviewer_notes,
+                'is_overridden'       => $isOverridden,
+            ]);
+        }
+
+        $uarSession->refreshStats();
+
+        // Recalculate employee summary counts for live update
+        $empSummaryQuery = $uarSession->records()
+            ->select('user_id', 'full_name')
+            ->selectRaw('MAX(final_review_result) as employee_review')
+            ->selectRaw('MAX(system_review_result) as system_review')
+            ->selectRaw('MAX(is_overridden) as has_override')
+            ->groupBy('user_id', 'full_name')
+            ->get();
+
+        return response()->json([
+            'success'          => true,
+            'message'          => $newVal ? "Review updated for employee ({$records->count()} items)." : 'Review decision cleared.',
+            'user_id'          => $userId,
+            'final_result'     => $newVal,
+            'is_overridden'    => $hasOverride,
+            'records_count'    => $records->count(),
+            'badge'            => $newVal ? (UarRecord::REVIEW_OPTIONS[$newVal] ?? []) : null,
+            'session_stats'    => [
+                'total_employees'  => $empSummaryQuery->count(),
+                'total_records'    => $uarSession->total_records,
+                'active_employees' => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Active'))->count(),
+                'delete_employees' => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Delete'))->count(),
+                'delete_90'        => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - for not logging in > 90 day')->count(),
+                'delete_uam'       => $empSummaryQuery->filter(fn($e) => ($e->employee_review ?? '') === 'Delete - because it doesn’t match UAM')->count(),
+                'overridden'       => $empSummaryQuery->filter(fn($e) => (bool)$e->has_override)->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * AJAX update of individual record's final review status.
      */
     public function updateRecord(Request $request, UarRecord $record)
     {
@@ -335,7 +443,7 @@ class UarController extends Controller
 
         $uarSession->refreshStats();
 
-        return back()->with('success', 'All system recommendations accepted successfully (Reset to System Recommendations).');
+        return back()->with('success', 'System recommendations accepted.');
     }
 
     /**
@@ -344,7 +452,7 @@ class UarController extends Controller
     public function complete(UarSession $uarSession)
     {
         $uarSession->update(['status' => 'Completed']);
-        return back()->with('success', 'UAR session has been submitted and marked as Completed.');
+        return back()->with('success', 'Session submitted successfully.');
     }
 
     /**
