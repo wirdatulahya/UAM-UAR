@@ -350,14 +350,14 @@
                                                             </div>
                                                         </div>
 
-                                                        {{-- Right: System Recommendation & BPO Review Dropdown per Role --}}
+                                                        {{-- Right: Last LOGON, System Recommendation & BPO Review Dropdown per Role --}}
                                                         <div class="d-flex flex-wrap align-items-center gap-3">
-                                                            {{-- Role Last Logon --}}
-                                                            <div class="text-end d-none d-md-block">
-                                                                <span class="text-muted" style="font-size:.7rem;">Role Last Logon:</span>
-                                                                <div class="font-monospace fw-medium text-dark" style="font-size:.75rem;">
+                                                            {{-- Last LOGON (Di atas kartu role) --}}
+                                                            <div class="text-start">
+                                                                <span class="text-muted d-block" style="font-size:.7rem;">Last LOGON:</span>
+                                                                <div class="font-monospace fw-semibold text-dark" style="font-size:.78rem;">
                                                                     @if($isRoleInactive)
-                                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5">Not in Use</span>
+                                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5" style="font-size:.7rem;">Not in Use</span>
                                                                     @else
                                                                         {{ $roleLogon }}
                                                                     @endif
@@ -439,33 +439,20 @@
                                                         <table class="table table-sm table-hover align-middle mb-0" style="font-size:.75rem;">
                                                             <thead style="background:#f8fafc;color:#475569;font-size:.7rem;font-weight:600;">
                                                                 <tr>
-                                                                    <th class="ps-3 py-1.5" style="width:140px;">T-Code</th>
-                                                                    <th class="py-1.5">T-Code Description</th>
-                                                                    <th class="pe-3 py-1.5 text-center" style="width:130px;">Last LOGON</th>
+                                                                    <th class="ps-3 py-1.5" style="width:160px;">T-Code</th>
+                                                                    <th class="pe-3 py-1.5">T-Code Description</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 @foreach($roleRecs as $rec)
-                                                                    @php
-                                                                        $isTcodeInactive = (strtolower($rec->last_logon) === 'not in use' || str_contains(strtolower($rec->last_logon), 'never'));
-                                                                    @endphp
                                                                     <tr>
                                                                         <td class="ps-3 py-1.5">
                                                                             <span class="badge bg-light text-dark border font-monospace px-2 py-0.5" style="font-size:.72rem;">
                                                                                 {{ $rec->tcode }}
                                                                             </span>
                                                                         </td>
-                                                                        <td class="py-1.5 text-dark">
+                                                                        <td class="pe-3 py-1.5 text-dark">
                                                                             {{ $rec->tcode_description ?: '—' }}
-                                                                        </td>
-                                                                        <td class="pe-3 py-1.5 text-center">
-                                                                            @if($isTcodeInactive)
-                                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5 fw-semibold" style="font-size:.68rem;">
-                                                                                    Not in Use
-                                                                                </span>
-                                                                            @else
-                                                                                <span class="font-monospace text-dark">{{ $rec->last_logon ?: '—' }}</span>
-                                                                            @endif
                                                                         </td>
                                                                     </tr>
                                                                 @endforeach
