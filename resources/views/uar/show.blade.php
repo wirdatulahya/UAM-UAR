@@ -67,7 +67,7 @@
                         {{ $uarSession->name }}
                     </h2>
                     <p class="text-muted small mb-0">
-                        Uploaded by <span class="fw-semibold text-dark">{{ $uarSession->uploader->name ?? 'System' }}</span> on {{ $uarSession->created_at->format('d M Y, H:i') }} &bull; Source: <span class="fw-medium">{{ $uarSession->source_type }}</span> &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_employees']) }}</span> Employees &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_roles']) }}</span> Roles ({{ number_format($summary['total_records']) }} T-Codes)
+                        Uploaded by <span class="fw-semibold text-dark">{{ $uarSession->uploader->name ?? 'System' }}</span> on {{ $uarSession->created_at->format('d M Y, H:i') }} &bull; Source: <span class="fw-medium">{{ $uarSession->source_type }}</span> &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_employees']) }}</span> Users &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_roles']) }}</span> Roles ({{ number_format($summary['total_records']) }} T-Codes)
                     </p>
                 </div>
 
@@ -93,7 +93,7 @@
                     <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all hover-scale {{ !request('filter') ? 'border-2 border-primary' : '' }}" style="background:#fff;">
                         <div class="text-muted small fw-semibold">Total Roles</div>
                         <div class="fs-4 fw-bold text-dark mt-1" id="statTotal">{{ number_format($summary['total_roles']) }}</div>
-                        <div class="text-muted small" style="font-size:.72rem;">{{ number_format($summary['total_employees']) }} Employees</div>
+                        <div class="text-muted small" style="font-size:.72rem;">{{ number_format($summary['total_employees']) }} Users</div>
                     </div>
                 </a>
             </div>
@@ -157,7 +157,7 @@
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                                 <input type="text" name="search" class="form-control border-start-0" 
-                                       placeholder="Search Employee, Role, or T-Code..." 
+                                       placeholder="Search User, Role, or T-Code..." 
                                        value="{{ request('search') }}">
                                 @if(request('search'))
                                     <a href="{{ route('uar.show', [$uarSession->id, 'filter' => request('filter')]) }}" class="btn btn-outline-secondary btn-sm" title="Clear Search">
@@ -199,7 +199,7 @@
                     <thead class="sticky-top" style="background:#071f4d;color:#fff;font-weight:600;font-size:.75rem;letter-spacing:.4px;">
                         <tr>
                             <th class="ps-3 py-3" style="width:45px;">No</th>
-                            <th class="py-3" style="min-width:200px;">Employee (ID & Name)</th>
+                            <th class="py-3" style="min-width:200px;">User</th>
                             <th class="py-3" style="min-width:180px;">Position</th>
                             <th class="py-3" style="min-width:160px;">Access Scope</th>
                             <th class="py-3 text-center" style="min-width:120px;">Latest LOGON</th>
@@ -481,7 +481,7 @@
             @if($employees->hasPages())
                 <div class="p-3 border-top bg-light bg-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <div class="text-muted small" style="font-size:.78rem;">
-                        Showing <span class="fw-semibold text-dark">{{ $employees->firstItem() }}</span> to <span class="fw-semibold text-dark">{{ $employees->lastItem() }}</span> of <span class="fw-semibold text-dark">{{ $employees->total() }}</span> employees ({{ number_format($summary['total_roles']) }} total roles)
+                        Showing <span class="fw-semibold text-dark">{{ $employees->firstItem() }}</span> to <span class="fw-semibold text-dark">{{ $employees->lastItem() }}</span> of <span class="fw-semibold text-dark">{{ $employees->total() }}</span> users ({{ number_format($summary['total_roles']) }} total roles)
                     </div>
                     <div>
                         {{ $employees->links('pagination::bootstrap-5') }}
