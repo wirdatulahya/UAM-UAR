@@ -365,18 +365,11 @@
                             <label class="form-label small fw-bold text-dark mb-1">
                                 <i class="bi bi-people text-primary me-1"></i> 1. LIST_USER_ROLES (.xlsx) <span class="text-danger">*</span>
                             </label>
-                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card" style="background:#f8fafc;cursor:pointer;" onclick="document.getElementById('inputUserRoles').click();">
-                                <div class="d-flex flex-column align-items-center justify-content-center py-1">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mb-2" style="width:42px;height:42px;">
-                                        <i class="bi bi-file-earmark-person-fill text-primary fs-4"></i>
-                                    </div>
-                                    <div class="text-secondary fw-semibold mb-1" style="font-size:.75rem;">Mapping User, Role & End Date</div>
-                                    <div id="labelUserRoles">
-                                        <span class="badge bg-white text-muted border px-2 py-1 fw-normal" style="font-size:.7rem;">
-                                            <i class="bi bi-cloud-arrow-up me-1"></i> Upload .xlsx
-                                        </span>
-                                    </div>
+                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card d-flex flex-column align-items-center justify-content-center" style="background:#f8fafc;cursor:pointer;min-height:95px;" onclick="document.getElementById('inputUserRoles').click();">
+                                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                                    <i class="bi bi-file-earmark-person-fill text-primary fs-3"></i>
                                 </div>
+                                <div id="labelUserRoles"></div>
                                 <input type="file" name="file_user_roles" id="inputUserRoles" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelUserRoles')">
                             </div>
                         </div>
@@ -386,18 +379,11 @@
                             <label class="form-label small fw-bold text-dark mb-1">
                                 <i class="bi bi-shield-lock text-success me-1"></i> 2. LIST_ROLE_TCODES (.xlsx) <span class="text-danger">*</span>
                             </label>
-                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card" style="background:#f8fafc;cursor:pointer;" onclick="document.getElementById('inputRoleTcodes').click();">
-                                <div class="d-flex flex-column align-items-center justify-content-center py-1">
-                                    <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center mb-2" style="width:42px;height:42px;">
-                                        <i class="bi bi-file-earmark-lock-fill text-success fs-4"></i>
-                                    </div>
-                                    <div class="text-secondary fw-semibold mb-1" style="font-size:.75rem;">Relasi Role ke Transaksi T-Code</div>
-                                    <div id="labelRoleTcodes">
-                                        <span class="badge bg-white text-muted border px-2 py-1 fw-normal" style="font-size:.7rem;">
-                                            <i class="bi bi-cloud-arrow-up me-1"></i> Upload .xlsx
-                                        </span>
-                                    </div>
+                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card d-flex flex-column align-items-center justify-content-center" style="background:#f8fafc;cursor:pointer;min-height:95px;" onclick="document.getElementById('inputRoleTcodes').click();">
+                                <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                                    <i class="bi bi-file-earmark-lock-fill text-success fs-3"></i>
                                 </div>
+                                <div id="labelRoleTcodes"></div>
                                 <input type="file" name="file_role_tcodes" id="inputRoleTcodes" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelRoleTcodes')">
                             </div>
                         </div>
@@ -407,18 +393,11 @@
                             <label class="form-label small fw-bold text-dark mb-1">
                                 <i class="bi bi-journal-code text-warning me-1"></i> 3. LIST_OF_TCODES (.xlsx) <span class="text-danger">*</span>
                             </label>
-                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card" style="background:#f8fafc;cursor:pointer;" onclick="document.getElementById('inputTcodes').click();">
-                                <div class="d-flex flex-column align-items-center justify-content-center py-1">
-                                    <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center mb-2" style="width:42px;height:42px;">
-                                        <i class="bi bi-file-earmark-code-fill text-warning fs-4"></i>
-                                    </div>
-                                    <div class="text-secondary fw-semibold mb-1" style="font-size:.75rem;">Master Kamus Deskripsi T-Code</div>
-                                    <div id="labelTcodes">
-                                        <span class="badge bg-white text-muted border px-2 py-1 fw-normal" style="font-size:.7rem;">
-                                            <i class="bi bi-cloud-arrow-up me-1"></i> Upload .xlsx
-                                        </span>
-                                    </div>
+                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card d-flex flex-column align-items-center justify-content-center" style="background:#f8fafc;cursor:pointer;min-height:95px;" onclick="document.getElementById('inputTcodes').click();">
+                                <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                                    <i class="bi bi-file-earmark-code-fill text-warning fs-3"></i>
                                 </div>
+                                <div id="labelTcodes"></div>
                                 <input type="file" name="file_tcodes" id="inputTcodes" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelTcodes')">
                             </div>
                         </div>
@@ -428,18 +407,11 @@
                             <label class="form-label small fw-bold text-dark mb-1">
                                 <i class="bi bi-clock-history text-danger me-1"></i> 4. LIST_USER_LAST_LOGON (.xlsx) <span class="text-danger">*</span>
                             </label>
-                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card" style="background:#f8fafc;cursor:pointer;" onclick="document.getElementById('inputLogon').click();">
-                                <div class="d-flex flex-column align-items-center justify-content-center py-1">
-                                    <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center mb-2" style="width:42px;height:42px;">
-                                        <i class="bi bi-file-earmark-medical-fill text-danger fs-4"></i>
-                                    </div>
-                                    <div class="text-secondary fw-semibold mb-1" style="font-size:.75rem;">Tanggal Login & Tipe User Dialog/System</div>
-                                    <div id="labelLogon">
-                                        <span class="badge bg-white text-muted border px-2 py-1 fw-normal" style="font-size:.7rem;">
-                                            <i class="bi bi-cloud-arrow-up me-1"></i> Upload .xlsx
-                                        </span>
-                                    </div>
+                            <div class="border border-2 border-dashed rounded-3 p-3 text-center position-relative file-card d-flex flex-column align-items-center justify-content-center" style="background:#f8fafc;cursor:pointer;min-height:95px;" onclick="document.getElementById('inputLogon').click();">
+                                <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                                    <i class="bi bi-file-earmark-medical-fill text-danger fs-3"></i>
                                 </div>
+                                <div id="labelLogon"></div>
                                 <input type="file" name="file_logon" id="inputLogon" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelLogon')">
                             </div>
                         </div>
@@ -503,7 +475,8 @@ function setFileNameBadge(input, labelId) {
     if (input.files && input.files[0]) {
         const el = document.getElementById(labelId);
         const card = input.closest('.file-card');
-        el.innerHTML = '<span class="badge bg-success text-white px-2 py-1 shadow-sm text-truncate d-inline-block" style="max-width:180px;font-size:.7rem;"><i class="bi bi-check2-circle me-1"></i>' + input.files[0].name + '</span>';
+        el.className = 'mt-2 text-center';
+        el.innerHTML = '<span class="badge bg-success text-white px-2 py-1 shadow-sm text-truncate d-inline-block" style="max-width:200px;font-size:.72rem;"><i class="bi bi-check2-circle me-1"></i>' + input.files[0].name + '</span>';
         card.classList.add('is-filled');
     }
 }
