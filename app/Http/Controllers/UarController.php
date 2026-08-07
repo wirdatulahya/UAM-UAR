@@ -298,13 +298,6 @@ class UarController extends Controller
                 ->get()
                 ->keyBy(fn($u) => $u->nik ?: $u->username);
 
-            // If some user IDs are missing from local DB, attempt seamless on-the-fly DWH lookup if connected
-            $missingIds = array_diff($userIds, $userMasterMap->keys()->toArray());
-            $dwhPositions = [];
-            if (!empty($missingIds)) {
-                $dwhPositions = \App\Services\DwhSyncService::lookupUserPositions($missingIds);
-            }
-
             DB::beginTransaction();
 
             $session = UarSession::create([
@@ -326,7 +319,7 @@ class UarController extends Controller
                 $matchedUser = $userMasterMap->get($uId);
 
                 $fullName = !empty($row['full_name']) ? $row['full_name'] : ($matchedUser->name ?? '');
-                $jabatan  = $matchedUser->position ?? ($matchedUser->jabatan ?? ($dwhPositions[$uId] ?? ''));
+                $jabatan  = $matchedUser->position ?? ($matchedUser->jabatan ?? '');
 
                 $rowPayload = [
                     'user_id'          => $uId,

@@ -114,19 +114,6 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
-        'dwh' => [
-            'driver' => 'pgsql',
-            'host' => env('GP_HOST', '10.212.1.212'),
-            'port' => env('GP_PORT', '6432'),
-            'database' => env('GP_DATABASE', 'tif_sandbox'),
-            'username' => env('GP_USERNAME', '970126'),
-            'password' => env('GP_PASSWORD', '970126@dwhgp2025'),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'schema' => env('GP_SCHEMA', 'it_dev'),
-            'sslmode' => 'disable',
-        ],
-
     ],
 
     /*
