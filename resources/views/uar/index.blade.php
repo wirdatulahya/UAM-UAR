@@ -95,7 +95,7 @@
             {{-- Search & Filter Bar --}}
             <div class="p-3 border-bottom bg-light bg-opacity-50">
                 <form method="GET" action="{{ route('uar.index') }}" class="row g-2 align-items-center">
-                    <div class="col-md-6 col-lg-5">
+                    <div class="col-md-6 col-lg-6">
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0 text-muted">
                                 <i class="bi bi-search"></i>
@@ -104,7 +104,7 @@
                                    placeholder="Search session name, module, or BPO..." value="{{ request('search') }}">
                         </div>
                     </div>
-                    <div class="col-6 col-md-3 col-lg-2">
+                    <div class="col-6 col-md-3 col-lg-3">
                         <select name="module" class="form-select" onchange="this.form.submit()">
                             <option value="">All Modules</option>
                             @foreach($modules as $m)
@@ -112,19 +112,12 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-6 col-md-3 col-lg-2">
+                    <div class="col-6 col-md-3 col-lg-3">
                         <select name="status" class="form-select" onchange="this.form.submit()">
                             <option value="">All Statuses</option>
                             <option value="In Review" {{ request('status') === 'In Review' ? 'selected' : '' }}>In Review</option>
                             <option value="Completed" {{ request('status') === 'Completed' ? 'selected' : '' }}>Completed</option>
                         </select>
-                    </div>
-                    <div class="col-12 col-md-3 text-md-end">
-                        <button type="button" class="btn btn-sm text-white px-3 py-2 fw-semibold rounded-3 shadow-xs" 
-                                style="background: linear-gradient(135deg, #0B2E6D 0%, #1a4d9e 100%); font-size:.825rem;"
-                                data-bs-toggle="modal" data-bs-target="#uploadUarModal">
-                            <i class="bi bi-cloud-arrow-up-fill me-1.5"></i> Import New UAR
-                        </button>
                     </div>
                 </form>
             </div>
