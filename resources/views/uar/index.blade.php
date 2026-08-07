@@ -318,8 +318,13 @@
 
             {{-- Pagination --}}
             @if($sessions->hasPages())
-                <div class="p-3 border-top bg-light bg-opacity-25 d-flex justify-content-end">
-                    {{ $sessions->links('pagination::bootstrap-5') }}
+                <div class="p-3 border-top bg-light bg-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="text-muted small" style="font-size:.78rem;">
+                        Showing <span class="fw-semibold text-dark">{{ $sessions->firstItem() }}</span> to <span class="fw-semibold text-dark">{{ $sessions->lastItem() }}</span> of <span class="fw-semibold text-dark">{{ $sessions->total() }}</span> sessions
+                    </div>
+                    <div>
+                        {{ $sessions->links('pagination::bootstrap-5') }}
+                    </div>
                 </div>
             @endif
         </div>
