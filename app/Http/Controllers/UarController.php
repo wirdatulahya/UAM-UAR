@@ -291,15 +291,12 @@ class UarController extends Controller
                 return back()->withInput()->with('error', "No matching role records found for Module [{$targetModule}] in the uploaded files. Please verify the module filter or file contents.");
             }
 
-            // 2. Fetch employee position (Jabatan) and full name: Local DB first, fallback to DWH Greenplum
+            // 2. Pre-fetch local User master data for Jabatan & Full Name lookup
             $userIds = array_unique(array_column($mergedRecords, 'user_id'));
             $userMasterMap = User::whereIn('nik', $userIds)
                 ->orWhereIn('username', $userIds)
                 ->get()
                 ->keyBy(fn($u) => $u->nik ?: $u->username);
-
-            // Seamless on-the-fly DWH lookup for employee positions
-            $dwhData = \App\Services\DwhSyncService::lookupUserPositions($userIds);
 
             DB::beginTransaction();
 
@@ -320,10 +317,9 @@ class UarController extends Controller
             foreach ($mergedRecords as $row) {
                 $uId = $row['user_id'];
                 $matchedUser = $userMasterMap->get($uId);
-                $dwhUser = $dwhData[$uId] ?? null;
 
-                $fullName = !empty($row['full_name']) ? $row['full_name'] : ($matchedUser->name ?? ($dwhUser['name'] ?? ''));
-                $jabatan  = $matchedUser->position ?? ($matchedUser->jabatan ?? ($dwhUser['jabatan'] ?? ''));
+                $fullName = !empty($row['full_name']) ? $row['full_name'] : ($matchedUser->name ?? '');
+                $jabatan  = $matchedUser->position ?? ($matchedUser->jabatan ?? '');
 
                 $rowPayload = [
                     'user_id'          => $uId,
