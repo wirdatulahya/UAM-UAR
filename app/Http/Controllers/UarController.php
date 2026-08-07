@@ -243,15 +243,23 @@ class UarController extends Controller
      */
     public function importMulti(Request $request)
     {
+        @ini_set('memory_limit', '1024M');
+        @ini_set('max_execution_time', 300);
+
         $request->validate([
-            'file_user_roles'  => 'required|file|mimes:xlsx,xls|max:51200',
-            'file_role_tcodes' => 'required|file|mimes:xlsx,xls|max:51200',
-            'file_tcodes'      => 'required|file|mimes:xlsx,xls|max:51200',
-            'file_logon'       => 'required|file|mimes:xlsx,xls|max:51200',
-            'module'           => 'nullable|string|max:50',
+            'file_user_roles'  => 'required|file|max:102400',
+            'file_role_tcodes' => 'required|file|max:102400',
+            'file_tcodes'      => 'required|file|max:102400',
+            'file_logon'       => 'required|file|max:102400',
+            'module'           => 'required|string|max:50',
             'bpo'              => 'nullable|string|max:100',
-            'period'           => 'nullable|string|max:50',
+            'period'           => 'required|string|max:50',
             'name'             => 'nullable|string|max:255',
+        ], [
+            'file_tcodes.uploaded' => 'File LIST_OF_TCODES gagal diunggah karena melebihi batas upload PHP. Silakan restart php artisan serve / Apache.',
+            'file_user_roles.uploaded' => 'File LIST_USER_ROLES gagal diunggah.',
+            'file_role_tcodes.uploaded' => 'File LIST_ROLE_TCODES gagal diunggah.',
+            'file_logon.uploaded' => 'File LIST_USER_LAST_LOGON gagal diunggah.',
         ]);
 
         try {
@@ -260,9 +268,9 @@ class UarController extends Controller
             $pathTcodes     = $request->file('file_tcodes')->getRealPath();
             $pathLogon      = $request->file('file_logon')->getRealPath();
 
-            $targetModule = $request->filled('module') ? strtoupper(trim($request->module)) : 'FM';
+            $targetModule = strtoupper(trim($request->module));
             $bpo          = $request->filled('bpo') ? trim($request->bpo) : ($targetModule . ' BPO');
-            $period       = $request->filled('period') ? trim($request->period) : 'Q' . ceil(now()->month / 3) . '.' . now()->year;
+            $period       = trim($request->period);
             $application  = 'SAP';
             $sessionName  = $request->filled('name')
                 ? trim($request->name)
