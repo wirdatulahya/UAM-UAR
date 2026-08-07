@@ -350,12 +350,12 @@
                 <ul class="nav nav-pills nav-fill bg-light p-1 rounded-3 border" id="uarUploadTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active fw-bold py-2 rounded-3 text-primary d-flex align-items-center justify-content-center gap-2" id="multi-tab" data-bs-toggle="tab" data-bs-target="#multi-pane" type="button" role="tab">
-                            <i class="bi bi-lightning-charge-fill text-warning"></i> ⚡ 4-Files SAP Raw Extract <span class="badge bg-primary text-white ms-1" style="font-size:.68rem;">Auto-Merge</span>
+                            <i class="bi bi-lightning-charge-fill text-warning fs-6"></i> 4-Files SAP Raw Extract <span class="badge bg-primary text-white ms-1" style="font-size:.68rem;">Auto-Merge</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link fw-semibold py-2 rounded-3 text-secondary d-flex align-items-center justify-content-center gap-2" id="single-tab" data-bs-toggle="tab" data-bs-target="#single-pane" type="button" role="tab">
-                            <i class="bi bi-file-earmark-spreadsheet"></i> 📄 Single Pre-Merged File
+                            <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-6"></i> Single Pre-Merged File
                         </button>
                     </li>
                 </ul>
