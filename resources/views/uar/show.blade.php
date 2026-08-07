@@ -36,45 +36,31 @@
             </div>
         @endif
 
-        {{-- ── Session Header ───────────────────────────────────────── --}}
-        <div class="card border rounded-4 p-4 mb-4 shadow-sm" style="background:#fff;border-color:#e2e8f0 !important;">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5">
-                <a href="{{ route('uar.index') }}" class="btn btn-sm btn-light border rounded-pill px-3 py-1 text-secondary fw-semibold d-inline-flex align-items-center gap-1.5" style="font-size:.78rem;">
-                    <i class="bi bi-arrow-left"></i>
-                    <span>Back to Sessions</span>
+        {{-- ── Minimalist Clean Header ───────────────────────────────────────── --}}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+            <div class="d-flex align-items-center gap-3">
+                <a href="{{ route('uar.index') }}" class="btn btn-sm btn-light bg-white border rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width:40px;height:40px;flex-shrink:0;" title="Back to Sessions">
+                    <i class="bi bi-arrow-left text-secondary" style="font-size:1.1rem;"></i>
                 </a>
-                <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold font-monospace" style="font-size:.72rem;">
-                    {{ $uarSession->application }} &bull; Modul {{ $uarSession->module }}
-                </span>
-                <span class="badge rounded-pill bg-light text-secondary border px-2.5 py-1" style="font-size:.72rem;">
-                    BPO: {{ $uarSession->bpo ?: '—' }}
-                </span>
-                <span class="badge rounded-pill bg-light text-muted border px-2.5 py-1" style="font-size:.72rem;">
-                    {{ $uarSession->period }}
-                </span>
-                @if($uarSession->status === 'Completed')
-                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style="font-size:.72rem;">
-                        <i class="bi bi-check-all me-0.5"></i> Completed
-                    </span>
-                @else
-                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 fw-bold" style="font-size:.72rem;">
-                        <i class="bi bi-hourglass-split me-0.5"></i> In Review
-                    </span>
-                @endif
-            </div>
-
-            <h2 class="fw-bold text-dark mb-1.5" style="font-size:1.5rem;letter-spacing:-.3px;">
-                {{ $uarSession->name }}
-            </h2>
-
-            <div class="text-muted small d-flex flex-wrap align-items-center gap-2" style="font-size:.82rem;">
-                <span>Uploaded by <strong class="text-dark">{{ $uarSession->uploader->name ?? 'System' }}</strong> on {{ $uarSession->created_at->format('d M Y, H:i') }}</span>
-                <span>&bull;</span>
-                <span>Source: <span class="fw-medium text-dark">{{ $uarSession->source_type }}</span></span>
-                <span>&bull;</span>
-                <span><strong class="text-dark">{{ number_format($summary['total_employees']) }}</strong> Users</span>
-                <span>&bull;</span>
-                <span><strong class="text-dark">{{ number_format($summary['total_roles']) }}</strong> Roles ({{ number_format($summary['total_records']) }} T-Codes)</span>
+                <div>
+                    <div class="d-flex align-items-center gap-2.5 flex-wrap">
+                        <h2 class="fw-bold text-dark mb-0" style="font-size:1.45rem;letter-spacing:-.3px;">
+                            {{ $uarSession->name }}
+                        </h2>
+                        @if($uarSession->status === 'Completed')
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size:.72rem;">
+                                <i class="bi bi-check-all me-0.5"></i> Completed
+                            </span>
+                        @else
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size:.72rem;">
+                                In Review
+                            </span>
+                        @endif
+                    </div>
+                    <div class="text-muted small mt-1" style="font-size:.8rem;">
+                        {{ $uarSession->bpo ? "BPO: {$uarSession->bpo} • " : "" }}{{ $uarSession->created_at->format('d M Y') }}
+                    </div>
+                </div>
             </div>
         </div>
 
