@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\UamApprovalHistory;
 use App\Models\UamApplication;
+use App\Models\UamModule;
 use App\Models\UamRecord;
 use App\Models\UamRequest;
 use Illuminate\Http\Request;
@@ -117,6 +118,139 @@ class AccessMatrixController extends Controller
             'lastUpdated' => $lastUpdated,
             'pendingCount' => $pendingCount
         ]);
+    }
+
+    public function requestModulesByApp(Request $request, $app = 'sap')
+    {
+        $currentApp = $this->resolveApp($app ?: $request->input('app', 'sap'));
+        $appIdentifiers = $this->getAppIdentifiers($currentApp);
+
+        // Ensure default modules exist for SAP if table empty
+        if ($currentApp->slug === 'sap' && UamModule::where('application_slug', 'sap')->count() === 0) {
+            $defaultModules = [
+                ['code' => 'FM', 'name' => 'Funds Management', 'description' => 'Manage funds management authorizations and budget execution permissions.'],
+                ['code' => 'PS', 'name' => 'Project System', 'description' => 'Manage project planning, execution, and project structure access.'],
+                ['code' => 'FI', 'name' => 'Financial Accounting', 'description' => 'Manage general ledger, accounts payable, accounts receivable, and asset accounting.'],
+                ['code' => 'CO', 'name' => 'Controlling', 'description' => 'Manage cost centers, internal orders, and profitability analysis.'],
+                ['code' => 'HR', 'name' => 'Human Capital Management', 'description' => 'Manage personnel administration, organizational management, and payroll access.'],
+                ['code' => 'MM', 'name' => 'Materials Management', 'description' => 'Manage procurement, inventory, and materials valuation.'],
+                ['code' => 'SD', 'name' => 'Sales & Distribution', 'description' => 'Manage sales orders, shipping, billing, and customer access.'],
+                ['code' => 'PM', 'name' => 'Plant Maintenance', 'description' => 'Manage equipment maintenance, work orders, and notification processing.'],
+            ];
+            foreach ($defaultModules as $dm) {
+                UamModule::firstOrCreate(
+                    ['application_slug' => 'sap', 'code' => $dm['code']],
+                    ['name' => $dm['name'], 'description' => $dm['description'], 'status' => 'active']
+                );
+            }
+        }
+
+        $modules = UamModule::where('application_slug', $currentApp->slug)
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get();
+
+        foreach ($modules as $mod) {
+            $mod->request_count = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->count();
+            $latestReq = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->latest('updated_at')->first();
+            $mod->last_updated = $latestReq ? $latestReq->updated_at : null;
+        }
+
+        return view('access-matrix.module-cards', [
+            'type' => 'request',
+            'currentApp' => $currentApp,
+            'modules' => $modules,
+        ]);
+    }
+
+    public function acceptModulesByApp(Request $request, $app = 'sap')
+    {
+        $currentApp = $this->resolveApp($app ?: $request->input('app', 'sap'));
+        $appIdentifiers = $this->getAppIdentifiers($currentApp);
+
+        $modules = UamModule::where('application_slug', $currentApp->slug)
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get();
+
+        foreach ($modules as $mod) {
+            $mod->request_count = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->count();
+            $mod->pending_count = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->where('status', 'Review')->count();
+            $latestReq = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->latest('updated_at')->first();
+            $mod->last_updated = $latestReq ? $latestReq->updated_at : null;
+        }
+
+        return view('access-matrix.module-cards', [
+            'type' => 'accept',
+            'currentApp' => $currentApp,
+            'modules' => $modules,
+        ]);
+    }
+
+    public function approvalLandingByApp(Request $request, $app = 'sap')
+    {
+        $currentApp = $this->resolveApp($app ?: $request->input('app', 'sap'));
+        $appIdentifiers = $this->getAppIdentifiers($currentApp);
+
+        $modules = UamModule::where('application_slug', $currentApp->slug)
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get();
+
+        foreach ($modules as $mod) {
+            $mod->request_count = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->count();
+            $mod->pending_count = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->where('status', 'Stage 2')->count();
+            $latestReq = UamRequest::whereIn('application', $appIdentifiers)->where('module', $mod->code)->latest('updated_at')->first();
+            $mod->last_updated = $latestReq ? $latestReq->updated_at : null;
+        }
+
+        return view('access-matrix.module-cards', [
+            'type' => 'approval',
+            'currentApp' => $currentApp,
+            'modules' => $modules,
+        ]);
+    }
+
+    public function storeModule(Request $request, $app = 'sap')
+    {
+        $currentApp = $this->resolveApp($app ?: $request->input('app', 'sap'));
+
+        $request->validate([
+            'code' => 'required|string|max:50',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $code = strtoupper(trim($request->input('code')));
+
+        $exists = UamModule::where('application_slug', $currentApp->slug)
+            ->where('code', $code)
+            ->exists();
+
+        if ($exists) {
+            return redirect()->back()->withErrors(['code' => "Module code '{$code}' already exists for {$currentApp->name}."]);
+        }
+
+        UamModule::create([
+            'application_slug' => $currentApp->slug,
+            'code' => $code,
+            'name' => trim($request->input('name')),
+            'description' => trim($request->input('description') ?? ''),
+            'status' => 'active',
+            'created_by' => Auth::id(),
+        ]);
+
+        return redirect()->back()->with('success', "Module '{$code} - {$request->name}' has been successfully added.");
+    }
+
+    public function destroyModule($id)
+    {
+        $module = UamModule::findOrFail($id);
+        $name = $module->name;
+        $code = $module->code;
+        $module->delete();
+
+        return redirect()->back()->with('success', "Module '{$code} - {$name}' has been deleted.");
     }
 
     public function storeApplication(Request $request)
@@ -238,20 +372,26 @@ class AccessMatrixController extends Controller
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // APPROVAL — Request UAM list (real DB data, filterable, scoped by application)
+    // APPROVAL — Request UAM list (real DB data, filterable, scoped by module)
     // ────────────────────────────────────────────────────────────────────────
-    public function approval(Request $request, $app = 'sap')
+    public function approval(Request $request, $app = 'sap', $module = null)
     {
         $currentApp     = $this->resolveApp($app ?: $request->input('app', 'sap'));
         $appIdentifiers = $this->getAppIdentifiers($currentApp);
+        $currentModule  = $module ?: $request->input('module');
 
-        $filterApplication = trim($request->input('application', ''));
-        $filterYear        = trim($request->input('year', ''));
-        $filterPeriod      = trim($request->input('period', ''));
-        $search            = trim($request->input('search', ''));
+        // If no module is provided, redirect to module selection cards
+        if (!$currentModule) {
+            return redirect()->route('access-matrix.request.app', ['app' => $currentApp->slug]);
+        }
+
+        $filterYear   = trim($request->input('year', ''));
+        $filterPeriod = trim($request->input('period', ''));
+        $search       = trim($request->input('search', ''));
 
         $latestApprovedIds = UamRequest::where('status', 'Approved')
             ->whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
             ->selectRaw('MAX(id) as id')
             ->groupBy('group_id')
             ->pluck('id')
@@ -259,11 +399,9 @@ class AccessMatrixController extends Controller
 
         $query = UamRequest::with('requester')
             ->whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
             ->orderBy('created_at', 'desc');
 
-        if ($filterApplication !== '') {
-            $query->where('application', $filterApplication);
-        }
         if ($filterYear !== '') {
             $query->where('year', $filterYear);
         }
@@ -285,34 +423,35 @@ class AccessMatrixController extends Controller
         });
 
         // Distinct option lists for filter dropdowns
-        $availableApplications = UamRequest::whereIn('application', $appIdentifiers)->distinct()->orderBy('application')->pluck('application');
-        if ($availableApplications->isEmpty()) {
-            $availableApplications = collect([$currentApp->name]);
-        }
-        $availableYears        = UamRequest::whereIn('application', $appIdentifiers)->distinct()->orderByDesc('year')->pluck('year');
-        $availablePeriods      = UamRequest::whereIn('application', $appIdentifiers)->distinct()->orderBy('period')->pluck('period');
-        $availableModules      = UamRequest::whereIn('application', $appIdentifiers)->whereNotNull('module')->where('module', '!=', '')->distinct()->orderBy('module')->pluck('module');
+        $availableYears   = UamRequest::whereIn('application', $appIdentifiers)->where('module', $currentModule)->distinct()->orderByDesc('year')->pluck('year');
+        $availablePeriods = UamRequest::whereIn('application', $appIdentifiers)->where('module', $currentModule)->distinct()->orderBy('period')->pluck('period');
 
         return view('access-matrix.approval', compact(
             'requests',
             'currentApp',
-            'filterApplication', 'filterYear', 'filterPeriod', 'search',
-            'availableApplications', 'availableYears', 'availablePeriods', 'availableModules'
+            'currentModule',
+            'filterYear', 'filterPeriod', 'search',
+            'availableYears', 'availablePeriods'
         ));
     }
 
-    public function uamRequestList(Request $request, $app = 'sap')
+    public function uamRequestList(Request $request, $app = 'sap', $module = null)
     {
         $currentApp     = $this->resolveApp($app ?: $request->input('app', 'sap'));
         $appIdentifiers = $this->getAppIdentifiers($currentApp);
+        $currentModule  = $module ?: $request->input('module');
 
-        $filterApplication = trim($request->input('application', ''));
-        $filterYear        = trim($request->input('year', ''));
-        $filterPeriod      = trim($request->input('period', ''));
-        $search            = trim($request->input('search', ''));
+        if (!$currentModule) {
+            return redirect()->route('access-matrix.uam-request.app', ['app' => $currentApp->slug]);
+        }
+
+        $filterYear   = trim($request->input('year', ''));
+        $filterPeriod = trim($request->input('period', ''));
+        $search       = trim($request->input('search', ''));
 
         $latestApprovedIds = UamRequest::where('status', 'Approved')
             ->whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
             ->selectRaw('MAX(id) as id')
             ->groupBy('group_id')
             ->pluck('id')
@@ -321,12 +460,10 @@ class AccessMatrixController extends Controller
         // Only show requests that are 'Review', 'Stage 2', 'Approved', 'Return' for Stage 1
         $query = UamRequest::with('requester')
             ->whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
             ->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])
             ->orderBy('created_at', 'desc');
 
-        if ($filterApplication !== '') {
-            $query->where('application', $filterApplication);
-        }
         if ($filterYear !== '') {
             $query->where('year', $filterYear);
         }
@@ -348,33 +485,35 @@ class AccessMatrixController extends Controller
         });
 
         // Distinct option lists for filter dropdowns (only from valid statuses)
-        $availableApplications = UamRequest::whereIn('application', $appIdentifiers)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('application')->pluck('application');
-        if ($availableApplications->isEmpty()) {
-            $availableApplications = collect([$currentApp->name]);
-        }
-        $availableYears        = UamRequest::whereIn('application', $appIdentifiers)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderByDesc('year')->pluck('year');
-        $availablePeriods      = UamRequest::whereIn('application', $appIdentifiers)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('period')->pluck('period');
+        $availableYears   = UamRequest::whereIn('application', $appIdentifiers)->where('module', $currentModule)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderByDesc('year')->pluck('year');
+        $availablePeriods = UamRequest::whereIn('application', $appIdentifiers)->where('module', $currentModule)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('period')->pluck('period');
 
         return view('access-matrix.uam-request', compact(
             'requests',
             'currentApp',
-            'filterApplication', 'filterYear', 'filterPeriod', 'search',
-            'availableApplications', 'availableYears', 'availablePeriods'
+            'currentModule',
+            'filterYear', 'filterPeriod', 'search',
+            'availableYears', 'availablePeriods'
         ));
     }
 
-    public function approvalList(Request $request, $app = 'sap')
+    public function approvalList(Request $request, $app = 'sap', $module = null)
     {
         $currentApp     = $this->resolveApp($app ?: $request->input('app', 'sap'));
         $appIdentifiers = $this->getAppIdentifiers($currentApp);
+        $currentModule  = $module ?: $request->input('module');
 
-        $filterApplication = trim($request->input('application', ''));
-        $filterYear        = trim($request->input('year', ''));
-        $filterPeriod      = trim($request->input('period', ''));
-        $search            = trim($request->input('search', ''));
+        if (!$currentModule) {
+            return redirect()->route('access-matrix.approval.app', ['app' => $currentApp->slug]);
+        }
+
+        $filterYear   = trim($request->input('year', ''));
+        $filterPeriod = trim($request->input('period', ''));
+        $search       = trim($request->input('search', ''));
 
         $latestApprovedIds = UamRequest::where('status', 'Approved')
             ->whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
             ->selectRaw('MAX(id) as id')
             ->groupBy('group_id')
             ->pluck('id')
@@ -383,12 +522,10 @@ class AccessMatrixController extends Controller
         // Show requests that are 'Review' (Waiting for Accept) and 'Stage 2' (Pending Final Approval)
         $query = UamRequest::with('requester')
             ->whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
             ->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])
             ->orderBy('created_at', 'desc');
 
-        if ($filterApplication !== '') {
-            $query->where('application', $filterApplication);
-        }
         if ($filterYear !== '') {
             $query->where('year', $filterYear);
         }
@@ -410,18 +547,15 @@ class AccessMatrixController extends Controller
         });
 
         // Distinct option lists for filter dropdowns (only from Stage 2)
-        $availableApplications = UamRequest::whereIn('application', $appIdentifiers)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('application')->pluck('application');
-        if ($availableApplications->isEmpty()) {
-            $availableApplications = collect([$currentApp->name]);
-        }
-        $availableYears        = UamRequest::whereIn('application', $appIdentifiers)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderByDesc('year')->pluck('year');
-        $availablePeriods      = UamRequest::whereIn('application', $appIdentifiers)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('period')->pluck('period');
+        $availableYears   = UamRequest::whereIn('application', $appIdentifiers)->where('module', $currentModule)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderByDesc('year')->pluck('year');
+        $availablePeriods = UamRequest::whereIn('application', $appIdentifiers)->where('module', $currentModule)->whereIn('status', ['Review', 'Stage 2', 'Approved', 'Return'])->distinct()->orderBy('period')->pluck('period');
 
         return view('access-matrix.approval-matrix', compact(
             'requests',
             'currentApp',
-            'filterApplication', 'filterYear', 'filterPeriod', 'search',
-            'availableApplications', 'availableYears', 'availablePeriods'
+            'currentModule',
+            'filterYear', 'filterPeriod', 'search',
+            'availableYears', 'availablePeriods'
         ));
     }
 
@@ -1509,6 +1643,12 @@ class AccessMatrixController extends Controller
         if (!$appSlug) {
             $foundApp = $this->resolveApp($application);
             $appSlug = $foundApp->slug;
+        }
+
+        if (!empty($module)) {
+            return redirect()
+                ->route('access-matrix.request.module.list', ['app' => $appSlug, 'module' => $module])
+                ->with('success', 'File uploaded successfully. ' . count($inserts) . ' records imported.');
         }
 
         return redirect()

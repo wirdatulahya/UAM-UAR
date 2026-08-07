@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'My Profile')
 
@@ -213,11 +213,11 @@
                                     </li>
                                     <li class="d-flex justify-content-between mb-3 pb-3 border-bottom">
                                         <span class="text-muted fw-semibold">Status</span>
-                                        @if((Auth::user()->account_status ?? 'Active') === 'Active')
-                                            <span class="badge bg-success text-white">Active</span>
-                                        @else
-                                            <span class="badge bg-secondary text-white">{{ Auth::user()->account_status }}</span>
-                                        @endif
+                                         @if((Auth::user()->account_status ?? 'Active') === 'Active')
+                                             <span style="display:inline-block;padding:.2rem .65rem;border-radius:99px;font-size:.72rem;font-weight:700;background:#dcfce7;color:#166534;">Active</span>
+                                         @else
+                                             <span style="display:inline-block;padding:.2rem .65rem;border-radius:99px;font-size:.72rem;font-weight:700;background:#fee2e2;color:#991b1b;">{{ Auth::user()->account_status }}</span>
+                                         @endif
                                     </li>
                                     <li class="d-flex justify-content-between mb-3 pb-3 border-bottom">
                                         <span class="text-muted fw-semibold">Created On</span>
@@ -255,23 +255,6 @@
                                     </div>
                                     <button type="submit" class="btn btn-primary-custom w-100" style="font-weight:600;font-size:.85rem;border-radius:var(--input-radius);">Update Password</button>
                                 </form>
-
-                                <hr class="my-4">
-
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <div class="fw-bold text-dark" style="font-size:.85rem;">Two-Factor Auth</div>
-                                        <div class="text-muted" style="font-size:.75rem;">Not enabled</div>
-                                    </div>
-                                    <button class="btn btn-sm btn-light text-muted" disabled style="font-size:.75rem;">Coming Soon</button>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="fw-bold text-dark" style="font-size:.85rem;">Active Sessions</div>
-                                        <div class="text-muted" style="font-size:.75rem;">Manage devices</div>
-                                    </div>
-                                    <button class="btn btn-sm btn-light text-muted" disabled style="font-size:.75rem;">Coming Soon</button>
-                                </div>
                             </div>
                         </div>
 

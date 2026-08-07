@@ -63,11 +63,11 @@ class UamRequestStatusUpdated extends Notification
         // We determine the route based on the target role viewing it
         $url = route('access-matrix.sap', ['request_id' => $this->uamRequest->id]);
         if ($notifiable->role === 'manager') {
-            $url = route('access-matrix.uam-request.sap', ['request_id' => $this->uamRequest->id]);
+            $url = route('access-matrix.uam-request.index', ['request_id' => $this->uamRequest->id]);
         } elseif ($notifiable->role === 'ao') {
-            $url = route('access-matrix.approval.sap', ['request_id' => $this->uamRequest->id]);
+            $url = route('access-matrix.approval.index', ['request_id' => $this->uamRequest->id]);
         } elseif (in_array($notifiable->role, ['pic_ao', 'admin'])) {
-            $url = route('access-matrix.request.sap', ['request_id' => $this->uamRequest->id]);
+            $url = route('access-matrix.request.index', ['request_id' => $this->uamRequest->id]);
         }
 
         return [

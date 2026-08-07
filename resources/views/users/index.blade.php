@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'User Management — Administration')
 
@@ -109,12 +109,12 @@
                             </td>
                             <td style="padding:.75rem 1rem;vertical-align:middle;">
                                 @if($user->account_status === 'Active')
-                                    <span style="color:#10b981;font-weight:600;font-size:.75rem;display:flex;align-items:center;gap:.3rem;">
-                                        <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> Active
+                                    <span style="display:inline-block;padding:.22rem .7rem;border-radius:99px;font-size:.75rem;font-weight:700;background:#dcfce7;color:#166534;">
+                                        Active
                                     </span>
                                 @else
-                                    <span style="color:#ef4444;font-weight:600;font-size:.75rem;display:flex;align-items:center;gap:.3rem;">
-                                        <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> Inactive
+                                    <span style="display:inline-block;padding:.22rem .7rem;border-radius:99px;font-size:.75rem;font-weight:700;background:#fee2e2;color:#991b1b;">
+                                        Inactive
                                     </span>
                                 @endif
                             </td>
@@ -129,12 +129,12 @@
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="font-size:.8rem;border-radius:12px;">
                                         <li>
                                             <button type="button" class="dropdown-item" onclick="openEditModal({{ json_encode($user) }})">
-                                                <i class="bi bi-pencil me-2"></i> Edit User
+                                                Edit User
                                             </button>
                                         </li>
                                         <li>
                                             <button type="button" class="dropdown-item" onclick="openResetPasswordModal({{ $user->id }}, '{{ addslashes($user->name) }}')">
-                                                <i class="bi bi-key me-2"></i> Reset Password
+                                                Reset Password
                                             </button>
                                         </li>
                                         <li>
@@ -142,9 +142,9 @@
                                                 @csrf
                                                 <button type="submit" class="dropdown-item">
                                                     @if($user->account_status === 'Active')
-                                                        <i class="bi bi-person-fill-slash me-2 text-warning"></i> Deactivate
+                                                        Deactivate
                                                     @else
-                                                        <i class="bi bi-person-fill-check me-2 text-success"></i> Activate
+                                                        Activate
                                                     @endif
                                                 </button>
                                             </form>
@@ -155,7 +155,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="dropdown-item text-danger">
-                                                    <i class="bi bi-trash me-2"></i> Delete User
+                                                    Delete User
                                                 </button>
                                             </form>
                                         </li>

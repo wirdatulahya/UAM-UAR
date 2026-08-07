@@ -60,12 +60,12 @@
                         </p>
                         <div class="d-flex flex-wrap gap-2">
                             @if(Auth::user()->nik)
-                                <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
-                                    <i class="bi bi-person-badge"></i>{{ Auth::user()->nik }}
+                                <span style="display:inline-flex;align-items:center;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
+                                    {{ Auth::user()->nik }}
                                 </span>
                             @endif
-                            <span style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(227,30,36,.25);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(227,30,36,.3);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
-                                <i class="bi bi-shield-fill"></i>{{ Auth::user()->role === 'pic_ao' ? 'PIC AO' : (Auth::user()->role === 'ao' ? 'AO' : ucfirst(Auth::user()->role)) }}
+                            <span style="display:inline-flex;align-items:center;background:rgba(227,30,36,.25);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);border:1px solid rgba(227,30,36,.3);border-radius:99px;padding:.32rem .9rem;font-size:.77rem;font-weight:600;">
+                                {{ Auth::user()->role === 'pic_ao' ? 'PIC AO' : (Auth::user()->role === 'ao' ? 'AO' : ucfirst(Auth::user()->role)) }}
                             </span>
                         </div>
                     </div>
@@ -80,7 +80,7 @@
         </div>
 
         {{-- ── Module Cards ─────────────────────────────────────────── --}}
-        <div class="row g-3 mb-5">
+        <div class="d-flex flex-wrap gap-4 mb-5">
 
             @php
                 $uamRoute = route('access-matrix.request.index');
@@ -119,43 +119,35 @@
             @endphp
 
             @foreach ($modules as $mod)
-            <div class="col-12 col-sm-6 col-xl-4 animate-in" style="animation-delay: {{ $mod['delay'] }};">
+            <div class="animate-in" style="width:280px;max-width:100%;animation-delay: {{ $mod['delay'] }};">
                 @if ($mod['status'] === 'active')
                 <a href="{{ $mod['route'] }}" style="text-decoration:none;color:inherit;display:block;height:100%;">
                 @else
                 <div style="height:100%;">
                 @endif
-                    <div style="background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:1.6rem;height:100%;position:relative;overflow:hidden;transition:transform var(--transition-slow),box-shadow var(--transition-slow),border-color var(--transition);"
+                    <div style="background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:1.4rem 1.5rem;height:100%;position:relative;overflow:hidden;transition:transform var(--transition-slow),box-shadow var(--transition-slow),border-color var(--transition);"
                          class="module-card {{ $mod['status'] === 'active' ? 'module-active' : '' }}">
 
                         {{-- Background decoration --}}
-                        <div style="position:absolute;width:100px;height:100px;background:{{ $mod['gradient'] }};border-radius:50%;right:-20px;top:-20px;opacity:.5;pointer-events:none;"></div>
+                        <div style="position:absolute;width:90px;height:90px;background:{{ $mod['gradient'] }};border-radius:50%;right:-15px;top:-15px;opacity:.45;pointer-events:none;"></div>
 
                         {{-- Icon --}}
-                        <div style="width:52px;height:52px;border-radius:16px;background:{{ $mod['gradient'] }};display:flex;align-items:center;justify-content:center;margin-bottom:1.1rem;box-shadow:0 4px 12px rgba(0,0,0,.06);">
-                            <i class="bi {{ $mod['icon'] }}" style="font-size:1.4rem;color:{{ $mod['icon_color'] }};"></i>
+                        <div style="width:48px;height:48px;border-radius:14px;background:{{ $mod['gradient'] }};display:flex;align-items:center;justify-content:center;margin-bottom:1rem;box-shadow:0 4px 12px rgba(0,0,0,.05);">
+                            <i class="bi {{ $mod['icon'] }}" style="font-size:1.35rem;color:{{ $mod['icon_color'] }};"></i>
                         </div>
 
                         {{-- Tag --}}
-                        <div style="display:inline-block;background:{{ $mod['gradient'] }};color:{{ $mod['icon_color'] }};border-radius:6px;padding:.15rem .55rem;font-size:.65rem;font-weight:800;letter-spacing:.5px;margin-bottom:.6rem;">{{ $mod['tag'] }}</div>
+                        <div style="display:inline-block;background:{{ $mod['gradient'] }};color:{{ $mod['icon_color'] }};border-radius:6px;padding:.15rem .55rem;font-size:.65rem;font-weight:800;letter-spacing:.5px;margin-bottom:.5rem;">{{ $mod['tag'] }}</div>
 
-                        <h3 style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:.4rem;letter-spacing:-.2px;">{{ $mod['title'] }}</h3>
-                        <p style="font-size:.81rem;color:var(--text-muted);margin-bottom:1.1rem;line-height:1.55;">{{ $mod['desc'] }}</p>
+                        <h3 style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:0;letter-spacing:-.2px;">{{ $mod['title'] }}</h3>
 
-                        <div style="display:flex;align-items:center;justify-content:space-between;">
-                            @if ($mod['status'] === 'active')
-                            <span style="display:inline-flex;align-items:center;gap:.35rem;background:#dcfce7;color:#166534;border-radius:99px;padding:.26rem .75rem;font-size:.71rem;font-weight:700;">
-                                <i class="bi bi-check-circle-fill" style="font-size:.65rem;"></i> Active
-                            </span>
-                            <span style="color:{{ $mod['icon_color'] }};font-size:.85rem;transition:transform var(--transition);" class="card-arrow">
-                                <i class="bi bi-arrow-right-circle-fill"></i>
-                            </span>
-                            @elseif ($mod['status'] === 'inactive')
+                        @if ($mod['status'] === 'inactive')
+                        <div class="mt-3" style="display:flex;align-items:center;">
                             <span style="display:inline-flex;align-items:center;gap:.35rem;background:#f3f4f6;color:var(--text-muted);border-radius:99px;padding:.26rem .75rem;font-size:.71rem;font-weight:700;">
                                 <i class="bi bi-clock-history" style="font-size:.65rem;"></i> Coming Soon
                             </span>
-                            @endif
                         </div>
+                        @endif
                     </div>
                 @if ($mod['status'] === 'active')
                 </a>
@@ -180,9 +172,6 @@
         transform: translateY(-5px) !important;
         box-shadow: 0 8px 32px rgba(11,46,109,.12), 0 2px 8px rgba(0,0,0,.06) !important;
         border-color: var(--secondary) !important;
-    }
-    .module-active:hover .card-arrow {
-        transform: translateX(4px);
     }
 </style>
 @endpush

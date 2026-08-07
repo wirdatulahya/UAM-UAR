@@ -115,7 +115,6 @@
                 {{-- Submit --}}
                 <div class="animate-in animate-in-delay-3">
                     <button type="submit" class="btn-primary-custom" id="loginBtn">
-                        <i class="bi bi-box-arrow-in-right me-1"></i>
                         Sign In
                     </button>
                 </div>

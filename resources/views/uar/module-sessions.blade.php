@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'User Access Review')
+@section('title', 'User Access Review - ' . $currentModule)
 
 @section('content')
 
@@ -14,10 +14,6 @@
             <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
                 <i class="bi bi-list"></i>
             </button>
-            <x-breadcrumb :items="[
-                ['label' => 'Dashboard', 'url' => route('dashboard')],
-                ['label' => 'User Access Review'],
-            ]" />
         </div>
         <x-navbar-right />
     </header>
@@ -25,35 +21,27 @@
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4 py-4">
 
-        {{-- Flash Alerts --}}
-        @if (session('success'))
-            <div class="d-flex align-items-center gap-2 mb-4 animate-in"
-                 style="background:#dcfce7;border:0;border-left:4px solid #16a34a;border-radius:12px;color:#166534;font-size:.875rem;padding:.8rem 1.1rem;"
-                 role="alert">
-                <i class="bi bi-check-circle-fill flex-shrink-0"></i>
-                <div>{{ session('success') }}</div>
-            </div>
-        @endif
+        @php
+            $appName = $currentApp->slug === 'sap' ? 'UAR SAP' : (str_starts_with($currentApp->name, 'UAR ') ? $currentApp->name : (str_starts_with($currentApp->name, 'UAM ') ? 'UAR ' . substr($currentApp->name, 4) : 'UAR ' . $currentApp->name));
+        @endphp
+        <x-breadcrumb :items="[
+            ['label' => 'Dashboard', 'url' => route('dashboard')],
+            ['label' => 'User Access Review', 'url' => route('uar.index')],
+            ['label' => $appName, 'url' => route('uar.app', ['app' => $currentApp->slug])],
+            ['label' => $currentModule],
+        ]" />
 
-        @if (session('error'))
-            <div class="d-flex align-items-center gap-2 mb-4 animate-in"
-                 style="background:#fee2e2;border:0;border-left:4px solid #dc2626;border-radius:12px;color:#991b1b;font-size:.875rem;padding:.8rem 1.1rem;"
-                 role="alert">
-                <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-                <div>{{ session('error') }}</div>
-            </div>
-        @endif
+
 
         {{-- ── Hero Section ─────────────────────────────────────────── --}}
         <div class="mb-4">
             <div class="animate-in" style="background:linear-gradient(135deg,#071f4d 0%,#0B2E6D 50%,#1e3a8a 100%);border-radius:18px;padding:1.4rem 2rem;position:relative;overflow:hidden;box-shadow:0 8px 20px -4px rgba(11,46,109,.2);">
-                {{-- Decorative circles --}}
                 <div style="position:absolute;width:240px;height:240px;background:radial-gradient(circle,rgba(59,130,246,.18) 0%,transparent 70%);border-radius:50%;right:-40px;top:-60px;pointer-events:none;"></div>
                 <div style="position:absolute;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;right:140px;bottom:-30px;pointer-events:none;"></div>
                 <div class="position-relative" style="z-index:1;">
 
-                    <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin-bottom:0;line-height:1.2;letter-spacing:-.4px;">
-                        User Access Review
+                    <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin-bottom:0;line-height:1.2;letter-spacing:-.4px;display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;">
+                        User Access Review <span style="font-size:1.1rem;font-weight:800;color:var(--secondary);background:#e0edff;border-radius:10px;padding:.2rem .75rem;display:inline-flex;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(0,0,0,0.12);">{{ strtoupper($currentModule) }}</span>
                     </h1>
                 </div>
             </div>
@@ -63,7 +51,7 @@
         <div class="row g-3 mb-4">
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #0B2E6D !important;">
-                    <div class="text-muted small fw-semibold">Total Audit Sessions</div>
+                    <div class="text-muted small fw-semibold">Audit Sessions</div>
                     <div class="fs-3 fw-bolder text-dark mt-1 mb-0">{{ number_format($globalStats['total_sessions']) }}</div>
                 </div>
             </div>
@@ -91,25 +79,17 @@
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4" style="background:#fff;">
             {{-- Search & Filter Bar --}}
             <div class="p-3 border-bottom bg-light bg-opacity-50">
-                <form method="GET" action="{{ route('uar.index') }}" class="row g-2 align-items-center">
-                    <div class="col-md-6 col-lg-6">
+                <form method="GET" action="{{ route('uar.module.sessions', ['app' => $currentApp->slug, 'module' => $currentModule]) }}" class="row g-2 align-items-center">
+                    <div class="col-md-8 col-lg-8">
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0 text-muted">
                                 <i class="bi bi-search"></i>
                             </span>
                             <input type="text" name="search" class="form-control border-start-0 ps-0" 
-                                   placeholder="Search session name, module, or BPO..." value="{{ request('search') }}">
+                                   placeholder="Search session name or period..." value="{{ request('search') }}">
                         </div>
                     </div>
-                    <div class="col-6 col-md-3 col-lg-3">
-                        <select name="module" class="form-select" onchange="this.form.submit()">
-                            <option value="">All Modules</option>
-                            @foreach($modules as $m)
-                                <option value="{{ $m }}" {{ request('module') === $m ? 'selected' : '' }}>{{ $m }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-3 col-lg-3">
+                    <div class="col-6 col-md-4 col-lg-4">
                         <select name="status" class="form-select" onchange="this.form.submit()">
                             <option value="">All Statuses</option>
                             <option value="In Review" {{ request('status') === 'In Review' ? 'selected' : '' }}>In Review</option>
@@ -124,8 +104,8 @@
                 <table class="table table-hover align-middle mb-0" style="font-size:.875rem;">
                     <thead style="background:#f8fafc;border-bottom:1px solid #e2e8f0;">
                         <tr class="text-uppercase text-muted small fw-bold" style="font-size:.73rem;letter-spacing:.5px;">
-                            <th class="ps-4 py-3" style="width:260px;">Session & Module</th>
-                            <th class="py-3">BPO & Period</th>
+                            <th class="ps-4 py-3" style="width:280px;">Session Name</th>
+                            <th class="py-3">Period</th>
                             <th class="py-3 text-center" style="width:120px;">Employees</th>
                             <th class="py-3" style="width:220px;">Decision Ratio</th>
                             <th class="py-3 text-center" style="width:120px;">Status</th>
@@ -146,7 +126,7 @@
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="rounded-3 d-flex align-items-center justify-content-center fw-bold shadow-xs"
                                              style="width:42px;height:42px;background:#f1f5f9;color:#0B2E6D;font-size:.85rem;border:1px solid #e2e8f0;flex-shrink:0;">
-                                            {{ substr($session->module, 0, 3) }}
+                                             {{ substr($session->module, 0, 3) }}
                                         </div>
                                         <div>
                                             <a href="{{ route('uar.show', $session->id) }}" class="fw-bold text-dark text-decoration-none hover-primary">
@@ -155,8 +135,7 @@
                                     </div>
                                 </td>
                                 <td class="py-3">
-                                    <div class="fw-semibold text-dark">{{ $session->bpo ?: '—' }}</div>
-                                    <div class="text-muted" style="font-size:.78rem;">{{ $session->period }}</div>
+                                    <div class="fw-semibold text-dark">{{ $session->period }}</div>
                                 </td>
                                 <td class="py-3 text-center">
                                     <span class="fw-bold text-dark fs-6">{{ number_format($empCount) }}</span>
@@ -249,8 +228,8 @@
                                             <i class="bi bi-plus-lg" style="font-size:1.75rem;color:#fff;line-height:1;"></i>
                                         </button>
                                         <div>
-                                            <h3 style="font-size:1rem;font-weight:800;color:#0B2E6D;margin:0 0 .3rem;">No sessions found</h3>
-                                            <p style="font-size:.82rem;color:#64748b;margin:0;">Click the button above to upload your first UAR Excel file.</p>
+                                            <h3 style="font-size:1rem;font-weight:800;color:#0B2E6D;margin:0 0 .3rem;">No sessions found for {{ $currentModule }}</h3>
+                                            <p style="font-size:.82rem;color:#64748b;margin:0;">Click the button above to upload your first UAR Excel file for module {{ $currentModule }}.</p>
                                         </div>
                                     </div>
                                 </td>
@@ -305,9 +284,11 @@
                         <div style="width:38px;height:38px;background:linear-gradient(135deg, #e0edff 0%, #d0e1fd 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#0B2E6D;flex-shrink:0;">
                             <i class="bi bi-cloud-arrow-up-fill fs-5"></i>
                         </div>
-                        <h5 class="modal-title fw-bold text-dark mb-0" id="uploadUarModalLabel" style="font-size:1.15rem;">
-                            Import User Access Review (UAR)
-                        </h5>
+                        <div>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="uploadUarModalLabel" style="font-size:1.15rem;">
+                                Import User Access Review
+                            </h5>
+                        </div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -372,34 +353,24 @@
                         </div>
                     </div>
 
-                    {{-- Target Module & Period --}}
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark mb-1">Target Modul BPO <span class="text-danger">*</span></label>
-                            <select name="module" class="form-select rounded-3 shadow-none fw-semibold" required>
-                                <option value="" disabled selected>-- Pilih Target Modul BPO --</option>
-                                <option value="FM">FM - Funds Management (Roles: ZFM-*)</option>
-                                <option value="PS">PS - Project System (Roles: ZPS-*)</option>
-                                <option value="HR">HR - Human Capital (Roles: ZHR-*, ZHC-*)</option>
-                                <option value="FI">FI - Financial Accounting (Roles: ZFI-*)</option>
-                                <option value="MM">MM - Materials Management (Roles: ZMM-*)</option>
-                                <option value="CO">CO - Controlling (Roles: ZCO-*)</option>
-                                <option value="SD">SD - Sales & Distribution (Roles: ZSD-*)</option>
-                                <option value="PM">PM - Plant Maintenance (Roles: ZPM-*)</option>
-                                <option value="BASIS">BASIS / Security IT (Roles: ZBC-*, SAP_*)</option>
-                                <option value="ALL">ALL - Semua Modul Sekaligus</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark mb-1">Periode Review <span class="text-danger">*</span></label>
-                            <input type="text" name="period" class="form-control rounded-3 shadow-none" placeholder="e.g. Q2.2026" required>
+                    {{-- Target Module & Period Config --}}
+                    <div class="bg-light p-3 rounded-3 border mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark mb-1">Target Module <span class="text-danger">*</span></label>
+                                <input type="text" name="module" class="form-control form-control-sm fw-bold bg-white text-uppercase" value="{{ $currentModule }}" readonly required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark mb-1">Period <span class="text-danger">*</span></label>
+                                <input type="text" name="period" class="form-control form-control-sm bg-white" placeholder="e.g. Q2 2026" required>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-footer border-0 pt-0 pb-4 px-4">
-                    <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-3 px-4 fw-bold shadow-sm d-flex align-items-center gap-2" id="btnSubmitMulti">
+                <div class="modal-footer border-0 bg-light px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 text-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 text-sm fw-bold" style="background:#0B2E6D;border-color:#0B2E6D;" id="btnSubmitUarMulti">
                         Submit
                     </button>
                 </div>
@@ -408,39 +379,28 @@
     </div>
 </div>
 
-<style>
-.file-card {
-    border-color: #cbd5e1 !important;
-    transition: all 0.2s ease-in-out;
-}
-.file-card:hover {
-    background: #f0f7ff !important;
-    border-color: #3b82f6 !important;
-    transform: translateY(-1px);
-}
-.file-card.is-filled {
-    border-style: solid !important;
-    border-color: #10b981 !important;
-    background: #f0fdf4 !important;
-}
-</style>
-
-<script>
-function setFileNameBadge(input, labelId) {
-    if (input.files && input.files[0]) {
-        const el = document.getElementById(labelId);
-        const card = input.closest('.file-card');
-        el.className = 'mt-2 text-center';
-        el.innerHTML = '<span class="badge bg-success text-white px-2 py-1 shadow-sm text-truncate d-inline-block" style="max-width:200px;font-size:.72rem;"><i class="bi bi-check2-circle me-1"></i>' + input.files[0].name + '</span>';
-        card.classList.add('is-filled');
-    }
-}
-
-document.getElementById('uarMultiImportForm').addEventListener('submit', function() {
-    const btn = document.getElementById('btnSubmitMulti');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Menggabungkan 4 File & Mengevaluasi...';
-});
-</script>
-
 @endsection
+
+@push('scripts')
+<script>
+    function setFileNameBadge(input, labelId) {
+        const label = document.getElementById(labelId);
+        if (input.files && input.files[0]) {
+            const fileName = input.files[0].name;
+            const fileSize = (input.files[0].size / 1024 / 1024).toFixed(2);
+            label.innerHTML = `
+                <div class="mt-2 text-dark fw-bold text-truncate" style="max-width:180px;font-size:.78rem;" title="${fileName}">${fileName}</div>
+                <div class="text-success small" style="font-size:.7rem;"><i class="bi bi-check2-circle"></i> ${fileSize} MB</div>
+            `;
+        }
+    }
+
+    document.getElementById('uarMultiImportForm')?.addEventListener('submit', function() {
+        const btn = document.getElementById('btnSubmitUarMulti');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Merging & Analyzing...';
+        }
+    });
+</script>
+@endpush

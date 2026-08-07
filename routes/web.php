@@ -48,11 +48,20 @@ Route::middleware('auth')->group(function () {
     // ── Modules Entry Pages & Actions (Admin & PIC AO) ──────────────────────
     Route::middleware(['role:admin,pic_ao'])->group(function () {
         Route::post('/access-matrix/copy-baseline', [AccessMatrixController::class, 'copyFromBaseline'])->name('access-matrix.copy-baseline');
+        
+        // Level 1: Application list (UAM SAP, etc.)
         Route::get('/access-matrix/request', [AccessMatrixController::class, 'requestModules'])->name('access-matrix.request.index');
         Route::post('/access-matrix/applications', [AccessMatrixController::class, 'storeApplication'])->name('access-matrix.application.store');
         Route::delete('/access-matrix/applications/{id}', [AccessMatrixController::class, 'destroyApplication'])->name('access-matrix.application.destroy');
-        Route::get('/access-matrix/request/sap', [AccessMatrixController::class, 'approval'])->name('access-matrix.request.sap');
-        Route::get('/access-matrix/request/{app}', [AccessMatrixController::class, 'approval'])->name('access-matrix.request.app');
+        
+        // Level 2: Modules dashboard card selection for Application (PS, FM, etc.)
+        Route::get('/access-matrix/request/{app}', [AccessMatrixController::class, 'requestModulesByApp'])->name('access-matrix.request.app');
+        Route::post('/access-matrix/request/{app}/modules', [AccessMatrixController::class, 'storeModule'])->name('access-matrix.module.store');
+        Route::delete('/access-matrix/modules/{id}', [AccessMatrixController::class, 'destroyModule'])->name('access-matrix.module.destroy');
+        
+        // Level 3: Request list & upload for specific Module
+        Route::get('/access-matrix/request/{app}/{module}', [AccessMatrixController::class, 'approval'])->name('access-matrix.request.module.list');
+
         Route::post('/access-matrix/request/{uamRequest}/submit', [AccessMatrixController::class, 'submitRequest'])->name('access-matrix.submit');
         Route::post('/access-matrix/request/{uamRequest}/sign', [AccessMatrixController::class, 'signRequest'])->name('access-matrix.sign');
         Route::post('/access-matrix/import', [AccessMatrixController::class, 'import'])->name('access-matrix.import');
@@ -74,8 +83,8 @@ Route::middleware('auth')->group(function () {
     // ── Accept Module (Manager) ────────────────────────────────────────────────
     Route::middleware(['role:manager,admin'])->group(function () {
         Route::get('/access-matrix/uam-request', [AccessMatrixController::class, 'acceptModules'])->name('access-matrix.uam-request.index');
-        Route::get('/access-matrix/uam-request/sap', [AccessMatrixController::class, 'uamRequestList'])->name('access-matrix.uam-request.sap');
-        Route::get('/access-matrix/uam-request/{app}', [AccessMatrixController::class, 'uamRequestList'])->name('access-matrix.uam-request.app');
+        Route::get('/access-matrix/uam-request/{app}', [AccessMatrixController::class, 'acceptModulesByApp'])->name('access-matrix.uam-request.app');
+        Route::get('/access-matrix/uam-request/{app}/{module}', [AccessMatrixController::class, 'uamRequestList'])->name('access-matrix.uam-request.module.list');
     });
 
     Route::middleware(['role:manager'])->group(function () {
@@ -86,8 +95,8 @@ Route::middleware('auth')->group(function () {
     // ── Approval Matrix Module (AO / Final Approver) ───────────────────────────
     Route::middleware(['role:ao,admin'])->group(function () {
         Route::get('/access-matrix/approval', [AccessMatrixController::class, 'approvalLanding'])->name('access-matrix.approval.index');
-        Route::get('/access-matrix/approval/sap', [AccessMatrixController::class, 'approvalList'])->name('access-matrix.approval.sap');
-        Route::get('/access-matrix/approval/{app}', [AccessMatrixController::class, 'approvalList'])->name('access-matrix.approval.app');
+        Route::get('/access-matrix/approval/{app}', [AccessMatrixController::class, 'approvalLandingByApp'])->name('access-matrix.approval.app');
+        Route::get('/access-matrix/approval/{app}/{module}', [AccessMatrixController::class, 'approvalList'])->name('access-matrix.approval.module.list');
     });
 
     Route::middleware(['role:ao'])->group(function () {
@@ -165,11 +174,25 @@ Route::middleware('auth')->group(function () {
 
     // ── User Access Review (UAR) Module ──────────────────────────────
     Route::prefix('uar')->name('uar.')->group(function () {
+        // Level 1: Application list (UAR SAP, + Add New UAR, etc.)
         Route::get('/',                          [UarController::class, 'index'])->name('index');
+        Route::post('/applications',             [UarController::class, 'storeApplication'])->name('application.store');
+        Route::delete('/applications/{id}',      [UarController::class, 'destroyApplication'])->name('application.destroy');
+
+        // Level 2: Modules table directory for Application (FM, PS, FI, CO, etc.)
+        Route::get('/app/{app}',                 [UarController::class, 'appModules'])->name('app');
+        Route::post('/app/{app}/modules',        [UarController::class, 'storeModule'])->name('module.store');
+        Route::delete('/modules/{id}',           [UarController::class, 'destroyModule'])->name('module.destroy');
+
+        // Level 3: Session list & upload for specific Module
+        Route::get('/app/{app}/{module}',        [UarController::class, 'moduleSessions'])->name('module.sessions');
+
+        // Actions & Imports
         Route::get('/create',                    [UarController::class, 'create'])->name('create');
         Route::post('/import',                   [UarController::class, 'import'])->name('import');
         Route::post('/import-multi',             [UarController::class, 'importMulti'])->name('import-multi');
-        Route::get('/{uarSession}',              [UarController::class, 'show'])->name('show');
+        Route::get('/session/{uarSession}',      [UarController::class, 'show'])->name('session.show');
+        Route::get('/{uarSession}',              [UarController::class, 'show'])->whereNumber('uarSession')->name('show');
         Route::post('/{uarSession}/bulk-accept', [UarController::class, 'bulkAccept'])->name('bulk-accept');
         Route::post('/{uarSession}/complete',    [UarController::class, 'complete'])->name('complete');
         Route::get('/{uarSession}/export-excel', [UarController::class, 'exportExcel'])->name('export-excel');

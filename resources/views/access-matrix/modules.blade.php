@@ -144,15 +144,17 @@
             ['label' => $moduleName],
         ]" />
 
-        {{-- ── Page Header ── --}}
+        {{-- ── Page Hero ── --}}
         <div class="mb-4 animate-in">
-            <h1 style="font-size:1.45rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;">
-                <i class="bi bi-table me-2" style="color:var(--primary);"></i>
-                {{ $type === 'request' ? 'Request Access Matrix Application' : ($type === 'accept' ? 'Accept Application' : 'Approval Access Matrix Application') }}
-            </h1>
-            <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                Select a target application to {{ $type === 'request' ? 'submit and manage requests' : ($type === 'accept' ? 'review TCODEs for' : 'provide final approvals for') }}.
-            </p>
+            <div style="background:linear-gradient(135deg,#071f4d 0%,#0B2E6D 50%,#1e3a8a 100%);border-radius:18px;padding:1.4rem 2rem;position:relative;overflow:hidden;box-shadow:0 8px 20px -4px rgba(11,46,109,.2);">
+                <div style="position:absolute;width:240px;height:240px;background:radial-gradient(circle,rgba(59,130,246,.18) 0%,transparent 70%);border-radius:50%;right:-40px;top:-60px;pointer-events:none;"></div>
+                <div style="position:absolute;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;right:140px;bottom:-30px;pointer-events:none;"></div>
+                <div class="position-relative" style="z-index:1;">
+                    <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin:0;line-height:1.2;letter-spacing:-.4px;">
+                        {{ $type === 'request' ? 'Request Access Matrix Application' : ($type === 'accept' ? 'Accept Application' : 'Approval Access Matrix Application') }}
+                    </h1>
+                </div>
+            </div>
         </div>
 
         {{-- Flash Messages --}}
@@ -200,11 +202,8 @@
                                     </div>
                                     <div>
                                         <h2 style="font-size:1.15rem;font-weight:800;color:{{ $type === 'request' ? 'var(--secondary)' : ($type === 'accept' ? '#f59e0b' : '#E31E24') }};margin:0;">{{ $app->name }}</h2>
-                                        <span style="display:inline-flex;align-items:center;gap:.25rem;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
-                                            <i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> {{ ucfirst($app->status ?? 'Active') }}
-                                        </span>
                                         @if(!empty($app->pending_count) && $app->pending_count > 0)
-                                        <span style="display:inline-flex;align-items:center;gap:.25rem;background:{{ $type === 'request' ? '#f3f4f6' : ($type === 'accept' ? '#fef3c7' : '#fee2e2') }};color:{{ $type === 'request' ? '#4b5563' : ($type === 'accept' ? '#92400e' : '#991b1b') }};border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;margin-left:.25rem;">
+                                        <span style="display:inline-flex;align-items:center;gap:.25rem;background:{{ $type === 'request' ? '#f3f4f6' : ($type === 'accept' ? '#fef3c7' : '#fee2e2') }};color:{{ $type === 'request' ? '#4b5563' : ($type === 'accept' ? '#92400e' : '#991b1b') }};border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
                                             {{ $app->pending_count }} Pending
                                         </span>
                                         @endif
@@ -239,18 +238,15 @@
             @else
                 {{-- Fallback UAM SAP Module Card --}}
                 <div class="col-12 col-md-6 col-xl-4">
-                    <a href="{{ $type === 'request' ? route('access-matrix.request.sap') : ($type === 'accept' ? route('access-matrix.uam-request.sap') : route('access-matrix.approval.sap')) }}" class="module-landing-card">
+                    <a href="{{ $type === 'request' ? route('access-matrix.request.index') : ($type === 'accept' ? route('access-matrix.uam-request.index') : route('access-matrix.approval.index')) }}" class="module-landing-card">
                         <div class="d-flex align-items-center gap-3 mb-3">
                             <div style="width:52px;height:52px;background:{{ $type === 'request' ? 'var(--secondary-light)' : ($type === 'accept' ? '#fffbeb' : '#fde8e9') }};border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                 <i class="bi {{ $type === 'request' ? 'bi-pc-display-horizontal' : ($type === 'accept' ? 'bi-card-checklist' : 'bi-check2-square') }}" style="font-size:1.5rem;color:{{ $type === 'request' ? 'var(--secondary)' : ($type === 'accept' ? '#f59e0b' : '#E31E24') }};"></i>
                             </div>
                             <div>
                                 <h2 style="font-size:1.15rem;font-weight:800;color:{{ $type === 'request' ? 'var(--secondary)' : ($type === 'accept' ? '#f59e0b' : '#E31E24') }};margin:0;">UAM SAP</h2>
-                                <span style="display:inline-flex;align-items:center;gap:.25rem;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
-                                    <i class="bi bi-check-circle-fill" style="font-size:.6rem;"></i> Active
-                                </span>
                                 @if(isset($pendingCount) && $pendingCount > 0)
-                                <span style="display:inline-flex;align-items:center;gap:.25rem;background:{{ $type === 'request' ? '#f3f4f6' : ($type === 'accept' ? '#fef3c7' : '#fee2e2') }};color:{{ $type === 'request' ? '#4b5563' : ($type === 'accept' ? '#92400e' : '#991b1b') }};border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;margin-left:.25rem;">
+                                <span style="display:inline-flex;align-items:center;gap:.25rem;background:{{ $type === 'request' ? '#f3f4f6' : ($type === 'accept' ? '#fef3c7' : '#fee2e2') }};color:{{ $type === 'request' ? '#4b5563' : ($type === 'accept' ? '#92400e' : '#991b1b') }};border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:700;margin-top:.15rem;">
                                     {{ $pendingCount }} Pending
                                 </span>
                                 @endif

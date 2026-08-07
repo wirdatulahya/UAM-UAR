@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Edit UAM Record')
 
@@ -31,7 +31,7 @@
                 <x-breadcrumb :items="[
             ['label' => 'Dashboard', 'url' => route('dashboard')],
             ['label' => 'Request Access Matrix', 'url' => route('access-matrix.request.index')],
-            ['label' => 'UAM SAP', 'url' => route('access-matrix.request.sap')],
+            ['label' => 'UAM SAP', 'url' => route('access-matrix.request.index')],
             ['label' => 'Edit Record'],
         ]" />
 

@@ -79,30 +79,22 @@
         @endphp
         <x-breadcrumb :items="$breadcrumbItems" />
 
-        {{-- ── Page Header ── --}}
-        <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 animate-in" style="gap:1rem;">
-            <div>
-                <h1 style="font-size:1.6rem;font-weight:800;color:var(--secondary);margin:0 0 .2rem;letter-spacing:-.5px;">
-                    {{ $appName }} Module
-                    @if($uamRequest && $uamRequest->module)
-                        <span style="font-size:.75rem;font-weight:600;background:var(--secondary-light);color:var(--secondary);border-radius:20px;padding:.2rem .65rem;vertical-align:middle;margin-left:.5rem;">{{ $uamRequest->module }}</span>
-                    @endif
-                </h1>
-                <p style="font-size:.82rem;color:var(--text-muted);margin:0;">
-                    @if($uamRequest)
-                        Records from request &mdash; {{ $uamRequest->full_period ?: 'N/A' }} &mdash; {{ $uamRequest->record_count }} record(s)
-                    @else
-                        Search by Role to view, add, edit, or delete access records
-                        @if($totalRecords > 0)
-                            &nbsp;·&nbsp; <strong>{{ number_format($totalRecords) }}</strong> records in database
+        {{-- ── Page Hero ── --}}
+        <div class="mb-4 animate-in">
+            <div style="background:linear-gradient(135deg,#071f4d 0%,#0B2E6D 50%,#1e3a8a 100%);border-radius:18px;padding:1.4rem 2rem;position:relative;overflow:hidden;box-shadow:0 8px 20px -4px rgba(11,46,109,.2);">
+                <div style="position:absolute;width:240px;height:240px;background:radial-gradient(circle,rgba(59,130,246,.18) 0%,transparent 70%);border-radius:50%;right:-40px;top:-60px;pointer-events:none;"></div>
+                <div style="position:absolute;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;right:140px;bottom:-30px;pointer-events:none;"></div>
+                <div class="position-relative" style="z-index:1;">
+                    <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin:0;line-height:1.2;letter-spacing:-.4px;display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;">
+                        {{ $appName }} Module
+                        @if($uamRequest && $uamRequest->module)
+                            <span style="font-size:1.1rem;font-weight:800;color:var(--secondary);background:#e0edff;border-radius:10px;padding:.2rem .75rem;display:inline-flex;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(0,0,0,0.12);">{{ $uamRequest->module }}</span>
                         @endif
-                    @endif
-                </p>
+                    </h1>
+                </div>
             </div>
-            
-
-
         </div>
+
 
         {{-- ── Search Bar ── --}}
 
@@ -856,7 +848,7 @@
                                         onmouseleave="this.style.background='var(--secondary)';this.style.transform='none';">
                                     <i class="bi bi-check2-circle" style="font-size:.72rem;"></i> Complete TCODE Review
                                 </button>
-                                <a href="{{ route('access-matrix.approval.sap') }}"
+                                <a href="{{ route('access-matrix.approval.index') }}"
                                    style="display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.38rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.73rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all .18s;white-space:nowrap;"
                                    onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                                    onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">

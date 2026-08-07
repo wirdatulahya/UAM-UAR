@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UamApplication;
+use App\Models\UamModule;
 use App\Models\UamRecord;
 use App\Models\UarRecord;
 use App\Models\UarSession;
@@ -12,6 +14,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -23,45 +26,306 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class UarController extends Controller
 {
     /**
-     * Display a listing of UAR sessions.
+     * Resolve target Application model based on slug or name
+     */
+    public function resolveApp($appParam = null): UamApplication
+    {
+        if (!$appParam || $appParam === 'sap') {
+            $app = UamApplication::where('slug', 'sap')->first();
+            if (!$app) {
+                $app = UamApplication::create([
+                    'name' => 'UAR SAP',
+                    'slug' => 'sap',
+                    'description' => 'Conduct periodic user access review for SAP business modules with automated intelligence.',
+                    'icon' => 'bi-pc-display-horizontal',
+                    'status' => 'active',
+                ]);
+            }
+            return $app;
+        }
+
+        $app = UamApplication::where('slug', $appParam)
+            ->orWhere('name', $appParam)
+            ->first();
+
+        if (!$app) {
+            $app = UamApplication::where('name', 'like', "%{$appParam}%")->first();
+        }
+
+        if (!$app) {
+            $name = strtoupper(str_replace('-', ' ', $appParam));
+            if (!str_starts_with($name, 'UAR ') && !str_starts_with($name, 'UAM ')) {
+                $name = 'UAR ' . $name;
+            }
+            $app = new UamApplication([
+                'name' => $name,
+                'slug' => Str::slug($appParam),
+                'description' => 'Conduct periodic user access review for ' . $name . '.',
+                'icon' => 'bi-pc-display-horizontal',
+                'status' => 'active',
+            ]);
+        }
+        return $app;
+    }
+
+    /**
+     * Get matching application identifier strings
+     */
+    public function getAppIdentifiers(UamApplication $app): array
+    {
+        $names = [$app->name, $app->slug];
+        if (str_starts_with(strtoupper($app->name), 'UAR ')) {
+            $names[] = trim(substr($app->name, 4));
+        } elseif (str_starts_with(strtoupper($app->name), 'UAM ')) {
+            $names[] = trim(substr($app->name, 4));
+        } else {
+            $names[] = 'UAR ' . $app->name;
+            $names[] = 'UAM ' . $app->name;
+        }
+
+        if ($app->slug === 'sap' || strtoupper($app->name) === 'UAR SAP' || strtoupper($app->name) === 'UAM SAP' || strtoupper($app->name) === 'SAP') {
+            $names[] = 'SAP';
+            $names[] = 'UAR SAP';
+            $names[] = 'UAM SAP';
+            $names[] = 'SAP S/4HANA';
+            $names[] = 'S/4HANA';
+        }
+
+        return array_values(array_unique(array_filter($names)));
+    }
+
+    /**
+     * Level 1: Display listing of UAR Applications (Cards View matching UAM)
      */
     public function index(Request $request)
     {
+        $applications = UamApplication::where('status', 'active')->orderBy('id')->get();
+        if ($applications->isEmpty()) {
+            UamApplication::create([
+                'name' => 'UAR SAP',
+                'slug' => 'sap',
+                'description' => 'Conduct periodic user access review for SAP business modules with automated intelligence.',
+                'icon' => 'bi-pc-display-horizontal',
+                'status' => 'active',
+            ]);
+            $applications = UamApplication::where('status', 'active')->orderBy('id')->get();
+        }
+
+        foreach ($applications as $app) {
+            $appIdentifiers = $this->getAppIdentifiers($app);
+            $app->total_sessions = UarSession::whereIn('application', $appIdentifiers)->count();
+            $latestSession = UarSession::whereIn('application', $appIdentifiers)->latest('updated_at')->first();
+            $app->last_updated = $latestSession ? $latestSession->updated_at : null;
+        }
+
+        $lastUpdatedSession = UarSession::orderBy('updated_at', 'desc')->first();
+        $lastUpdated = $lastUpdatedSession ? $lastUpdatedSession->updated_at : null;
+        $totalSessions = UarSession::count();
+
+        return view('uar.applications', compact('applications', 'lastUpdated', 'totalSessions'));
+    }
+
+    /**
+     * Store a new application for UAR
+     */
+    public function storeApplication(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'icon' => 'nullable|string|max:100',
+        ]);
+
+        $slug = Str::slug($request->name);
+        $baseSlug = $slug;
+        $counter = 1;
+        while (UamApplication::where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        UamApplication::create([
+            'name' => trim($request->name),
+            'slug' => $slug,
+            'description' => $request->description ? trim($request->description) : 'Conduct periodic user access review for ' . trim($request->name) . '.',
+            'icon' => $request->icon ?: 'bi-pc-display-horizontal',
+            'status' => 'active',
+            'created_by' => Auth::id(),
+        ]);
+
+        return redirect()->back()->with('success', 'UAR Application "' . trim($request->name) . '" has been successfully registered.');
+    }
+
+    /**
+     * Delete an application and associated UAR sessions
+     */
+    public function destroyApplication($id)
+    {
+        $app = UamApplication::findOrFail($id);
+        $appName = $app->name;
+        $appIdentifiers = $this->getAppIdentifiers($app);
+
+        $sessions = UarSession::whereIn('application', $appIdentifiers)->get();
+        foreach ($sessions as $s) {
+            $s->records()->delete();
+            $s->delete();
+        }
+
+        $app->delete();
+
+        return redirect()->back()->with('success', 'UAR Application "' . $appName . '" has been successfully deleted.');
+    }
+
+    /**
+     * Level 2: Display Module Table Directory for Application (FM, PS, FI, CO, etc.)
+     */
+    public function appModules(Request $request, $app = 'sap')
+    {
+        $currentApp = $this->resolveApp($app ?: $request->input('app', 'sap'));
+        $appIdentifiers = $this->getAppIdentifiers($currentApp);
+
+        // Ensure default modules exist for SAP if table empty
+        if ($currentApp->slug === 'sap' && UamModule::where('application_slug', 'sap')->count() === 0) {
+            $defaultModules = [
+                ['code' => 'FM', 'name' => 'Funds Management', 'description' => 'Review and audit funds management user authorizations and execution rights.'],
+                ['code' => 'PS', 'name' => 'Project System', 'description' => 'Review and audit project planning, execution, and project structure access.'],
+                ['code' => 'FI', 'name' => 'Financial Accounting', 'description' => 'Review general ledger, accounts payable, accounts receivable, and asset accounting.'],
+                ['code' => 'CO', 'name' => 'Controlling', 'description' => 'Review cost centers, internal orders, and profitability analysis access.'],
+                ['code' => 'HR', 'name' => 'Human Capital Management', 'description' => 'Review personnel administration, organizational management, and payroll access.'],
+                ['code' => 'MM', 'name' => 'Materials Management', 'description' => 'Review procurement, inventory, and materials valuation access.'],
+                ['code' => 'SD', 'name' => 'Sales & Distribution', 'description' => 'Review sales orders, shipping, billing, and customer access.'],
+                ['code' => 'PM', 'name' => 'Plant Maintenance', 'description' => 'Review equipment maintenance, work orders, and notification processing.'],
+            ];
+            foreach ($defaultModules as $dm) {
+                UamModule::firstOrCreate(
+                    ['application_slug' => 'sap', 'code' => $dm['code']],
+                    ['name' => $dm['name'], 'description' => $dm['description'], 'status' => 'active']
+                );
+            }
+        }
+
+        $modules = UamModule::where('application_slug', $currentApp->slug)
+            ->where('status', 'active')
+            ->orderBy('code')
+            ->get();
+
+        foreach ($modules as $mod) {
+            $mod->session_count = UarSession::whereIn('application', $appIdentifiers)->where('module', $mod->code)->count();
+            $latestSession = UarSession::whereIn('application', $appIdentifiers)->where('module', $mod->code)->latest('updated_at')->first();
+            $mod->last_updated = $latestSession ? $latestSession->updated_at : null;
+        }
+
+        return view('uar.module-cards', [
+            'currentApp' => $currentApp,
+            'modules' => $modules,
+        ]);
+    }
+
+    /**
+     * Store new module under an application
+     */
+    public function storeModule(Request $request, $app = 'sap')
+    {
+        $currentApp = $this->resolveApp($app ?: $request->input('app', 'sap'));
+
+        $request->validate([
+            'code' => 'required|string|max:50',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $code = strtoupper(trim($request->code));
+
+        if (UamModule::where('application_slug', $currentApp->slug)->where('code', $code)->exists()) {
+            return redirect()->back()->withErrors(['code' => "Module code '{$code}' already exists for this application."]);
+        }
+
+        UamModule::create([
+            'application_slug' => $currentApp->slug,
+            'code' => $code,
+            'name' => trim($request->name),
+            'description' => $request->description ? trim($request->description) : 'Review user authorizations for ' . trim($request->name) . '.',
+            'status' => 'active',
+            'created_by' => Auth::id(),
+        ]);
+
+        return redirect()->back()->with('success', "Module [{$code}] {$request->name} added successfully.");
+    }
+
+    /**
+     * Delete custom module
+     */
+    public function destroyModule($id)
+    {
+        $module = UamModule::findOrFail($id);
+        $code = $module->code;
+        $name = $module->name;
+
+        if (in_array($code, ['FM', 'PS', 'FI', 'CO', 'HR', 'MM', 'SD', 'PM'])) {
+            return redirect()->back()->withErrors(['error' => "Standard module {$code} cannot be deleted."]);
+        }
+
+        $module->delete();
+
+        return redirect()->back()->with('success', "Module [{$code}] {$name} deleted successfully.");
+    }
+
+    /**
+     * Level 3: Display session list & upload workspace for specific Module
+     */
+    public function moduleSessions(Request $request, $app = 'sap', $module = null)
+    {
+        $currentApp = $this->resolveApp($app ?: $request->input('app', 'sap'));
+        $appIdentifiers = $this->getAppIdentifiers($currentApp);
+        $currentModule = $module ?: $request->input('module');
+
+        if (!$currentModule) {
+            return redirect()->route('uar.app', ['app' => $currentApp->slug]);
+        }
+
+        $modInfo = UamModule::where('application_slug', $currentApp->slug)
+            ->where('code', $currentModule)
+            ->first();
+
         $query = UarSession::with('uploader')
             ->withCount([
                 'records as employee_count' => function ($q) {
                     $q->select(DB::raw('COUNT(DISTINCT user_id)'));
                 }
             ])
+            ->whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
             ->latest();
-
-        if ($request->filled('module')) {
-            $query->where('module', $request->module);
-        }
 
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
-                  ->orWhere('module', 'like', "%{$s}%")
                   ->orWhere('bpo', 'like', "%{$s}%")
                   ->orWhere('period', 'like', "%{$s}%");
             });
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         $sessions = $query->paginate(10)->withQueryString();
 
+        // Calculate module-specific stats
+        $sessionIds = UarSession::whereIn('application', $appIdentifiers)
+            ->where('module', $currentModule)
+            ->pluck('id');
+
         $globalStats = [
-            'total_sessions'  => UarSession::count(),
-            'total_employees' => (int) DB::table('uar_records')->distinct('user_id')->count('user_id'),
-            'total_records'   => (int) UarSession::sum('total_records'),
-            'total_active'    => (int) UarSession::sum('total_active'),
-            'total_delete'    => (int) UarSession::sum('total_delete'),
+            'total_sessions'  => $sessionIds->count(),
+            'total_employees' => (int) DB::table('uar_records')->whereIn('uar_session_id', $sessionIds)->distinct('user_id')->count('user_id'),
+            'total_records'   => (int) UarSession::whereIn('id', $sessionIds)->sum('total_records'),
+            'total_active'    => (int) UarSession::whereIn('id', $sessionIds)->sum('total_active'),
+            'total_delete'    => (int) UarSession::whereIn('id', $sessionIds)->sum('total_delete'),
         ];
 
-        $modules = UarSession::distinct()->whereNotNull('module')->pluck('module');
-
-        return view('uar.index', compact('sessions', 'globalStats', 'modules'));
+        return view('uar.module-sessions', compact('sessions', 'globalStats', 'currentApp', 'currentModule', 'modInfo'));
     }
 
     /**
@@ -231,7 +495,7 @@ class UarController extends Controller
             $empCount = $session->records()->distinct('user_id')->count('user_id');
             DB::commit();
 
-            return redirect()->route('uar.index')
+            return redirect()->route('uar.module.sessions', ['app' => Str::slug($application), 'module' => $module])
                 ->with('success', "Excel file imported successfully! A total of {$empCount} employees ({$session->total_records} access items) have been evaluated automatically by the system.");
 
         } catch (\Exception $e) {

@@ -14,17 +14,24 @@
             <button class="btn-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
                 <i class="bi bi-list"></i>
             </button>
-            <x-breadcrumb :items="[
-                ['label' => 'Dashboard', 'url' => route('dashboard')],
-                ['label' => 'User Access Review', 'url' => route('uar.index')],
-                ['label' => $uarSession->name],
-            ]" />
         </div>
         <x-navbar-right />
     </header>
 
     {{-- Main Content --}}
     <main class="flex-grow-1 page-content px-4 py-4">
+
+        @php
+            $appSlug = \Illuminate\Support\Str::slug($uarSession->application ?: 'sap');
+            $appName = $appSlug === 'sap' ? 'UAR SAP' : 'UAR ' . $uarSession->application;
+        @endphp
+        <x-breadcrumb :items="[
+            ['label' => 'Dashboard', 'url' => route('dashboard')],
+            ['label' => 'User Access Review', 'url' => route('uar.index')],
+            ['label' => $appName, 'url' => route('uar.app', ['app' => $appSlug])],
+            ['label' => $uarSession->module, 'url' => route('uar.module.sessions', ['app' => $appSlug, 'module' => $uarSession->module])],
+            ['label' => $uarSession->name],
+        ]" />
 
         {{-- Flash Alerts --}}
         @if (session('success'))
@@ -36,29 +43,22 @@
             </div>
         @endif
 
-        {{-- ── Minimalist Clean Header ───────────────────────────────────────── --}}
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-            <div class="d-flex align-items-center gap-3">
-                <a href="{{ route('uar.index') }}" class="btn btn-sm btn-light bg-white border rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm" style="width:40px;height:40px;flex-shrink:0;" title="Back to Sessions">
-                    <i class="bi bi-arrow-left text-secondary" style="font-size:1.1rem;"></i>
-                </a>
-                <div>
-                    <div class="d-flex align-items-center gap-2.5 flex-wrap">
-                        <h2 class="fw-bold text-dark mb-0" style="font-size:1.45rem;letter-spacing:-.3px;">
+        {{-- ── Page Hero ── --}}
+        <div class="mb-4 animate-in">
+            <div style="background:linear-gradient(135deg,#071f4d 0%,#0B2E6D 50%,#1e3a8a 100%);border-radius:18px;padding:1.4rem 2rem;position:relative;overflow:hidden;box-shadow:0 8px 20px -4px rgba(11,46,109,.2);">
+                <div style="position:absolute;width:240px;height:240px;background:radial-gradient(circle,rgba(59,130,246,.18) 0%,transparent 70%);border-radius:50%;right:-40px;top:-60px;pointer-events:none;"></div>
+                <div style="position:absolute;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;right:140px;bottom:-30px;pointer-events:none;"></div>
+                <div class="d-flex align-items-center gap-3 position-relative" style="z-index:1;">
+                    <a href="{{ route('uar.index') }}" class="btn btn-sm d-inline-flex align-items-center justify-content-center" style="width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:50%;color:#fff;backdrop-filter:blur(8px);" title="Back to Sessions">
+                        <i class="bi bi-arrow-left" style="font-size:1rem;"></i>
+                    </a>
+                    <div>
+                        <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin:0;line-height:1.2;letter-spacing:-.4px;display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;">
                             {{ $uarSession->name }}
-                        </h2>
-                        @if($uarSession->status === 'Completed')
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size:.72rem;">
-                                <i class="bi bi-check-all me-0.5"></i> Completed
-                            </span>
-                        @else
-                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 fw-bold" style="font-size:.72rem;">
-                                In Review
-                            </span>
-                        @endif
-                    </div>
-                    <div class="text-muted small mt-1" style="font-size:.8rem;">
-                        {{ $uarSession->bpo ? "BPO: {$uarSession->bpo} • " : "" }}{{ $uarSession->created_at->format('d M Y') }}
+                            @if($uarSession->status === 'Completed')
+                                <span style="font-size:.75rem;font-weight:700;background:rgba(255,255,255,.2);color:#fff;border-radius:99px;padding:.2rem .7rem;border:1px solid rgba(255,255,255,.3);">Completed</span>
+                            @endif
+                        </h1>
                     </div>
                 </div>
             </div>
@@ -69,7 +69,7 @@
             {{-- Total Roles --}}
             <div class="col-6 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', $uarSession->id) }}" class="text-decoration-none">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ !request('filter') ? 'border-2 border-primary' : '' }}" style="background:#fff;border-left:4px solid #3b82f6 !important;">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ !request('filter') ? 'border-2 border-primary' : '' }}" style="background:#fff;border-left:4px solid #0B2E6D !important;">
                         <div class="text-muted small fw-semibold">Total Roles</div>
                         <div class="fs-4 fw-bold text-dark mt-1" id="statTotal">{{ number_format($summary['total_roles']) }}</div>
                         <div class="text-muted small mt-1" style="font-size:.72rem;">{{ number_format($summary['total_employees']) }} Users</div>
@@ -80,7 +80,7 @@
             {{-- Active Roles --}}
             <div class="col-6 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'active']) }}" class="text-decoration-none">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'active' ? 'border-2 border-success' : '' }}" style="background:#fff;border-left:4px solid #10b981 !important;">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'active' ? 'border-2 border-success' : '' }}" style="background:#fff;border-left:4px solid #0B2E6D !important;">
                         <div class="text-muted small fw-semibold">Active (Retained)</div>
                         <div class="fs-4 fw-bold text-success mt-1" id="statActive">{{ number_format($summary['active_roles']) }}</div>
                         <div class="text-muted small mt-1" style="font-size:.72rem;">Approved Roles</div>
@@ -91,8 +91,8 @@
             {{-- Delete Inactive >90d --}}
             <div class="col-6 col-md-4 col-xl-3">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'delete_90']) }}" class="text-decoration-none">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'delete_90' ? 'border-2 border-danger' : '' }}" style="background:#fff;border-left:4px solid #ef4444 !important;">
-                        <div class="text-muted small fw-semibold">Inactive > 90 Days</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'delete_90' ? 'border-2 border-danger' : '' }}" style="background:#fff;border-left:4px solid #0B2E6D !important;">
+                        <div class="text-muted small fw-semibold">Inactive &gt; 90 Days</div>
                         <div class="fs-4 fw-bold text-danger mt-1" id="statDelete90">{{ number_format($summary['delete_90']) }}</div>
                         <div class="text-muted small mt-1" style="font-size:.72rem;">No Login / Not in Use</div>
                     </div>
@@ -102,7 +102,7 @@
             {{-- Delete UAM Mismatch --}}
             <div class="col-6 col-md-4 col-xl-3">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'delete_uam']) }}" class="text-decoration-none">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'delete_uam' ? 'border-2 border-danger' : '' }}" style="background:#fff;border-left:4px solid #f97316 !important;">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'delete_uam' ? 'border-2 border-danger' : '' }}" style="background:#fff;border-left:4px solid #0B2E6D !important;">
                         <div class="text-muted small fw-semibold">UAM Mismatch</div>
                         <div class="fs-4 fw-bold text-dark mt-1" id="statDeleteUam">{{ number_format($summary['delete_uam']) }}</div>
                         <div class="text-muted small mt-1" style="font-size:.72rem;">Role outside baseline</div>
@@ -113,7 +113,7 @@
             {{-- Overridden / Exceptions --}}
             <div class="col-12 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'overridden']) }}" class="text-decoration-none">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'overridden' ? 'border-2 border-info' : '' }}" style="background:#fff;border-left:4px solid #0ea5e9 !important;">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'overridden' ? 'border-2 border-info' : '' }}" style="background:#fff;border-left:4px solid #0B2E6D !important;">
                         <div class="text-muted small fw-semibold">Manual Override</div>
                         <div class="fs-4 fw-bold text-info-emphasis mt-1" id="statOverridden">{{ number_format($summary['overridden']) }}</div>
                         <div class="text-muted small mt-1" style="font-size:.72rem;">Edited by BPO</div>
@@ -121,6 +121,7 @@
                 </a>
             </div>
         </div>
+
 
         {{-- ── Review Table Card ────────────────────────────────────── --}}
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background:#fff;">
@@ -386,10 +387,10 @@
                                                                         {{ $systemReview }}
                                                                     </span>
                                                                 @else
-                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold" 
+                                                                    <span class="badge px-2 py-1 fw-semibold" 
                                                                           data-bs-toggle="tooltip" 
                                                                           title="{{ $systemNotes ?: 'Flagged for revocation' }}"
-                                                                          style="font-size:.72rem;">
+                                                                          style="font-size:.72rem;background:var(--primary-light);color:var(--primary);border:1px solid rgba(227, 30, 36, 0.2);">
                                                                         {{ $systemReview }}
                                                                     </span>
                                                                 @endif

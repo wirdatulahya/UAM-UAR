@@ -30,7 +30,8 @@
                 <x-breadcrumb :items="[
             ['label' => 'Dashboard', 'url' => route('dashboard')],
             ['label' => 'Approval Access Matrix', 'url' => route('access-matrix.approval.index')],
-            ['label' => $currentApp->name ?? 'UAM SAP'],
+            ['label' => $currentApp->name ?? 'UAM SAP', 'url' => route('access-matrix.approval.app', ['app' => $currentApp->slug ?? 'sap'])],
+            ['label' => $currentModule ?? 'Module'],
         ]" />
 
         {{-- Flash Messages --}}
@@ -56,25 +57,27 @@
             </div>
         @endif
 
-        {{-- Page Header --}}
-        <div class="mb-4 animate-in d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-                <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin:0 0 .2rem;">Approval Access Matrix</h1>
-                <p style="font-size:.88rem;color:var(--text-muted);margin:0;">Final review of {{ $currentApp->name ?? 'access matrix' }} accepted requests</p>
+        {{-- Page Header Hero --}}
+        <div class="mb-4 animate-in">
+            <div style="background:linear-gradient(135deg,#071f4d 0%,#0B2E6D 50%,#1e3a8a 100%);border-radius:18px;padding:1.4rem 2rem;position:relative;overflow:hidden;box-shadow:0 8px 20px -4px rgba(11,46,109,.2);">
+                <div style="position:absolute;width:240px;height:240px;background:radial-gradient(circle,rgba(59,130,246,.18) 0%,transparent 70%);border-radius:50%;right:-40px;top:-60px;pointer-events:none;"></div>
+                <div style="position:absolute;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;right:140px;bottom:-30px;pointer-events:none;"></div>
+                <div class="position-relative" style="z-index:1;">
+                    <div style="display:inline-flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:.2rem .75rem;font-size:.7rem;font-weight:700;color:rgba(255,255,255,.9);letter-spacing:.5px;text-transform:uppercase;margin-bottom:.5rem;">
+                        <i class="bi bi-table" style="color:#60a5fa;"></i>
+                        User Access Matrix
+                    </div>
+                    <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin-bottom:0;line-height:1.2;letter-spacing:-.4px;display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;">
+                        Approval Access Matrix <span style="font-size:1.1rem;font-weight:800;color:var(--secondary);background:#e0edff;border-radius:10px;padding:.2rem .75rem;display:inline-flex;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(0,0,0,0.12);">{{ strtoupper($currentModule) }}</span>
+                    </h1>
+                </div>
             </div>
         </div>
 
         {{-- ── Filters & Search ──────────────────────────────────────────────── --}}
         <div class="d-flex align-items-center justify-content-between mb-4 animate-in animate-in-delay-2" style="gap:1rem;flex-wrap:wrap;">
-            <form method="GET" action="{{ route('access-matrix.approval.app', ['app' => $currentApp->slug ?? 'sap']) }}" id="filterForm"
+            <form method="GET" action="{{ route('access-matrix.approval.module.list', ['app' => $currentApp->slug ?? 'sap', 'module' => $currentModule]) }}" id="filterForm"
                   class="d-flex align-items-center gap-3 flex-wrap" style="flex:1;">
-                <select name="application" class="form-select" style="width:200px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
-                        onchange="document.getElementById('filterForm').submit()">
-                    <option value="">Choose Application</option>
-                    @foreach($availableApplications as $app)
-                        <option value="{{ $app }}" {{ $filterApplication === $app ? 'selected' : '' }}>{{ $app }}</option>
-                    @endforeach
-                </select>
                 <select name="year" class="form-select" style="width:130px;border-radius:8px;font-size:.85rem;color:var(--text-muted);"
                         onchange="document.getElementById('filterForm').submit()">
                     <option value="">Year</option>
@@ -93,8 +96,8 @@
                         style="background:#0066cc;border:none;border-radius:8px;padding:.45rem 1.25rem;font-weight:600;font-size:.85rem;">
                     <i class="bi bi-search" style="font-size:.8rem;"></i> SEARCH
                 </button>
-                @if($filterApplication || $filterYear || $filterPeriod || $search)
-                    <a href="{{ route('access-matrix.approval.app', ['app' => $currentApp->slug ?? 'sap']) }}"
+                @if($filterYear || $filterPeriod || $search)
+                    <a href="{{ route('access-matrix.approval.module.list', ['app' => $currentApp->slug ?? 'sap', 'module' => $currentModule]) }}"
                        style="display:inline-flex;align-items:center;gap:.3rem;padding:.45rem .9rem;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;color:var(--text-muted);text-decoration:none;transition:all var(--transition);"
                        onmouseenter="this.style.borderColor='var(--secondary)';this.style.color='var(--secondary)';"
                        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
@@ -102,8 +105,6 @@
                     </a>
                 @endif
             </form>
-
-
         </div>
 
         {{-- ── Request Table ───────────────────────────────────────────────── --}}
@@ -120,7 +121,7 @@
                             <div style="font-size:.9rem;font-weight:700;color:var(--secondary);">Approval Pending Requests</div>
                             <div style="font-size:.72rem;color:var(--text-muted);">
                                 {{ $requests->count() }} request(s)
-                                @if($filterApplication || $filterYear || $filterPeriod || $search)
+                                @if($filterYear || $filterPeriod || $search)
                                     &nbsp;·&nbsp; <span style="color:var(--secondary);font-weight:600;">Filtered</span>
                                 @else
                                     &nbsp;in total

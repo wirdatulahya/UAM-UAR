@@ -31,7 +31,7 @@
                 <x-breadcrumb :items="[
             ['label' => 'Dashboard', 'url' => route('dashboard')],
             ['label' => 'Request Access Matrix', 'url' => route('access-matrix.request.index')],
-            ['label' => 'UAM SAP', 'url' => route('access-matrix.request.sap')],
+            ['label' => 'UAM SAP', 'url' => route('access-matrix.request.index')],
             ['label' => 'Add Role'],
         ]" />
 

@@ -2,17 +2,24 @@
     <div id="globalToastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
         @php
             $toasts = [];
-            if (session('success')) $toasts[] = ['type' => 'success', 'icon' => 'bi-check-circle-fill text-success', 'message' => session('success')];
-            if (session('error')) $toasts[] = ['type' => 'danger', 'icon' => 'bi-x-circle-fill text-danger', 'message' => session('error')];
-            if (session('warning')) $toasts[] = ['type' => 'warning', 'icon' => 'bi-exclamation-triangle-fill text-warning', 'message' => session('warning')];
-            if (session('info')) $toasts[] = ['type' => 'info', 'icon' => 'bi-info-circle-fill text-info', 'message' => session('info')];
+            $truncate = function($msg) {
+                $pos = strpos($msg, '!');
+                if ($pos !== false) return substr($msg, 0, $pos + 1);
+                $pos = strpos($msg, '.');
+                if ($pos !== false && $pos < 60) return substr($msg, 0, $pos + 1);
+                return strlen($msg) > 60 ? substr($msg, 0, 60) . '…' : $msg;
+            };
+            if (session('success')) $toasts[] = ['type' => 'success', 'icon' => 'bi-check-circle-fill text-success', 'message' => $truncate(session('success'))];
+            if (session('error')) $toasts[] = ['type' => 'danger', 'icon' => 'bi-x-circle-fill text-danger', 'message' => $truncate(session('error'))];
+            if (session('warning')) $toasts[] = ['type' => 'warning', 'icon' => 'bi-exclamation-triangle-fill text-warning', 'message' => $truncate(session('warning'))];
+            if (session('info')) $toasts[] = ['type' => 'info', 'icon' => 'bi-info-circle-fill text-info', 'message' => $truncate(session('info'))];
             
             // Collect the first validation error if any
             if ($errors->any()) {
                 $toasts[] = [
                     'type' => 'danger',
                     'icon' => 'bi-exclamation-circle-fill text-danger',
-                    'message' => $errors->first()
+                    'message' => $truncate($errors->first())
                 ];
             }
         @endphp
