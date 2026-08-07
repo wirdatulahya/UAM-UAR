@@ -69,10 +69,10 @@ class DwhSyncService
                 if (!$nik) continue;
 
                 $nik = trim((string)$nik);
-                $name = trim((string)($empArr['nama'] ?? ($empArr['name'] ?? ($empArr['emp_name'] ?? ''))));
-                $position = trim((string)($empArr['jabatan'] ?? ($empArr['posisi'] ?? ($empArr['position'] ?? ($empArr['job_title'] ?? '')))));
-                $department = trim((string)($empArr['unit'] ?? ($empArr['department'] ?? ($empArr['unit_name'] ?? ''))));
-                $division = trim((string)($empArr['divisi'] ?? ($empArr['division'] ?? ''))));
+                $name = trim((string)($empArr['nama'] ?? $empArr['name'] ?? $empArr['emp_name'] ?? ''));
+                $position = trim((string)($empArr['jabatan'] ?? $empArr['posisi'] ?? $empArr['position'] ?? $empArr['job_title'] ?? ''));
+                $department = trim((string)($empArr['unit'] ?? $empArr['department'] ?? $empArr['unit_name'] ?? ''));
+                $division = trim((string)($empArr['divisi'] ?? $empArr['division'] ?? ''));
 
                 $existingUser = User::where('nik', $nik)->orWhere('username', $nik)->first();
 
@@ -144,7 +144,7 @@ class DwhSyncService
             foreach ($records as $r) {
                 $arr = (array)$r;
                 $nik = trim((string)($arr['nik'] ?? ''));
-                $pos = trim((string)($arr['jabatan'] ?? ($arr['posisi'] ?? ($arr['position'] ?? ''))));
+                $pos = trim((string)($arr['jabatan'] ?? $arr['posisi'] ?? $arr['position'] ?? ''));
                 if ($nik !== '') {
                     $map[$nik] = $pos;
                 }
