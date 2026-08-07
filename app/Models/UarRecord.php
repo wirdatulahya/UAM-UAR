@@ -14,11 +14,15 @@ class UarRecord extends Model
 
     protected $fillable = [
         'uar_session_id',
+        'target_module',
         'user_id',
         'full_name',
         'jabatan',
+        'user_type',
         'role_name',
         'role_description',
+        'role_start_date',
+        'role_end_date',
         'tcode',
         'tcode_description',
         'last_logon',
@@ -27,10 +31,12 @@ class UarRecord extends Model
         'final_review_result',
         'reviewer_notes',
         'is_overridden',
+        'is_unmapped_bpo',
     ];
 
     protected $casts = [
-        'is_overridden' => 'boolean',
+        'is_overridden'   => 'boolean',
+        'is_unmapped_bpo' => 'boolean',
     ];
 
     /**

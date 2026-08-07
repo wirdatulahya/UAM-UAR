@@ -168,6 +168,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/',                          [UarController::class, 'index'])->name('index');
         Route::get('/create',                    [UarController::class, 'create'])->name('create');
         Route::post('/import',                   [UarController::class, 'import'])->name('import');
+        Route::post('/import-multi',             [UarController::class, 'importMulti'])->name('import-multi');
         Route::get('/{uarSession}',              [UarController::class, 'show'])->name('show');
         Route::post('/{uarSession}/bulk-accept', [UarController::class, 'bulkAccept'])->name('bulk-accept');
         Route::post('/{uarSession}/complete',    [UarController::class, 'complete'])->name('complete');

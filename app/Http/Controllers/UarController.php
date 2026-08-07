@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\UarRecord;
 use App\Models\UarSession;
+use App\Models\User;
+use App\Services\UarDataMergeService;
 use App\Services\UarReviewEngine;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -233,6 +235,141 @@ class UarController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withInput()->with('error', 'Failed to process Excel file: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Handle upload of 4 separate raw SAP extract files and auto-merge.
+     */
+    public function importMulti(Request $request)
+    {
+        $request->validate([
+            'file_user_roles'  => 'required|file|mimes:xlsx,xls|max:51200',
+            'file_role_tcodes' => 'required|file|mimes:xlsx,xls|max:51200',
+            'file_tcodes'      => 'required|file|mimes:xlsx,xls|max:51200',
+            'file_logon'       => 'required|file|mimes:xlsx,xls|max:51200',
+            'module'           => 'nullable|string|max:50',
+            'bpo'              => 'nullable|string|max:100',
+            'period'           => 'nullable|string|max:50',
+            'name'             => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $pathUserRoles  = $request->file('file_user_roles')->getRealPath();
+            $pathRoleTcodes = $request->file('file_role_tcodes')->getRealPath();
+            $pathTcodes     = $request->file('file_tcodes')->getRealPath();
+            $pathLogon      = $request->file('file_logon')->getRealPath();
+
+            $targetModule = $request->filled('module') ? strtoupper(trim($request->module)) : 'FM';
+            $bpo          = $request->filled('bpo') ? trim($request->bpo) : ($targetModule . ' BPO');
+            $period       = $request->filled('period') ? trim($request->period) : 'Q' . ceil(now()->month / 3) . ' ' . now()->year;
+            $application  = 'SAP';
+            $sessionName  = $request->filled('name')
+                ? trim($request->name)
+                : "UAR {$application} {$targetModule} - {$period}";
+
+            // 1. Execute 4-File Auto-Merge
+            $mergeResult = UarDataMergeService::mergeFiles(
+                $pathUserRoles,
+                $pathRoleTcodes,
+                $pathTcodes,
+                $pathLogon,
+                $targetModule
+            );
+
+            $mergedRecords = $mergeResult['records'];
+
+            if (empty($mergedRecords)) {
+                return back()->withInput()->with('error', "No matching role records found for Module [{$targetModule}] in the uploaded files. Please verify the module filter or file contents.");
+            }
+
+            // 2. Pre-fetch local User master data for Jabatan & Full Name lookup
+            $userIds = array_unique(array_column($mergedRecords, 'user_id'));
+            $userMasterMap = User::whereIn('nik', $userIds)
+                ->orWhereIn('username', $userIds)
+                ->get()
+                ->keyBy(fn($u) => $u->nik ?: $u->username);
+
+            DB::beginTransaction();
+
+            $session = UarSession::create([
+                'name'         => $sessionName,
+                'application'  => $application,
+                'module'       => $targetModule,
+                'bpo'          => $bpo,
+                'period'       => $period,
+                'status'       => 'In Review',
+                'source_type'  => '4-Files SAP Auto-Merge',
+                'uploaded_by'  => Auth::id(),
+            ]);
+
+            $recordsToInsert = [];
+            $now = now();
+
+            foreach ($mergedRecords as $row) {
+                $uId = $row['user_id'];
+                $matchedUser = $userMasterMap->get($uId);
+
+                $fullName = !empty($row['full_name']) ? $row['full_name'] : ($matchedUser->name ?? '');
+                $jabatan  = $matchedUser->position ?? ($matchedUser->jabatan ?? '');
+
+                $rowPayload = [
+                    'user_id'          => $uId,
+                    'full_name'        => $fullName,
+                    'jabatan'          => $jabatan,
+                    'user_type'        => $row['user_type'],
+                    'role_name'        => $row['role_name'],
+                    'role_description' => $row['role_description'],
+                    'role_start_date'  => $row['role_start_date'],
+                    'role_end_date'    => $row['role_end_date'],
+                    'tcode'            => $row['tcode'],
+                    'tcode_description'=> $row['tcode_description'],
+                    'last_logon'       => $row['last_logon'],
+                ];
+
+                // Execute Automated Review Engine
+                $evaluation = UarReviewEngine::evaluate($rowPayload, $targetModule, $application);
+
+                $recordsToInsert[] = [
+                    'uar_session_id'       => $session->id,
+                    'target_module'        => $row['target_module'],
+                    'user_id'              => $uId,
+                    'full_name'            => $fullName,
+                    'jabatan'              => $jabatan,
+                    'user_type'            => $row['user_type'],
+                    'role_name'            => $row['role_name'],
+                    'role_description'     => $row['role_description'],
+                    'role_start_date'      => $row['role_start_date'],
+                    'role_end_date'        => $row['role_end_date'],
+                    'tcode'                => $row['tcode'],
+                    'tcode_description'    => $row['tcode_description'],
+                    'last_logon'           => $row['last_logon'],
+                    'system_review_result' => $evaluation['result'],
+                    'system_review_notes'  => $evaluation['notes'],
+                    'final_review_result'  => null,
+                    'reviewer_notes'       => null,
+                    'is_overridden'        => false,
+                    'is_unmapped_bpo'      => $row['is_unmapped_bpo'],
+                    'created_at'           => $now,
+                    'updated_at'           => $now,
+                ];
+            }
+
+            // Chunk insert for performance
+            foreach (array_chunk($recordsToInsert, 200) as $chunk) {
+                UarRecord::insert($chunk);
+            }
+
+            $session->refreshStats();
+            $empCount = $session->records()->distinct('user_id')->count('user_id');
+            DB::commit();
+
+            return redirect()->route('uar.show', $session->id)
+                ->with('success', "4 Raw SAP files successfully merged! Total {$empCount} Users and {$session->total_records} Access Records have been evaluated for Module [{$targetModule}].");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Failed to process and merge 4 SAP files: ' . $e->getMessage());
         }
     }
 

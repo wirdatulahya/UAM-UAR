@@ -240,8 +240,16 @@
                                 {{-- User ID & Name --}}
                                 <td class="py-3">
                                     <div class="fw-bold text-dark" style="font-size:.875rem;">{{ $emp->full_name ?: '—' }}</div>
-                                    <div class="font-monospace text-primary small mt-0.5" style="font-size:.75rem;">
-                                        <i class="bi bi-person-badge me-0.5"></i> {{ $emp->user_id ?: '—' }}
+                                    <div class="d-flex align-items-center gap-1.5 font-monospace text-primary small mt-0.5" style="font-size:.75rem;">
+                                        <span><i class="bi bi-person-badge me-0.5"></i> {{ $emp->user_id ?: '—' }}</span>
+                                        @php
+                                            $uType = $empRecords->first()->user_type ?? 'Dialog';
+                                        @endphp
+                                        @if($uType && strcasecmp($uType, 'Dialog') !== 0)
+                                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-1.5 py-0.5" style="font-size:.65rem;" title="Account Type">
+                                                <i class="bi bi-gear-fill me-0.5"></i>{{ $uType }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </td>
 
@@ -350,8 +358,20 @@
                                                         <div class="d-flex align-items-center gap-2">
                                                             <span class="badge bg-primary text-white rounded-pill px-2 py-0.5" style="font-size:.68rem;">ROLE</span>
                                                             <div>
-                                                                <div class="font-monospace fw-bold text-dark" style="font-size:.85rem;">
-                                                                    {{ $roleName ?: '—' }}
+                                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                    <span class="font-monospace fw-bold text-dark" style="font-size:.85rem;">
+                                                                        {{ $roleName ?: '—' }}
+                                                                    </span>
+                                                                    @if(!empty($firstRec->role_end_date))
+                                                                        <span class="badge bg-light text-muted border font-monospace px-1.5 py-0.5" style="font-size:.68rem;" title="Role End Date">
+                                                                            <i class="bi bi-calendar-event me-0.5"></i> Valid to: {{ $firstRec->role_end_date }}
+                                                                        </span>
+                                                                    @endif
+                                                                    @if(!empty($firstRec->is_unmapped_bpo))
+                                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-1.5 py-0.5" style="font-size:.68rem;">
+                                                                            <i class="bi bi-exclamation-triangle-fill me-0.5"></i> Unmapped BPO
+                                                                        </span>
+                                                                    @endif
                                                                 </div>
                                                                 @if($firstRec->role_description)
                                                                     <div class="text-muted small mt-0.5" style="font-size:.74rem;">
