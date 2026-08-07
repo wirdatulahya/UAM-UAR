@@ -446,7 +446,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-dark mb-1">Periode Review</label>
-                                    <input type="text" name="period" class="form-control rounded-3 shadow-none" placeholder="e.g. Q2 2026" value="Q{{ ceil(now()->month / 3) }} {{ now()->year }}">
+                                    <input type="text" name="period" class="form-control rounded-3 shadow-none" placeholder="e.g. Q2.2026" value="Q{{ ceil(now()->month / 3) }}.{{ now()->year }}">
                                 </div>
                             </div>
                         </div>
@@ -481,7 +481,7 @@
                             <div class="mb-2">
                                 <label class="form-label small fw-bold text-dark">Periode Review</label>
                                 <input type="text" name="period" class="form-control rounded-3" 
-                                       placeholder="e.g. Q2 2026" value="Q{{ ceil(now()->month / 3) }} {{ now()->year }}">
+                                       placeholder="e.g. Q2.2026" value="Q{{ ceil(now()->month / 3) }}.{{ now()->year }}">
                             </div>
                         </div>
 

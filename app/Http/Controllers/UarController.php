@@ -112,7 +112,7 @@ class UarController extends Controller
             $application = !empty($appVal) ? $appVal : 'SAP';
             $module      = !empty($modVal) ? $modVal : strtoupper($mainSheetName);
             $bpo         = !empty($bpoVal) ? $bpoVal : 'BPO';
-            $period      = $request->filled('period') ? $request->period : 'Q' . ceil(now()->month / 3) . ' ' . now()->year;
+            $period      = $request->filled('period') ? $request->period : 'Q' . ceil(now()->month / 3) . '.' . now()->year;
             $sessionName = $request->filled('name')
                 ? $request->name
                 : "UAR {$application} {$module} - {$period}";
@@ -262,7 +262,7 @@ class UarController extends Controller
 
             $targetModule = $request->filled('module') ? strtoupper(trim($request->module)) : 'FM';
             $bpo          = $request->filled('bpo') ? trim($request->bpo) : ($targetModule . ' BPO');
-            $period       = $request->filled('period') ? trim($request->period) : 'Q' . ceil(now()->month / 3) . ' ' . now()->year;
+            $period       = $request->filled('period') ? trim($request->period) : 'Q' . ceil(now()->month / 3) . '.' . now()->year;
             $application  = 'SAP';
             $sessionName  = $request->filled('name')
                 ? trim($request->name)
