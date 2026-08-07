@@ -220,13 +220,13 @@
                                 <td class="py-3">
                                     <div class="fw-bold text-dark" style="font-size:.875rem;">{{ $emp->full_name ?: '—' }}</div>
                                     <div class="d-flex align-items-center gap-1.5 font-monospace text-primary small mt-0.5" style="font-size:.75rem;">
-                                        <span><i class="bi bi-person-badge me-0.5"></i> {{ $emp->user_id ?: '—' }}</span>
+                                        <span>{{ $emp->user_id ?: '—' }}</span>
                                         @php
                                             $uType = $empRecords->first()->user_type ?? 'Dialog';
                                         @endphp
                                         @if($uType && strcasecmp($uType, 'Dialog') !== 0)
                                             <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-1.5 py-0.5" style="font-size:.65rem;" title="Account Type">
-                                                <i class="bi bi-gear-fill me-0.5"></i>{{ $uType }}
+                                                {{ $uType }}
                                             </span>
                                         @endif
                                     </div>
@@ -242,7 +242,7 @@
                                 {{-- Access Scope (Roles & TCodes count) --}}
                                 <td class="py-3">
                                     <span class="badge bg-light text-dark border px-2.5 py-1 fw-semibold font-monospace" style="font-size:.74rem;">
-                                        <i class="bi bi-shield-lock text-primary me-1"></i>{{ $emp->total_roles }} Role{{ $emp->total_roles > 1 ? 's' : '' }} &bull; {{ $emp->total_tcodes }} T-Code{{ $emp->total_tcodes > 1 ? 's' : '' }}
+                                        {{ $emp->total_roles }} Role{{ $emp->total_roles > 1 ? 's' : '' }} &bull; {{ $emp->total_tcodes }} T-Code{{ $emp->total_tcodes > 1 ? 's' : '' }}
                                     </span>
                                 </td>
 
@@ -250,7 +250,7 @@
                                 <td class="py-3 text-center">
                                     @if($isInactive)
                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-bold" style="font-size:.72rem;">
-                                            <i class="bi bi-clock-history me-1"></i> Not in Use
+                                            Not in Use
                                         </span>
                                     @else
                                         <span class="badge bg-light text-dark border font-monospace px-2 py-1" style="font-size:.75rem;">
@@ -265,17 +265,17 @@
                                         @if($isAllRolesReviewed)
                                             @if($empActiveRoles > 0)
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;">
-                                                    <i class="bi bi-check-circle-fill me-0.5"></i> {{ $empActiveRoles }} Active
+                                                    {{ $empActiveRoles }} Active
                                                 </span>
                                             @endif
                                             @if($empDeleteRoles > 0)
                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;">
-                                                    <i class="bi bi-trash3-fill me-0.5"></i> {{ $empDeleteRoles }} Delete
+                                                    {{ $empDeleteRoles }} Delete
                                                 </span>
                                             @endif
                                         @elseif($empReviewedCount > 0)
                                             <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size:.72rem;">
-                                                <i class="bi bi-hourglass-split me-0.5"></i> In Progress ({{ $empReviewedCount }}/{{ $totalRolesCount }})
+                                                In Progress ({{ $empReviewedCount }}/{{ $totalRolesCount }})
                                             </span>
                                         @else
                                             <span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size:.72rem;">
@@ -304,7 +304,6 @@
                                         {{-- Header info inside expanded box --}}
                                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
                                             <div class="d-flex align-items-center gap-2">
-                                                <i class="bi bi-person-lines-fill text-primary fs-5"></i>
                                                 <div>
                                                     <span class="fw-bold text-dark" style="font-size:.9rem;">
                                                         Role Access Review for <span class="text-primary">{{ $emp->full_name }}</span>
@@ -343,12 +342,12 @@
                                                                     </span>
                                                                     @if(!empty($firstRec->role_end_date))
                                                                         <span class="badge bg-light text-muted border font-monospace px-1.5 py-0.5" style="font-size:.68rem;" title="Role End Date">
-                                                                            <i class="bi bi-calendar-event me-0.5"></i> Valid to: {{ $firstRec->role_end_date }}
+                                                                            Valid to: {{ $firstRec->role_end_date }}
                                                                         </span>
                                                                     @endif
                                                                     @if(!empty($firstRec->is_unmapped_bpo))
                                                                         <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-1.5 py-0.5" style="font-size:.68rem;">
-                                                                            <i class="bi bi-exclamation-triangle-fill me-0.5"></i> Unmapped BPO
+                                                                            Unmapped BPO
                                                                         </span>
                                                                     @endif
                                                                 </div>
@@ -384,14 +383,14 @@
                                                                           data-bs-toggle="tooltip" 
                                                                           title="{{ $systemNotes ?: 'Active login & valid access' }}"
                                                                           style="font-size:.72rem;">
-                                                                        <i class="bi bi-check-circle-fill me-1"></i> {{ $systemReview }}
+                                                                        {{ $systemReview }}
                                                                     </span>
                                                                 @else
                                                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold" 
                                                                           data-bs-toggle="tooltip" 
                                                                           title="{{ $systemNotes ?: 'Flagged for revocation' }}"
                                                                           style="font-size:.72rem;">
-                                                                        <i class="bi bi-trash3-fill me-1"></i> {{ $systemReview }}
+                                                                        {{ $systemReview }}
                                                                     </span>
                                                                 @endif
                                                             </div>
@@ -667,14 +666,14 @@ document.querySelectorAll('.role-review-dropdown').forEach(function(select) {
                             if (reviewedCount === totalRoles && totalRoles > 0) {
                                 // Semua role sudah diisi keputusannya!
                                 if (activeCount > 0) {
-                                    badgeHtml += `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-check-circle-fill me-0.5"></i> ${activeCount} Active</span> `;
+                                    badgeHtml += `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:.72rem;">${activeCount} Active</span> `;
                                 }
                                 if (deleteCount > 0) {
-                                    badgeHtml += `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-trash3-fill me-0.5"></i> ${deleteCount} Delete</span>`;
+                                    badgeHtml += `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size:.72rem;">${deleteCount} Delete</span>`;
                                 }
                             } else if (reviewedCount > 0) {
                                 // Belum lengkap semua role di-review
-                                badgeHtml = `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size:.72rem;"><i class="bi bi-hourglass-split me-0.5"></i> In Progress (${reviewedCount}/${totalRoles})</span>`;
+                                badgeHtml = `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size:.72rem;">In Progress (${reviewedCount}/${totalRoles})</span>`;
                             } else {
                                 // Belum ada yang di-review
                                 badgeHtml = `<span class="badge bg-secondary-subtle text-secondary border px-2 py-1" style="font-size:.72rem;">Pending Review</span>`;

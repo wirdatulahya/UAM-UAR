@@ -173,10 +173,10 @@
                                 <td class="py-3">
                                     <div class="d-flex justify-content-between small mb-1" style="font-size:.72rem;">
                                         <span class="text-success fw-bold">
-                                            <i class="bi bi-check2"></i> {{ $session->total_active }} Active ({{ $activePct }}%)
+                                            {{ $session->total_active }} Active ({{ $activePct }}%)
                                         </span>
                                         <span class="text-danger fw-bold">
-                                            <i class="bi bi-trash3"></i> {{ $session->total_delete }} Delete ({{ $deletePct }}%)
+                                            {{ $session->total_delete }} Delete ({{ $deletePct }}%)
                                         </span>
                                     </div>
                                     <div class="progress" style="height:6px;background:#fee2e2;border-radius:99px;">
@@ -187,11 +187,11 @@
                                 <td class="py-3 text-center">
                                     @if($session->status === 'Completed')
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-semibold rounded-pill" style="font-size:.75rem;">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Completed
+                                            Completed
                                         </span>
                                     @else
                                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-semibold rounded-pill" style="font-size:.75rem;">
-                                            <i class="bi bi-clock-history me-1"></i> In Review
+                                            In Review
                                         </span>
                                     @endif
                                 </td>
