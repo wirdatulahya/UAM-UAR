@@ -412,8 +412,9 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-dark mb-1">Target Modul BPO <span class="text-danger">*</span></label>
-                            <select name="module" class="form-select rounded-3 shadow-none fw-semibold">
-                                <option value="FM" selected>FM - Funds Management (Roles: ZFM-*)</option>
+                            <select name="module" class="form-select rounded-3 shadow-none fw-semibold" required>
+                                <option value="" disabled selected>-- Pilih Target Modul BPO --</option>
+                                <option value="FM">FM - Funds Management (Roles: ZFM-*)</option>
                                 <option value="PS">PS - Project System (Roles: ZPS-*)</option>
                                 <option value="HR">HR - Human Capital (Roles: ZHR-*, ZHC-*)</option>
                                 <option value="FI">FI - Financial Accounting (Roles: ZFI-*)</option>
@@ -426,8 +427,8 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark mb-1">Periode Review</label>
-                            <input type="text" name="period" class="form-control rounded-3 shadow-none" placeholder="e.g. Q2.2026" value="Q{{ ceil(now()->month / 3) }}.{{ now()->year }}">
+                            <label class="form-label small fw-bold text-dark mb-1">Periode Review <span class="text-danger">*</span></label>
+                            <input type="text" name="period" class="form-control rounded-3 shadow-none" placeholder="e.g. Q2.2026" required>
                         </div>
                     </div>
                 </div>
