@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UamRecord;
 use App\Models\UarRecord;
 use App\Models\UarSession;
 use App\Models\User;
