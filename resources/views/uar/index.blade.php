@@ -330,170 +330,115 @@
 <div class="modal fade" id="uploadUarModal" tabindex="-1" aria-labelledby="uploadUarModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header border-0 pb-0 pt-4 px-4">
-                <div class="d-flex align-items-center gap-3">
-                    <div style="width:44px;height:44px;background:linear-gradient(135deg, #e0edff 0%, #d0e1fd 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#0B2E6D;flex-shrink:0;" class="shadow-sm">
-                        <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+            <form method="POST" action="{{ route('uar.import-multi') }}" enctype="multipart/form-data" id="uarMultiImportForm">
+                @csrf
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;background:linear-gradient(135deg, #e0edff 0%, #d0e1fd 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#0B2E6D;flex-shrink:0;" class="shadow-sm">
+                            <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="uploadUarModalLabel" style="font-size:1.2rem;">
+                                Import User Access Review (UAR)
+                            </h5>
+                            <p class="text-muted small mb-0 mt-0.5">Upload 4 file mentah SAP. Sistem akan otomatis menggabungkan (merge) data dan menjalankan evaluasi rekomendasi review.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h5 class="modal-title fw-bold text-dark mb-0" id="uploadUarModalLabel" style="font-size:1.2rem;">
-                            Import User Access Review (UAR)
-                        </h5>
-                        <p class="text-muted small mb-0 mt-0.5">Pilih metode upload: gabung 4 file mentah SAP secara instan atau upload file yang sudah digabung.</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4 pt-3">
+                    <div class="alert alert-info py-2 px-3 border-0 rounded-3 mb-3 d-flex align-items-center gap-2" style="background:#f0f7ff;color:#0369a1;font-size:.82rem;">
+                        <i class="bi bi-info-circle-fill fs-6 flex-shrink-0"></i>
+                        <span>Sistem otomatis menggabungkan (merge) data User, Role, T-Code, End Date, dan Last Logon, lalu memfilter sesuai modul BPO yang dipilih.</span>
+                    </div>
+
+                    {{-- 4 Files Grid --}}
+                    <div class="row g-3 mb-3">
+                        {{-- 1. LIST_USER_ROLES --}}
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark mb-1">
+                                <i class="bi bi-people text-primary me-1"></i> 1. LIST_USER_ROLES (.xlsx) <span class="text-danger">*</span>
+                            </label>
+                            <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputUserRoles').click();">
+                                <i class="bi bi-file-earmark-person text-primary fs-3 mb-1 d-block"></i>
+                                <div class="fw-semibold text-dark small text-truncate" id="labelUserRoles">Pilih file USER_ROLES</div>
+                                <div class="text-muted" style="font-size:.7rem;">Mapping User, Role & End Date</div>
+                                <input type="file" name="file_user_roles" id="inputUserRoles" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelUserRoles')">
+                            </div>
+                        </div>
+
+                        {{-- 2. LIST_ROLE_TCODES --}}
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark mb-1">
+                                <i class="bi bi-shield-lock text-success me-1"></i> 2. LIST_ROLE_TCODES (.xlsx) <span class="text-danger">*</span>
+                            </label>
+                            <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputRoleTcodes').click();">
+                                <i class="bi bi-file-earmark-lock text-success fs-3 mb-1 d-block"></i>
+                                <div class="fw-semibold text-dark small text-truncate" id="labelRoleTcodes">Pilih file ROLE_TCODES</div>
+                                <div class="text-muted" style="font-size:.7rem;">Relasi Role ke Transaksi T-Code</div>
+                                <input type="file" name="file_role_tcodes" id="inputRoleTcodes" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelRoleTcodes')">
+                            </div>
+                        </div>
+
+                        {{-- 3. LIST_OF_TCODES --}}
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark mb-1">
+                                <i class="bi bi-journal-code text-warning me-1"></i> 3. LIST_OF_TCODES (.xlsx) <span class="text-danger">*</span>
+                            </label>
+                            <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputTcodes').click();">
+                                <i class="bi bi-file-earmark-code text-warning fs-3 mb-1 d-block"></i>
+                                <div class="fw-semibold text-dark small text-truncate" id="labelTcodes">Pilih file OF_TCODES</div>
+                                <div class="text-muted" style="font-size:.7rem;">Master Kamus Deskripsi T-Code</div>
+                                <input type="file" name="file_tcodes" id="inputTcodes" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelTcodes')">
+                            </div>
+                        </div>
+
+                        {{-- 4. LIST_USER_LAST_LOGON --}}
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark mb-1">
+                                <i class="bi bi-clock-history text-danger me-1"></i> 4. LIST_USER_LAST_LOGON (.xlsx) <span class="text-danger">*</span>
+                            </label>
+                            <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputLogon').click();">
+                                <i class="bi bi-file-earmark-medical text-danger fs-3 mb-1 d-block"></i>
+                                <div class="fw-semibold text-dark small text-truncate" id="labelLogon">Pilih file LAST_LOGON</div>
+                                <div class="text-muted" style="font-size:.7rem;">Tanggal Login & Tipe User Dialog/System</div>
+                                <input type="file" name="file_logon" id="inputLogon" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelLogon')">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Target Module & Period --}}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark mb-1">Target Modul BPO <span class="text-danger">*</span></label>
+                            <select name="module" class="form-select rounded-3 shadow-none fw-semibold">
+                                <option value="FM" selected>FM - Funds Management (Roles: ZFM-*)</option>
+                                <option value="PS">PS - Project System (Roles: ZPS-*)</option>
+                                <option value="HR">HR - Human Capital (Roles: ZHR-*, ZHC-*)</option>
+                                <option value="FI">FI - Financial Accounting (Roles: ZFI-*)</option>
+                                <option value="MM">MM - Materials Management (Roles: ZMM-*)</option>
+                                <option value="CO">CO - Controlling (Roles: ZCO-*)</option>
+                                <option value="SD">SD - Sales & Distribution (Roles: ZSD-*)</option>
+                                <option value="PM">PM - Plant Maintenance (Roles: ZPM-*)</option>
+                                <option value="BASIS">BASIS / Security IT (Roles: ZBC-*, SAP_*)</option>
+                                <option value="ALL">ALL - Semua Modul Sekaligus</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark mb-1">Periode Review</label>
+                            <input type="text" name="period" class="form-control rounded-3 shadow-none" placeholder="e.g. Q2.2026" value="Q{{ ceil(now()->month / 3) }}.{{ now()->year }}">
+                        </div>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
 
-            {{-- Nav Tabs --}}
-            <div class="px-4 pt-3">
-                <ul class="nav nav-pills nav-fill bg-light p-1 rounded-3 border" id="uarUploadTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold py-2 rounded-3 text-primary d-flex align-items-center justify-content-center gap-2" id="multi-tab" data-bs-toggle="tab" data-bs-target="#multi-pane" type="button" role="tab">
-                            <i class="bi bi-lightning-charge-fill text-warning fs-6"></i> 4-Files SAP Raw Extract <span class="badge bg-primary text-white ms-1" style="font-size:.68rem;">Auto-Merge</span>
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-semibold py-2 rounded-3 text-secondary d-flex align-items-center justify-content-center gap-2" id="single-tab" data-bs-toggle="tab" data-bs-target="#single-pane" type="button" role="tab">
-                            <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-6"></i> Single Pre-Merged File
-                        </button>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="tab-content">
-                {{-- TAB 1: 4-Files SAP Auto-Merge --}}
-                <div class="tab-pane fade show active" id="multi-pane" role="tabpanel">
-                    <form method="POST" action="{{ route('uar.import-multi') }}" enctype="multipart/form-data" id="uarMultiImportForm">
-                        @csrf
-                        <div class="modal-body p-4 pt-3">
-                            <div class="alert alert-info py-2 px-3 border-0 rounded-3 mb-3 d-flex align-items-center gap-2" style="background:#f0f7ff;color:#0369a1;font-size:.82rem;">
-                                <i class="bi bi-info-circle-fill fs-6 flex-shrink-0"></i>
-                                <span>Sistem akan otomatis menggabungkan (merge/join) data User, Role, T-Code, End Date, dan Last Logon, lalu memfilter sesuai modul BPO yang dipilih.</span>
-                            </div>
-
-                            {{-- 4 Files Grid --}}
-                            <div class="row g-3 mb-3">
-                                {{-- 1. LIST_USER_ROLES --}}
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-dark mb-1">
-                                        <i class="bi bi-people text-primary me-1"></i> 1. LIST_USER_ROLES (.xlsx) <span class="text-danger">*</span>
-                                    </label>
-                                    <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputUserRoles').click();">
-                                        <i class="bi bi-file-earmark-person text-primary fs-3 mb-1 d-block"></i>
-                                        <div class="fw-semibold text-dark small text-truncate" id="labelUserRoles">Pilih file USER_ROLES</div>
-                                        <div class="text-muted" style="font-size:.7rem;">Mapping User, Role & End Date</div>
-                                        <input type="file" name="file_user_roles" id="inputUserRoles" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelUserRoles')">
-                                    </div>
-                                </div>
-
-                                {{-- 2. LIST_ROLE_TCODES --}}
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-dark mb-1">
-                                        <i class="bi bi-shield-lock text-success me-1"></i> 2. LIST_ROLE_TCODES (.xlsx) <span class="text-danger">*</span>
-                                    </label>
-                                    <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputRoleTcodes').click();">
-                                        <i class="bi bi-file-earmark-lock text-success fs-3 mb-1 d-block"></i>
-                                        <div class="fw-semibold text-dark small text-truncate" id="labelRoleTcodes">Pilih file ROLE_TCODES</div>
-                                        <div class="text-muted" style="font-size:.7rem;">Relasi Role ke Transaksi T-Code</div>
-                                        <input type="file" name="file_role_tcodes" id="inputRoleTcodes" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelRoleTcodes')">
-                                    </div>
-                                </div>
-
-                                {{-- 3. LIST_OF_TCODES --}}
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-dark mb-1">
-                                        <i class="bi bi-journal-code text-warning me-1"></i> 3. LIST_OF_TCODES (.xlsx) <span class="text-danger">*</span>
-                                    </label>
-                                    <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputTcodes').click();">
-                                        <i class="bi bi-file-earmark-code text-warning fs-3 mb-1 d-block"></i>
-                                        <div class="fw-semibold text-dark small text-truncate" id="labelTcodes">Pilih file OF_TCODES</div>
-                                        <div class="text-muted" style="font-size:.7rem;">Master Kamus Deskripsi T-Code</div>
-                                        <input type="file" name="file_tcodes" id="inputTcodes" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelTcodes')">
-                                    </div>
-                                </div>
-
-                                {{-- 4. LIST_USER_LAST_LOGON --}}
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-dark mb-1">
-                                        <i class="bi bi-clock-history text-danger me-1"></i> 4. LIST_USER_LAST_LOGON (.xlsx) <span class="text-danger">*</span>
-                                    </label>
-                                    <div class="border rounded-3 p-2 text-center position-relative file-card" style="background:#fafbfc;cursor:pointer;" onclick="document.getElementById('inputLogon').click();">
-                                        <i class="bi bi-file-earmark-medical text-danger fs-3 mb-1 d-block"></i>
-                                        <div class="fw-semibold text-dark small text-truncate" id="labelLogon">Pilih file LAST_LOGON</div>
-                                        <div class="text-muted" style="font-size:.7rem;">Tanggal Login & Tipe User Dialog/System</div>
-                                        <input type="file" name="file_logon" id="inputLogon" class="d-none" accept=".xlsx, .xls" required onchange="setFileNameBadge(this, 'labelLogon')">
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Target Module & Period --}}
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-dark mb-1">Target Modul BPO <span class="text-danger">*</span></label>
-                                    <select name="module" class="form-select rounded-3 shadow-none fw-semibold">
-                                        <option value="FM" selected>FM - Funds Management (Roles: ZFM-*)</option>
-                                        <option value="PS">PS - Project System (Roles: ZPS-*)</option>
-                                        <option value="HR">HR - Human Capital (Roles: ZHR-*, ZHC-*)</option>
-                                        <option value="FI">FI - Financial Accounting (Roles: ZFI-*)</option>
-                                        <option value="MM">MM - Materials Management (Roles: ZMM-*)</option>
-                                        <option value="CO">CO - Controlling (Roles: ZCO-*)</option>
-                                        <option value="SD">SD - Sales & Distribution (Roles: ZSD-*)</option>
-                                        <option value="PM">PM - Plant Maintenance (Roles: ZPM-*)</option>
-                                        <option value="BASIS">BASIS / Security IT (Roles: ZBC-*, SAP_*)</option>
-                                        <option value="ALL">ALL - Semua Modul Sekaligus</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold text-dark mb-1">Periode Review</label>
-                                    <input type="text" name="period" class="form-control rounded-3 shadow-none" placeholder="e.g. Q2.2026" value="Q{{ ceil(now()->month / 3) }}.{{ now()->year }}">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="modal-footer border-0 pt-0 pb-4 px-4">
-                            <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary rounded-3 px-4 fw-bold shadow-sm d-flex align-items-center gap-2" id="btnSubmitMulti">
-                                <i class="bi bi-play-circle-fill"></i> Auto-Merge & Run Review
-                            </button>
-                        </div>
-                    </form>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-3 px-4 fw-bold shadow-sm d-flex align-items-center gap-2" id="btnSubmitMulti">
+                        <i class="bi bi-play-circle-fill"></i> Auto-Merge & Run Review
+                    </button>
                 </div>
-
-                {{-- TAB 2: Single Pre-merged File --}}
-                <div class="tab-pane fade" id="single-pane" role="tabpanel">
-                    <form method="POST" action="{{ route('uar.import') }}" enctype="multipart/form-data" id="uarSingleImportForm">
-                        @csrf
-                        <div class="modal-body p-4 pt-3">
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold text-dark">Pre-Merged UAR Excel File (.xlsx / .xls) <span class="text-danger">*</span></label>
-                                <div class="border border-2 border-dashed rounded-4 p-4 text-center" 
-                                     style="background:#f8fafc;cursor:pointer;border-color:#cbd5e1 !important;"
-                                     onclick="document.getElementById('singleExcelFileInput').click();">
-                                    <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-1 mb-2 d-block"></i>
-                                    <div class="fw-semibold text-dark mb-1" id="singleFileLabel">Pilih file atau drag & drop ke sini</div>
-                                    <div class="text-muted small">Contoh format: <code>Hasil UAR Modul FM.xlsx</code></div>
-                                    <input type="file" name="excel_file" id="singleExcelFileInput" class="d-none" accept=".xlsx, .xls" required
-                                           onchange="updateSingleFileName(this)">
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="form-label small fw-bold text-dark">Periode Review</label>
-                                <input type="text" name="period" class="form-control rounded-3" 
-                                       placeholder="e.g. Q2.2026" value="Q{{ ceil(now()->month / 3) }}.{{ now()->year }}">
-                            </div>
-                        </div>
-
-                        <div class="modal-footer border-0 pt-0 pb-4 px-4">
-                            <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary rounded-3 px-4 fw-bold shadow-sm" id="btnSubmitSingle">
-                                Upload & Run Review
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
@@ -503,11 +448,6 @@
     background: #f0f7ff !important;
     border-color: #0d6efd !important;
     transition: all 0.2s ease-in-out;
-}
-.nav-pills .nav-link.active {
-    background-color: #ffffff;
-    color: #0d6efd !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 </style>
 
@@ -521,22 +461,10 @@ function setFileNameBadge(input, labelId) {
     }
 }
 
-function updateSingleFileName(input) {
-    if (input.files && input.files[0]) {
-        document.getElementById('singleFileLabel').innerHTML = '<span class="text-primary fw-bold">' + input.files[0].name + '</span> (' + (input.files[0].size / 1024).toFixed(1) + ' KB)';
-    }
-}
-
 document.getElementById('uarMultiImportForm').addEventListener('submit', function() {
     const btn = document.getElementById('btnSubmitMulti');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Menggabungkan 4 File & Mengevaluasi...';
-});
-
-document.getElementById('uarSingleImportForm').addEventListener('submit', function() {
-    const btn = document.getElementById('btnSubmitSingle');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Processing...';
 });
 </script>
 
