@@ -68,28 +68,24 @@
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #3b82f6 !important;">
                     <div class="text-muted small fw-semibold">Total Audit Sessions</div>
                     <div class="fs-3 fw-bolder text-dark mt-1 mb-0">{{ number_format($globalStats['total_sessions']) }}</div>
-                    <div class="text-muted small mt-1" style="font-size:.72rem;">All UAR Batches</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #6366f1 !important;">
                     <div class="text-muted small fw-semibold">Total Employees</div>
                     <div class="fs-3 fw-bolder text-dark mt-1 mb-0">{{ number_format($globalStats['total_employees']) }}</div>
-                    <div class="text-muted small mt-1" style="font-size:.72rem;">{{ number_format($globalStats['total_records']) }} Access Items</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #10b981 !important;">
                     <div class="text-muted small fw-semibold">Active (Retained)</div>
                     <div class="fs-3 fw-bolder text-success mt-1 mb-0">{{ number_format($globalStats['total_active']) }}</div>
-                    <div class="text-muted small mt-1" style="font-size:.72rem;">Approved Employees</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #ef4444 !important;">
                     <div class="text-muted small fw-semibold">Revoke / Delete</div>
                     <div class="fs-3 fw-bolder text-danger mt-1 mb-0">{{ number_format($globalStats['total_delete']) }}</div>
-                    <div class="text-muted small mt-1" style="font-size:.72rem;">Flagged for Deletion</div>
                 </div>
             </div>
         </div>
@@ -123,8 +119,12 @@
                             <option value="Completed" {{ request('status') === 'Completed' ? 'selected' : '' }}>Completed</option>
                         </select>
                     </div>
-                    <div class="col-md-12 col-lg-3 text-lg-end text-muted small mt-2 mt-lg-0">
-                        Showing {{ $sessions->total() }} audit session(s)
+                    <div class="col-12 col-md-3 text-md-end">
+                        <button type="button" class="btn btn-sm text-white px-3 py-2 fw-semibold rounded-3 shadow-xs" 
+                                style="background: linear-gradient(135deg, #0B2E6D 0%, #1a4d9e 100%); font-size:.825rem;"
+                                data-bs-toggle="modal" data-bs-target="#uploadUarModal">
+                            <i class="bi bi-cloud-arrow-up-fill me-1.5"></i> Import New UAR
+                        </button>
                     </div>
                 </form>
             </div>
@@ -136,7 +136,7 @@
                         <tr class="text-uppercase text-muted small fw-bold" style="font-size:.73rem;letter-spacing:.5px;">
                             <th class="ps-4 py-3" style="width:260px;">Session & Module</th>
                             <th class="py-3">BPO & Period</th>
-                            <th class="py-3 text-center" style="width:140px;">Scope (Employees)</th>
+                            <th class="py-3 text-center" style="width:120px;">Employees</th>
                             <th class="py-3" style="width:220px;">Decision Ratio</th>
                             <th class="py-3 text-center" style="width:120px;">Status</th>
                             <th class="py-3">Created By</th>
@@ -176,7 +176,6 @@
                                 </td>
                                 <td class="py-3 text-center">
                                     <span class="fw-bold text-dark fs-6">{{ number_format($empCount) }}</span>
-                                    <div class="text-muted" style="font-size:.72rem;">Employees ({{ number_format($session->total_records) }} items)</div>
                                 </td>
                                 <td class="py-3">
                                     <div class="d-flex justify-content-between small mb-1" style="font-size:.72rem;">
