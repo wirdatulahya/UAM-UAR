@@ -36,52 +36,45 @@
             </div>
         @endif
 
-        {{-- ── Session Header & Action Toolbar ──────────────────────── --}}
-        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4" style="background:#fff;">
-            <div class="row align-items-center justify-content-between g-3">
-                <div class="col-lg-8">
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                        <a href="{{ route('uar.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 me-1">
-                            &larr; Back to Sessions
-                        </a>
-                        <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold">
-                            {{ $uarSession->application }} &bull; Modul {{ $uarSession->module }}
-                        </span>
-                        <span class="badge rounded-pill bg-light text-dark border px-2.5 py-1">
-                            BPO: {{ $uarSession->bpo ?: '—' }}
-                        </span>
-                        <span class="badge rounded-pill bg-light text-muted border px-2.5 py-1">
-                            {{ $uarSession->period }}
-                        </span>
-                        @if($uarSession->status === 'Completed')
-                            <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold">
-                                <i class="bi bi-check-all"></i> Completed
-                            </span>
-                        @else
-                            <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 fw-bold">
-                                <i class="bi bi-hourglass-split"></i> In Review
-                            </span>
-                        @endif
-                    </div>
-                    <h2 class="fw-bold text-dark mb-1" style="font-size:1.5rem;letter-spacing:-.3px;">
-                        {{ $uarSession->name }}
-                    </h2>
-                    <p class="text-muted small mb-0">
-                        Uploaded by <span class="fw-semibold text-dark">{{ $uarSession->uploader->name ?? 'System' }}</span> on {{ $uarSession->created_at->format('d M Y, H:i') }} &bull; Source: <span class="fw-medium">{{ $uarSession->source_type }}</span> &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_employees']) }}</span> Users &bull; <span class="fw-semibold text-dark">{{ number_format($summary['total_roles']) }}</span> Roles ({{ number_format($summary['total_records']) }} T-Codes)
-                    </p>
-                </div>
+        {{-- ── Session Header ───────────────────────────────────────── --}}
+        <div class="card border rounded-4 p-4 mb-4 shadow-sm" style="background:#fff;border-color:#e2e8f0 !important;">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5">
+                <a href="{{ route('uar.index') }}" class="btn btn-sm btn-light border rounded-pill px-3 py-1 text-secondary fw-semibold d-inline-flex align-items-center gap-1.5" style="font-size:.78rem;">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Back to Sessions</span>
+                </a>
+                <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-bold font-monospace" style="font-size:.72rem;">
+                    {{ $uarSession->application }} &bull; Modul {{ $uarSession->module }}
+                </span>
+                <span class="badge rounded-pill bg-light text-secondary border px-2.5 py-1" style="font-size:.72rem;">
+                    BPO: {{ $uarSession->bpo ?: '—' }}
+                </span>
+                <span class="badge rounded-pill bg-light text-muted border px-2.5 py-1" style="font-size:.72rem;">
+                    {{ $uarSession->period }}
+                </span>
+                @if($uarSession->status === 'Completed')
+                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style="font-size:.72rem;">
+                        <i class="bi bi-check-all me-0.5"></i> Completed
+                    </span>
+                @else
+                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 fw-bold" style="font-size:.72rem;">
+                        <i class="bi bi-hourglass-split me-0.5"></i> In Review
+                    </span>
+                @endif
+            </div>
 
-                {{-- Action Buttons --}}
-                <div class="col-lg-4 text-lg-end">
-                    <div class="d-inline-flex flex-wrap gap-2">
-                        <a href="{{ route('uar.export-excel', $uarSession->id) }}" class="btn btn-sm btn-outline-success rounded-3 px-3 py-2 fw-semibold">
-                            <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
-                        </a>
-                        <a href="{{ route('uar.export-pdf', $uarSession->id) }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-3 px-3 py-2 fw-semibold">
-                            <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
-                        </a>
-                    </div>
-                </div>
+            <h2 class="fw-bold text-dark mb-1.5" style="font-size:1.5rem;letter-spacing:-.3px;">
+                {{ $uarSession->name }}
+            </h2>
+
+            <div class="text-muted small d-flex flex-wrap align-items-center gap-2" style="font-size:.82rem;">
+                <span>Uploaded by <strong class="text-dark">{{ $uarSession->uploader->name ?? 'System' }}</strong> on {{ $uarSession->created_at->format('d M Y, H:i') }}</span>
+                <span>&bull;</span>
+                <span>Source: <span class="fw-medium text-dark">{{ $uarSession->source_type }}</span></span>
+                <span>&bull;</span>
+                <span><strong class="text-dark">{{ number_format($summary['total_employees']) }}</strong> Users</span>
+                <span>&bull;</span>
+                <span><strong class="text-dark">{{ number_format($summary['total_roles']) }}</strong> Roles ({{ number_format($summary['total_records']) }} T-Codes)</span>
             </div>
         </div>
 
