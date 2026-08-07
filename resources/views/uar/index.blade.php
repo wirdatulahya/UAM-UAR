@@ -337,27 +337,19 @@
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <form method="POST" action="{{ route('uar.import-multi') }}" enctype="multipart/form-data" id="uarMultiImportForm">
                 @csrf
-                <div class="modal-header border-0 pb-0 pt-4 px-4">
-                    <div class="d-flex align-items-center gap-3">
-                        <div style="width:44px;height:44px;background:linear-gradient(135deg, #e0edff 0%, #d0e1fd 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#0B2E6D;flex-shrink:0;" class="shadow-sm">
-                            <i class="bi bi-cloud-arrow-up-fill fs-4"></i>
+                <div class="modal-header border-0 pb-2 pt-4 px-4">
+                    <div class="d-flex align-items-center gap-2.5">
+                        <div style="width:38px;height:38px;background:linear-gradient(135deg, #e0edff 0%, #d0e1fd 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#0B2E6D;flex-shrink:0;">
+                            <i class="bi bi-cloud-arrow-up-fill fs-5"></i>
                         </div>
-                        <div>
-                            <h5 class="modal-title fw-bold text-dark mb-0" id="uploadUarModalLabel" style="font-size:1.2rem;">
-                                Import User Access Review (UAR)
-                            </h5>
-                            <p class="text-muted small mb-0 mt-0.5">Upload 4 file mentah SAP. Sistem akan otomatis menggabungkan (merge) data dan menjalankan evaluasi rekomendasi review.</p>
-                        </div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="uploadUarModalLabel" style="font-size:1.15rem;">
+                            Import User Access Review (UAR)
+                        </h5>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <div class="modal-body p-4 pt-3">
-                    <div class="alert alert-info py-2 px-3 border-0 rounded-3 mb-3 d-flex align-items-center gap-2" style="background:#f0f7ff;color:#0369a1;font-size:.82rem;">
-                        <i class="bi bi-info-circle-fill fs-6 flex-shrink-0"></i>
-                        <span>Sistem otomatis menggabungkan (merge) data User, Role, T-Code, End Date, dan Last Logon, lalu memfilter sesuai modul BPO yang dipilih.</span>
-                    </div>
-
+                <div class="modal-body p-4 pt-2">
                     {{-- 4 Files Grid --}}
                     <div class="row g-3 mb-3">
                         {{-- 1. LIST_USER_ROLES --}}
