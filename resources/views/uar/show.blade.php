@@ -69,10 +69,10 @@
             {{-- Total Roles --}}
             <div class="col-6 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', $uarSession->id) }}" class="text-decoration-none">
-                    <div class="card border rounded-3 p-3 h-100 transition-all {{ !request('filter') ? 'border-dark bg-light' : 'bg-white' }}" style="border-color:#e2e8f0 !important;box-shadow:none;">
-                        <div class="text-muted small fw-medium">Total Roles</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ !request('filter') ? 'border-2 border-primary' : '' }}" style="background:#fff;border-left:4px solid #3b82f6 !important;">
+                        <div class="text-muted small fw-semibold">Total Roles</div>
                         <div class="fs-4 fw-bold text-dark mt-1" id="statTotal">{{ number_format($summary['total_roles']) }}</div>
-                        <div class="text-muted small" style="font-size:.75rem;">{{ number_format($summary['total_employees']) }} Users</div>
+                        <div class="text-muted small mt-1" style="font-size:.72rem;">{{ number_format($summary['total_employees']) }} Users</div>
                     </div>
                 </a>
             </div>
@@ -80,10 +80,10 @@
             {{-- Active Roles --}}
             <div class="col-6 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'active']) }}" class="text-decoration-none">
-                    <div class="card border rounded-3 p-3 h-100 transition-all {{ request('filter') === 'active' ? 'border-dark bg-light' : 'bg-white' }}" style="border-color:#e2e8f0 !important;box-shadow:none;">
-                        <div class="text-muted small fw-medium">Active (Retained)</div>
-                        <div class="fs-4 fw-bold text-dark mt-1" id="statActive">{{ number_format($summary['active_roles']) }}</div>
-                        <div class="text-muted small" style="font-size:.75rem;">Approved Roles</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'active' ? 'border-2 border-success' : '' }}" style="background:#fff;border-left:4px solid #10b981 !important;">
+                        <div class="text-muted small fw-semibold">Active (Retained)</div>
+                        <div class="fs-4 fw-bold text-success mt-1" id="statActive">{{ number_format($summary['active_roles']) }}</div>
+                        <div class="text-muted small mt-1" style="font-size:.72rem;">Approved Roles</div>
                     </div>
                 </a>
             </div>
@@ -91,10 +91,10 @@
             {{-- Delete Inactive >90d --}}
             <div class="col-6 col-md-4 col-xl-3">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'delete_90']) }}" class="text-decoration-none">
-                    <div class="card border rounded-3 p-3 h-100 transition-all {{ request('filter') === 'delete_90' ? 'border-dark bg-light' : 'bg-white' }}" style="border-color:#e2e8f0 !important;box-shadow:none;">
-                        <div class="text-muted small fw-medium">Inactive > 90 Days</div>
-                        <div class="fs-4 fw-bold text-dark mt-1" id="statDelete90">{{ number_format($summary['delete_90']) }}</div>
-                        <div class="text-muted small" style="font-size:.75rem;">No Login / Not in Use</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'delete_90' ? 'border-2 border-danger' : '' }}" style="background:#fff;border-left:4px solid #ef4444 !important;">
+                        <div class="text-muted small fw-semibold">Inactive > 90 Days</div>
+                        <div class="fs-4 fw-bold text-danger mt-1" id="statDelete90">{{ number_format($summary['delete_90']) }}</div>
+                        <div class="text-muted small mt-1" style="font-size:.72rem;">No Login / Not in Use</div>
                     </div>
                 </a>
             </div>
@@ -102,10 +102,10 @@
             {{-- Delete UAM Mismatch --}}
             <div class="col-6 col-md-4 col-xl-3">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'delete_uam']) }}" class="text-decoration-none">
-                    <div class="card border rounded-3 p-3 h-100 transition-all {{ request('filter') === 'delete_uam' ? 'border-dark bg-light' : 'bg-white' }}" style="border-color:#e2e8f0 !important;box-shadow:none;">
-                        <div class="text-muted small fw-medium">UAM Mismatch</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'delete_uam' ? 'border-2 border-danger' : '' }}" style="background:#fff;border-left:4px solid #f97316 !important;">
+                        <div class="text-muted small fw-semibold">UAM Mismatch</div>
                         <div class="fs-4 fw-bold text-dark mt-1" id="statDeleteUam">{{ number_format($summary['delete_uam']) }}</div>
-                        <div class="text-muted small" style="font-size:.75rem;">Role outside baseline</div>
+                        <div class="text-muted small mt-1" style="font-size:.72rem;">Role outside baseline</div>
                     </div>
                 </a>
             </div>
@@ -113,10 +113,10 @@
             {{-- Overridden / Exceptions --}}
             <div class="col-12 col-md-4 col-xl-2">
                 <a href="{{ route('uar.show', [$uarSession->id, 'filter' => 'overridden']) }}" class="text-decoration-none">
-                    <div class="card border rounded-3 p-3 h-100 transition-all {{ request('filter') === 'overridden' ? 'border-dark bg-light' : 'bg-white' }}" style="border-color:#e2e8f0 !important;box-shadow:none;">
-                        <div class="text-muted small fw-medium">Manual Override</div>
-                        <div class="fs-4 fw-bold text-dark mt-1" id="statOverridden">{{ number_format($summary['overridden']) }}</div>
-                        <div class="text-muted small" style="font-size:.75rem;">Edited by BPO</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100 transition-all {{ request('filter') === 'overridden' ? 'border-2 border-info' : '' }}" style="background:#fff;border-left:4px solid #0ea5e9 !important;">
+                        <div class="text-muted small fw-semibold">Manual Override</div>
+                        <div class="fs-4 fw-bold text-info-emphasis mt-1" id="statOverridden">{{ number_format($summary['overridden']) }}</div>
+                        <div class="text-muted small mt-1" style="font-size:.72rem;">Edited by BPO</div>
                     </div>
                 </a>
             </div>

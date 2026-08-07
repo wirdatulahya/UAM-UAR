@@ -66,49 +66,29 @@
         <div class="row g-3 mb-4">
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #3b82f6 !important;">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="text-muted small fw-semibold">Total Audit Sessions</span>
-                        <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background:#eff6ff;color:#2563eb;width:34px;height:34px;">
-                            <i class="bi bi-folder2-open fs-6"></i>
-                        </div>
-                    </div>
-                    <div class="fs-3 fw-bolder text-dark mb-0">{{ number_format($globalStats['total_sessions']) }}</div>
+                    <div class="text-muted small fw-semibold">Total Audit Sessions</div>
+                    <div class="fs-3 fw-bolder text-dark mt-1 mb-0">{{ number_format($globalStats['total_sessions']) }}</div>
                     <div class="text-muted small mt-1" style="font-size:.72rem;">All UAR Batches</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #6366f1 !important;">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="text-muted small fw-semibold">Total Employees</span>
-                        <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background:#eef2ff;color:#4f46e5;width:34px;height:34px;">
-                            <i class="bi bi-people-fill fs-6"></i>
-                        </div>
-                    </div>
-                    <div class="fs-3 fw-bolder text-dark mb-0">{{ number_format($globalStats['total_employees']) }}</div>
+                    <div class="text-muted small fw-semibold">Total Employees</div>
+                    <div class="fs-3 fw-bolder text-dark mt-1 mb-0">{{ number_format($globalStats['total_employees']) }}</div>
                     <div class="text-muted small mt-1" style="font-size:.72rem;">{{ number_format($globalStats['total_records']) }} Access Items</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #10b981 !important;">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="text-muted small fw-semibold">Active (Retained)</span>
-                        <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background:#ecfdf5;color:#059669;width:34px;height:34px;">
-                            <i class="bi bi-check-circle-fill fs-6"></i>
-                        </div>
-                    </div>
-                    <div class="fs-3 fw-bolder text-success mb-0">{{ number_format($globalStats['total_active']) }}</div>
+                    <div class="text-muted small fw-semibold">Active (Retained)</div>
+                    <div class="fs-3 fw-bolder text-success mt-1 mb-0">{{ number_format($globalStats['total_active']) }}</div>
                     <div class="text-muted small mt-1" style="font-size:.72rem;">Approved Employees</div>
                 </div>
             </div>
             <div class="col-6 col-lg-3">
                 <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="background:#fff;border-left:4px solid #ef4444 !important;">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="text-muted small fw-semibold">Revoke / Delete</span>
-                        <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background:#fef2f2;color:#dc2626;width:34px;height:34px;">
-                            <i class="bi bi-trash3-fill fs-6"></i>
-                        </div>
-                    </div>
-                    <div class="fs-3 fw-bolder text-danger mb-0">{{ number_format($globalStats['total_delete']) }}</div>
+                    <div class="text-muted small fw-semibold">Revoke / Delete</div>
+                    <div class="fs-3 fw-bolder text-danger mt-1 mb-0">{{ number_format($globalStats['total_delete']) }}</div>
                     <div class="text-muted small mt-1" style="font-size:.72rem;">Flagged for Deletion</div>
                 </div>
             </div>
