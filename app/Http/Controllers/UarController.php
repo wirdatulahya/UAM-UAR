@@ -50,18 +50,12 @@ class UarController extends Controller
 
         $sessions = $query->paginate(10)->withQueryString();
 
-        $empSummaryQuery = DB::table('uar_records')
-            ->select('uar_session_id', 'user_id', 'full_name')
-            ->selectRaw('MAX(final_review_result) as employee_review')
-            ->groupBy('uar_session_id', 'user_id', 'full_name')
-            ->get();
-
         $globalStats = [
             'total_sessions'  => UarSession::count(),
-            'total_employees' => $empSummaryQuery->count(),
+            'total_employees' => (int) DB::table('uar_records')->distinct('user_id')->count('user_id'),
             'total_records'   => (int) UarSession::sum('total_records'),
-            'total_active'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Active'))->count(),
-            'total_delete'    => $empSummaryQuery->filter(fn($e) => str_starts_with($e->employee_review ?? '', 'Delete'))->count(),
+            'total_active'    => (int) UarSession::sum('total_active'),
+            'total_delete'    => (int) UarSession::sum('total_delete'),
         ];
 
         $modules = UarSession::distinct()->whereNotNull('module')->pluck('module');
@@ -94,21 +88,23 @@ class UarController extends Controller
         try {
             $reader = IOFactory::createReaderForFile($filePath);
             $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
             $spreadsheet = $reader->load($filePath);
 
             $sheetNames = $spreadsheet->getSheetNames();
             $mainSheetName = $sheetNames[0] ?? 'UAR';
             $sheet = $spreadsheet->getSheetByName($mainSheetName);
+            $data = $sheet->toArray(null, true, false, true);
+            unset($spreadsheet, $reader, $sheet);
 
             // 1. Extract Top Metadata
             // Row 2: Aplikasi: SAP
             // Row 3: Modul: FM
             // Row 4: BPO: FPCA
-            $appVal = trim((string)$sheet->getCell('B2')->getValue());
-            $modVal = trim((string)$sheet->getCell('B3')->getValue());
-            $bpoVal = trim((string)$sheet->getCell('B4')->getValue());
+            $appVal = trim((string)($data[2]['B'] ?? ''));
+            $modVal = trim((string)($data[3]['B'] ?? ''));
+            $bpoVal = trim((string)($data[4]['B'] ?? ''));
 
-            // If coordinates were empty, try parsing sheet name or fallbacks
             $application = !empty($appVal) ? $appVal : 'SAP';
             $module      = !empty($modVal) ? $modVal : strtoupper($mainSheetName);
             $bpo         = !empty($bpoVal) ? $bpoVal : 'BPO';
@@ -117,21 +113,27 @@ class UarController extends Controller
                 ? $request->name
                 : "UAR {$application} {$module} - {$period}";
 
-            // 2. Locate Data Rows (find table header row where Column A is USER_ID or Column D is ROLE_NAME)
-            $highestRow = $sheet->getHighestRow();
-            $headerRow = 6;
-            for ($r = 1; $r <= min(20, $highestRow); $r++) {
-                $cellA = strtolower(trim((string)$sheet->getCell('A' . $r)->getValue()));
-                $cellD = strtolower(trim((string)$sheet->getCell('D' . $r)->getValue()));
-                $cellF = strtolower(trim((string)$sheet->getCell('F' . $r)->getValue()));
+            // Prewarm Review Engine caches
+            UarReviewEngine::prewarm($module);
+            $context = [
+                'inactive_user_ids' => User::where('account_status', 'inactive')->pluck('nik')->filter()->flip()->all(),
+                'uam_roles' => UamRecord::where('module', $module)->pluck('role')->filter()->flip()->all(),
+            ];
 
-                // Ignore "User Access Review" title row in cell A1 and metadata rows (Aplikasi, Modul, BPO)
+            // 2. Locate Data Rows
+            $headerRowIndex = 6;
+            foreach ($data as $rNum => $row) {
+                if ($rNum > 20) break;
+                $cellA = strtolower(trim((string)($row['A'] ?? '')));
+                $cellD = strtolower(trim((string)($row['D'] ?? '')));
+                $cellF = strtolower(trim((string)($row['F'] ?? '')));
+
                 if (str_contains($cellA, 'user access') || str_starts_with($cellA, 'aplikasi') || str_starts_with($cellA, 'modul') || str_starts_with($cellA, 'bpo')) {
                     continue;
                 }
 
                 if ($cellA === 'user_id' || $cellA === 'user id' || $cellA === 'nik' || $cellD === 'role_name' || $cellF === 'tcode') {
-                    $headerRow = $r;
+                    $headerRowIndex = $rNum;
                     break;
                 }
             }
@@ -152,23 +154,23 @@ class UarController extends Controller
             $recordsToInsert = [];
             $now = now();
 
-            for ($r = $headerRow + 1; $r <= $highestRow; $r++) {
-                $userId   = trim((string)$sheet->getCell('A' . $r)->getValue());
-                $fullName = trim((string)$sheet->getCell('B' . $r)->getValue());
-                $jabatan  = trim((string)$sheet->getCell('C' . $r)->getValue());
-                $roleName = trim((string)$sheet->getCell('D' . $r)->getValue());
-                $roleDesc = trim((string)$sheet->getCell('E' . $r)->getValue());
-                $tcode    = trim((string)$sheet->getCell('F' . $r)->getValue());
-                $tcodeDesc= trim((string)$sheet->getCell('G' . $r)->getValue());
-                $lastLogon= trim((string)$sheet->getCell('H' . $r)->getValue());
-                $existingReview = trim((string)$sheet->getCell('I' . $r)->getValue());
+            foreach ($data as $rNum => $row) {
+                if ($rNum <= $headerRowIndex) continue;
 
-                // Skip completely blank rows
+                $userId   = trim((string)($row['A'] ?? ''));
+                $fullName = trim((string)($row['B'] ?? ''));
+                $jabatan  = trim((string)($row['C'] ?? ''));
+                $roleName = trim((string)($row['D'] ?? ''));
+                $roleDesc = trim((string)($row['E'] ?? ''));
+                $tcode    = trim((string)($row['F'] ?? ''));
+                $tcodeDesc= trim((string)($row['G'] ?? ''));
+                $lastLogon= trim((string)($row['H'] ?? ''));
+                $existingReview = trim((string)($row['I'] ?? ''));
+
                 if ($userId === '' && $roleName === '' && $fullName === '') {
                     continue;
                 }
 
-                // Skip header metadata rows (Aplikasi, Modul, BPO, USER_ID, Full Name, etc.)
                 $lowerUserId   = strtolower($userId);
                 $lowerFullName = strtolower($fullName);
                 $lowerRole     = strtolower($roleName);
@@ -179,7 +181,6 @@ class UarController extends Controller
                     continue;
                 }
 
-                // Row data payload
                 $rowPayload = [
                     'user_id'          => $userId,
                     'full_name'        => $fullName,
@@ -191,8 +192,7 @@ class UarController extends Controller
                     'last_logon'       => $lastLogon,
                 ];
 
-                // Execute Automated Review Engine
-                $evaluation = UarReviewEngine::evaluate($rowPayload, $module, $application);
+                $evaluation = UarReviewEngine::evaluate($rowPayload, $module, $application, $context);
 
                 $finalResult = (!empty($existingReview) && array_key_exists($existingReview, UarRecord::REVIEW_OPTIONS))
                     ? $existingReview
@@ -219,9 +219,10 @@ class UarController extends Controller
                     'updated_at'           => $now,
                 ];
             }
+            unset($data);
 
             // Chunk insert for high performance
-            foreach (array_chunk($recordsToInsert, 100) as $chunk) {
+            foreach (array_chunk($recordsToInsert, 500) as $chunk) {
                 UarRecord::insert($chunk);
             }
 
@@ -298,6 +299,13 @@ class UarController extends Controller
                 ->get()
                 ->keyBy(fn($u) => $u->nik ?: $u->username);
 
+            // Prewarm Review Engine caches
+            UarReviewEngine::prewarm($targetModule);
+            $context = [
+                'inactive_user_ids' => User::where('account_status', 'inactive')->pluck('nik')->filter()->flip()->all(),
+                'uam_roles' => UamRecord::where('module', $targetModule)->pluck('role')->filter()->flip()->all(),
+            ];
+
             DB::beginTransaction();
 
             $session = UarSession::create([
@@ -335,8 +343,8 @@ class UarController extends Controller
                     'last_logon'       => $row['last_logon'],
                 ];
 
-                // Execute Automated Review Engine
-                $evaluation = UarReviewEngine::evaluate($rowPayload, $targetModule, $application);
+                // Execute Automated Review Engine with context (in-memory O(1))
+                $evaluation = UarReviewEngine::evaluate($rowPayload, $targetModule, $application, $context);
 
                 $recordsToInsert[] = [
                     'uar_session_id'       => $session->id,
@@ -364,7 +372,7 @@ class UarController extends Controller
             }
 
             // Chunk insert for performance
-            foreach (array_chunk($recordsToInsert, 200) as $chunk) {
+            foreach (array_chunk($recordsToInsert, 500) as $chunk) {
                 UarRecord::insert($chunk);
             }
 
@@ -432,16 +440,16 @@ class UarController extends Controller
         // Get detailed records for current page employees grouped by employee then by role
         $detailedRecords = collect();
         if ($employees->isNotEmpty()) {
+            $empIds = $employees->pluck('user_id')->filter()->unique()->values()->all();
+            $empNames = $employees->pluck('full_name')->filter()->unique()->values()->all();
+
             $detailedRecords = $uarSession->records()
-                ->where(function($q) use ($employees) {
-                    foreach ($employees as $emp) {
-                        $q->orWhere(function($subQ) use ($emp) {
-                            if (!empty($emp->user_id)) {
-                                $subQ->where('user_id', $emp->user_id);
-                            } else {
-                                $subQ->where('full_name', $emp->full_name);
-                            }
-                        });
+                ->where(function($q) use ($empIds, $empNames) {
+                    if (!empty($empIds)) {
+                        $q->whereIn('user_id', $empIds);
+                    }
+                    if (!empty($empNames)) {
+                        $q->orWhereIn('full_name', $empNames);
                     }
                 })
                 ->orderBy('role_name')
@@ -452,25 +460,23 @@ class UarController extends Controller
                 });
         }
 
-        // Role-level summary counts
-        $roleSummaryQuery = $uarSession->records()
-            ->select('user_id', 'full_name', 'role_name')
-            ->selectRaw('MAX(final_review_result) as role_review')
-            ->selectRaw('MAX(system_review_result) as system_review')
-            ->selectRaw('MAX(is_overridden) as has_override')
-            ->groupBy('user_id', 'full_name', 'role_name')
+        // Role-level summary counts (lightweight scalar fetch)
+        $roleReviews = DB::table('uar_records')
+            ->where('uar_session_id', $uarSession->id)
+            ->select('user_id', 'full_name', 'role_name', 'final_review_result', 'system_review_result', 'is_overridden')
+            ->distinct()
             ->get();
 
         $summary = [
             'total_records'       => $uarSession->total_records,
-            'total_roles'         => $roleSummaryQuery->count(),
-            'total_employees'     => $uarSession->records()->distinct('user_id')->count('user_id') ?: $uarSession->records()->distinct('full_name')->count('full_name'),
-            'active_roles'        => $roleSummaryQuery->filter(fn($e) => str_starts_with($e->role_review ?? '', 'Active'))->count(),
-            'delete_roles'        => $roleSummaryQuery->filter(fn($e) => str_starts_with($e->role_review ?? '', 'Delete'))->count(),
-            'delete_90'           => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - for not logging in > 90 day')->count(),
-            'delete_mutation'     => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - due to mutation and/or promotion/ retirement')->count(),
-            'delete_uam'          => $roleSummaryQuery->filter(fn($e) => ($e->role_review ?? '') === 'Delete - because it doesn’t match UAM')->count(),
-            'overridden'          => $roleSummaryQuery->filter(fn($e) => (bool)$e->has_override)->count(),
+            'total_roles'         => $roleReviews->count(),
+            'total_employees'     => $roleReviews->pluck('user_id')->filter()->unique()->count() ?: $roleReviews->pluck('full_name')->filter()->unique()->count(),
+            'active_roles'        => $roleReviews->filter(fn($e) => str_starts_with($e->final_review_result ?? '', 'Active'))->count(),
+            'delete_roles'        => $roleReviews->filter(fn($e) => str_starts_with($e->final_review_result ?? '', 'Delete'))->count(),
+            'delete_90'           => $roleReviews->filter(fn($e) => ($e->final_review_result ?? '') === 'Delete - for not logging in > 90 day')->count(),
+            'delete_mutation'     => $roleReviews->filter(fn($e) => ($e->final_review_result ?? '') === 'Delete - due to mutation and/or promotion/ retirement')->count(),
+            'delete_uam'          => $roleReviews->filter(fn($e) => ($e->final_review_result ?? '') === 'Delete - because it doesn’t match UAM')->count(),
+            'overridden'          => $roleReviews->filter(fn($e) => (bool)$e->is_overridden)->count(),
         ];
 
         $reviewOptions = UarRecord::REVIEW_OPTIONS;

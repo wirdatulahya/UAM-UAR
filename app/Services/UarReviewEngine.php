@@ -8,15 +8,50 @@ use Carbon\Carbon;
 
 class UarReviewEngine
 {
+    private static ?array $cachedInactiveUsers = null;
+    private static array $cachedUamRoles = [];
+    private static array $cachedHasModuleRecords = [];
+
+    /**
+     * Pre-warm caches for bulk evaluation.
+     */
+    public static function prewarm(string $module = ''): void
+    {
+        if (self::$cachedInactiveUsers === null) {
+            self::$cachedInactiveUsers = User::where('account_status', 'inactive')
+                ->pluck('nik')
+                ->filter()
+                ->flip()
+                ->all();
+        }
+
+        if ($module !== '' && !isset(self::$cachedHasModuleRecords[$module])) {
+            $roles = UamRecord::where('module', $module)->pluck('role')->filter()->flip()->all();
+            self::$cachedHasModuleRecords[$module] = !empty($roles);
+            self::$cachedUamRoles[$module] = $roles;
+        }
+    }
+
+    /**
+     * Reset static caches.
+     */
+    public static function clearCache(): void
+    {
+        self::$cachedInactiveUsers = null;
+        self::$cachedUamRoles = [];
+        self::$cachedHasModuleRecords = [];
+    }
+
     /**
      * Evaluate a single UAR row against business rules and return recommendation.
      *
      * @param array  $row    ['user_id', 'full_name', 'jabatan', 'user_type', 'role_name', 'tcode', 'last_logon', 'role_end_date', ...]
      * @param string $module Module name (e.g. 'FM', 'PS', 'SAP')
      * @param string $app    Application name (e.g. 'SAP')
+     * @param array  $context Optional pre-loaded cache context for extreme speed
      * @return array ['result' => string, 'notes' => string, 'rule' => string]
      */
-    public static function evaluate(array $row, string $module = 'FM', string $app = 'SAP'): array
+    public static function evaluate(array $row, string $module = 'FM', string $app = 'SAP', array $context = []): array
     {
         $lastLogon = trim((string)($row['last_logon'] ?? ''));
         $roleName  = trim((string)($row['role_name'] ?? ''));
@@ -69,8 +104,21 @@ class UarReviewEngine
         // RULE 3: Employee HC Status / Mutation / Inactive Check
         // ─────────────────────────────────────────────────────────────
         if (!empty($userId)) {
-            $user = User::where('nik', $userId)->orWhere('username', $userId)->first();
-            if ($user && strtolower($user->account_status ?? '') === 'inactive') {
+            $isInactive = false;
+            if (isset($context['inactive_user_ids'])) {
+                $isInactive = isset($context['inactive_user_ids'][$userId]);
+            } else {
+                if (self::$cachedInactiveUsers === null) {
+                    self::$cachedInactiveUsers = User::where('account_status', 'inactive')
+                        ->pluck('nik')
+                        ->filter()
+                        ->flip()
+                        ->all();
+                }
+                $isInactive = isset(self::$cachedInactiveUsers[$userId]);
+            }
+
+            if ($isInactive) {
                 return [
                     'result' => 'Delete - due to mutation and/or promotion/ retirement',
                     'notes'  => "Employee status is inactive / transferred / retired in HC master (ID: {$userId}).",
@@ -83,7 +131,7 @@ class UarReviewEngine
         // RULE 4: UAM Matrix Baseline Compliance Check
         // ─────────────────────────────────────────────────────────────
         if (!empty($roleName) && !empty($module)) {
-            $uamCheck = self::checkUamCompliance($roleName, $module, $tcode, $jabatan);
+            $uamCheck = self::checkUamCompliance($roleName, $module, $tcode, $jabatan, $context);
             if ($uamCheck['violates']) {
                 return [
                     'result' => 'Delete - because it doesn’t match UAM',
@@ -171,23 +219,32 @@ class UarReviewEngine
     /**
      * Check if the role exists in the approved UAM baseline matrix.
      */
-    private static function checkUamCompliance(string $roleName, string $module, string $tcode = '', string $jabatan = ''): array
+    private static function checkUamCompliance(string $roleName, string $module, string $tcode = '', string $jabatan = '', array $context = []): array
     {
         if ($module === 'ALL' || $module === '') {
             return ['violates' => false, 'reason' => ''];
         }
 
-        // Check if there are baseline records for this module in uam_records
-        $hasModuleRecords = UamRecord::where('module', $module)->exists();
-        if (!$hasModuleRecords) {
-            // If no baseline has been uploaded yet for this module, don't penalize
-            return ['violates' => false, 'reason' => ''];
-        }
+        // Use context if provided, else static cache
+        if (isset($context['uam_roles'])) {
+            $hasModuleRecords = !empty($context['uam_roles']);
+            if (!$hasModuleRecords) {
+                return ['violates' => false, 'reason' => ''];
+            }
+            $roleExists = isset($context['uam_roles'][$roleName]);
+        } else {
+            if (!isset(self::$cachedHasModuleRecords[$module])) {
+                $roles = UamRecord::where('module', $module)->pluck('role')->filter()->flip()->all();
+                self::$cachedHasModuleRecords[$module] = !empty($roles);
+                self::$cachedUamRoles[$module] = $roles;
+            }
 
-        // Match by role name
-        $roleExists = UamRecord::where('module', $module)
-            ->where('role', $roleName)
-            ->exists();
+            if (!self::$cachedHasModuleRecords[$module]) {
+                return ['violates' => false, 'reason' => ''];
+            }
+
+            $roleExists = isset(self::$cachedUamRoles[$module][$roleName]);
+        }
 
         if (!$roleExists) {
             return [

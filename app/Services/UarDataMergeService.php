@@ -36,38 +36,34 @@ class UarDataMergeService
         if (file_exists($pathLogon)) {
             $reader = IOFactory::createReaderForFile($pathLogon);
             $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
             $spreadsheet = $reader->load($pathLogon);
             $sheet = $spreadsheet->getActiveSheet();
-            $highestRow = $sheet->getHighestRow();
+            $data = $sheet->toArray(null, true, false, true);
+            unset($spreadsheet, $reader, $sheet);
 
-            // Find header row (usually row 22, look for cell containing 'User' and 'Last Logon')
-            $headerRow = 22;
-            for ($r = 1; $r <= min(30, $highestRow); $r++) {
-                $valA = trim((string)$sheet->getCell('A' . $r)->getValue());
-                if (strcasecmp($valA, 'User') === 0 || strcasecmp($valA, 'User Name') === 0) {
-                    $headerRow = $r;
-                    break;
+            $headerFound = false;
+            foreach ($data as $row) {
+                $valA = trim((string)($row['A'] ?? ''));
+                if (!$headerFound) {
+                    if (strcasecmp($valA, 'User') === 0 || strcasecmp($valA, 'User Name') === 0) {
+                        $headerFound = true;
+                    }
+                    continue;
                 }
-            }
 
-            for ($r = $headerRow + 1; $r <= $highestRow; $r++) {
-                $user = trim((string)$sheet->getCell('A' . $r)->getValue());
-                if ($user === '') continue;
+                if ($valA === '') continue;
 
-                $userTypeRaw = trim((string)$sheet->getCell('C' . $r)->getValue());
-                $logonRaw    = $sheet->getCell('H' . $r)->getValue();
+                $userTypeRaw = trim((string)($row['C'] ?? ''));
+                $logonRaw    = $row['H'] ?? null;
 
-                // Format Logon Date
                 $logonFormatted = self::formatDateValue($logonRaw);
-
-                // Clean User Type (e.g., "A Dialog" -> "Dialog", "B System" -> "System")
                 $userTypeClean = self::normalizeUserType($userTypeRaw);
 
-                $userLogonMap[$user] = $logonFormatted ?: 'Not in use';
-                $userTypeMap[$user]  = $userTypeClean;
+                $userLogonMap[$valA] = $logonFormatted ?: 'Not in use';
+                $userTypeMap[$valA]  = $userTypeClean;
             }
-            unset($spreadsheet, $reader, $sheet);
-            gc_collect_cycles();
+            unset($data);
         }
 
         // ─────────────────────────────────────────────────────────────
@@ -77,19 +73,25 @@ class UarDataMergeService
         if (file_exists($pathTcodes)) {
             $reader = IOFactory::createReaderForFile($pathTcodes);
             $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
             $spreadsheet = $reader->load($pathTcodes);
             $sheet = $spreadsheet->getActiveSheet();
-            $highestRow = $sheet->getHighestRow();
+            $data = $sheet->toArray(null, true, false, true);
+            unset($spreadsheet, $reader, $sheet);
 
-            for ($r = 2; $r <= $highestRow; $r++) {
-                $tcode = trim((string)$sheet->getCell('B' . $r)->getValue());
-                $desc  = trim((string)$sheet->getCell('C' . $r)->getValue());
+            $isFirst = true;
+            foreach ($data as $row) {
+                if ($isFirst) {
+                    $isFirst = false;
+                    continue;
+                }
+                $tcode = trim((string)($row['B'] ?? ''));
+                $desc  = trim((string)($row['C'] ?? ''));
                 if ($tcode !== '') {
                     $tcodeDescMap[$tcode] = $desc;
                 }
             }
-            unset($spreadsheet, $reader, $sheet);
-            gc_collect_cycles();
+            unset($data);
         }
 
         // ─────────────────────────────────────────────────────────────
@@ -99,19 +101,25 @@ class UarDataMergeService
         if (file_exists($pathRoleTcodes)) {
             $reader = IOFactory::createReaderForFile($pathRoleTcodes);
             $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
             $spreadsheet = $reader->load($pathRoleTcodes);
             $sheet = $spreadsheet->getActiveSheet();
-            $highestRow = $sheet->getHighestRow();
+            $data = $sheet->toArray(null, true, false, true);
+            unset($spreadsheet, $reader, $sheet);
 
-            for ($r = 2; $r <= $highestRow; $r++) {
-                $role  = trim((string)$sheet->getCell('A' . $r)->getValue());
-                $tcode = trim((string)$sheet->getCell('G' . $r)->getValue());
+            $isFirst = true;
+            foreach ($data as $row) {
+                if ($isFirst) {
+                    $isFirst = false;
+                    continue;
+                }
+                $role  = trim((string)($row['A'] ?? ''));
+                $tcode = trim((string)($row['G'] ?? ''));
                 if ($role !== '' && $tcode !== '') {
                     $roleTcodesMap[$role][$tcode] = true;
                 }
             }
-            unset($spreadsheet, $reader, $sheet);
-            gc_collect_cycles();
+            unset($data);
         }
 
         // ─────────────────────────────────────────────────────────────
@@ -124,17 +132,24 @@ class UarDataMergeService
         if (file_exists($pathUserRoles)) {
             $reader = IOFactory::createReaderForFile($pathUserRoles);
             $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
             $spreadsheet = $reader->load($pathUserRoles);
             $sheet = $spreadsheet->getActiveSheet();
-            $highestRow = $sheet->getHighestRow();
+            $data = $sheet->toArray(null, true, false, true);
+            unset($spreadsheet, $reader, $sheet);
 
-            for ($r = 2; $r <= $highestRow; $r++) {
-                $userId    = trim((string)$sheet->getCell('A' . $r)->getValue());
-                $fullName  = trim((string)$sheet->getCell('B' . $r)->getValue());
-                $roleName  = trim((string)$sheet->getCell('C' . $r)->getValue());
-                $startDate = self::formatDateValue($sheet->getCell('G' . $r)->getValue());
-                $endDate   = self::formatDateValue($sheet->getCell('H' . $r)->getValue());
-                $roleDesc  = trim((string)$sheet->getCell('I' . $r)->getValue());
+            $isFirst = true;
+            foreach ($data as $row) {
+                if ($isFirst) {
+                    $isFirst = false;
+                    continue;
+                }
+                $userId    = trim((string)($row['A'] ?? ''));
+                $fullName  = trim((string)($row['B'] ?? ''));
+                $roleName  = trim((string)($row['C'] ?? ''));
+                $startDate = self::formatDateValue($row['G'] ?? null);
+                $endDate   = self::formatDateValue($row['H'] ?? null);
+                $roleDesc  = trim((string)($row['I'] ?? ''));
 
                 if ($userId === '' || $roleName === '') continue;
 
@@ -173,8 +188,7 @@ class UarDataMergeService
                     ];
                 }
             }
-            unset($spreadsheet, $reader, $sheet);
-            gc_collect_cycles();
+            unset($data);
         }
 
         return [
